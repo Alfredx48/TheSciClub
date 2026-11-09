@@ -82,11 +82,26 @@ try {
     email = await waitFor(() => visible(ofType('XCUIElementTypeTextField')), 10000);
   }
   if (!email) throw new Error('no email box on the sign-in screen');
+  // Type, then close the keyboard as a member would: it covers the password box, and a tap there hits a key.
+  const closeKeyboard = async () => {
+    if (await driver.isKeyboardShown().catch(() => false)) {
+      const done = await driver.$(
+        `-ios predicate string:type == 'XCUIElementTypeButton' AND label IN {'Done', 'Return', 'return', 'Next', 'next', 'Go', 'go'}`,
+      );
+      if (await done.isExisting()) await done.click();
+      else await driver.hideKeyboard().catch(() => {});
+      await sleep(800);
+    }
+  };
   await email.click();
   await email.setValue(process.env.LT_EMAIL);
+  await closeKeyboard();
   const password = await ofType('XCUIElementTypeSecureTextField');
   await password.click();
   await password.setValue(process.env.LT_PASSWORD);
+  await closeKeyboard();
+  const typed = await email.getAttribute('value');
+  if (typed !== process.env.LT_EMAIL) note(`email box reads "${typed}", not the robot's address`);
   await shot('01-sign-in');
   const signIn = await visible(byLabel('XCUIElementTypeButton', '\\s*sign in\\s*'));
   if (!signIn) throw new Error('no "Sign in" button');
