@@ -103,8 +103,9 @@ jobs:
 
       - name: Start Appium
         run: |
-          npm install -g appium@2
-          appium driver install xcuitest
+          # Appium 3 with the last driver line made for it (13.x needs Appium 4, still beta).
+          npm install -g appium@3.9.0
+          appium driver install xcuitest@12.22.8
           (appium --log appium.log --log-level warn &) 
           for i in $(seq 1 30); do curl -sf http://127.0.0.1:4723/status >/dev/null && break; sleep 2; done
 
