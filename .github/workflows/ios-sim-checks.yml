@@ -82,10 +82,15 @@ jobs:
 
       - name: Build for the Simulator, unsigned
         working-directory: ios/App
+        # Twice at most: a package download from GitHub can fail once (504 on Nov 8). pipefail, so a failed
+        # build fails the step even with its output cut to the last lines.
         run: |
-          xcodebuild build -project App.xcodeproj -scheme App -configuration Debug \
+          set -o pipefail
+          build() { xcodebuild build -project App.xcodeproj -scheme App -configuration Debug \
             -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' \
-            -derivedDataPath build CODE_SIGNING_ALLOWED=NO | tail -20
+            -derivedDataPath build CODE_SIGNING_ALLOWED=NO | tail -20; }
+          build || { echo "build failed once; trying again in 30 s"; sleep 30; build; }
+          test -d build/Build/Products/Debug-iphonesimulator/App.app
 
       # An iPhone with the on-screen keyboard (not the Mac's), so the keyboard check sees it.
       - name: Boot an iPhone and install the app
