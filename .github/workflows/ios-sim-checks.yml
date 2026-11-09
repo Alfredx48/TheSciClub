@@ -1,6 +1,7 @@
 # Robot checks of the store app in the iPhone Simulator, against a TEST Supabase project, never the club's.
 # Builds the app as ios-build-check.yml does, points it at the test project, boots a Simulator and runs
-# .github/ios-sim/check.mjs through Appium: sign in, the main pages, the keyboard over a conversation's box.
+# .github/ios-sim/check.mjs through Appium, as VoiceOver sees the app: sign in, each tab, the keyboard over a
+# conversation's box.
 # Screenshots and report.json are the run's artifact.
 #
 # Needs these secrets in Alfredx48/TheSciClub (the owner's word, 2026-11-08):
@@ -74,13 +75,9 @@ jobs:
           pnpm build:native
           if grep -rq "$PROD_REF" dist-native; then echo "the build names production"; exit 1; fi
 
-      # This test build only: lets Appium read the app's web view (WKWebView isInspectable). Never the store build.
       - name: Sync
         run: |
-          sed -i '' "s/^  ios: {/  ios: {\n    webContentsDebuggingEnabled: true,/" capacitor.config.ts
-          grep -q "webContentsDebuggingEnabled: true" capacitor.config.ts
           pnpm exec cap sync ios
-          grep -q '"webContentsDebuggingEnabled": true' ios/App/App/capacitor.config.json
           node scripts/check-native-build.mjs
 
       - name: Build for the Simulator, unsigned

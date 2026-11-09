@@ -1,10 +1,10 @@
 // iPhone checks in the Simulator (ios-sim-checks.yml): the store app, built against a TEST project, driven
-// through Appium. A robot member signs in with email, opens the main pages, taps into a conversation and
-// checks the keyboard leaves the message box in view. Fails on page errors, a page stuck on "Loading…",
-// a blank page, or a box under the keyboard. Screenshots and report.json go to ./out for the run's artifact.
+// through Appium the way VoiceOver sees it (the accessibility tree), not by reading the web page: Appium
+// can't attach to the iOS 26 Simulator's web view. A robot member signs in with email, opens each tab,
+// opens a conversation and checks the keyboard leaves the message box in view. Fails on a page stuck on
+// "Loading…", a tab with nothing on it, or a box under the keyboard. Screenshots and report.json go to ./out.
 //
-// Env: LT_EMAIL, LT_PASSWORD (a test robot), UDID (the booted Simulator). Never the live club: the
-// workflow builds against the test project's secrets and refuses production's address.
+// Env: LT_EMAIL, LT_PASSWORD (a test robot), UDID (the booted Simulator).
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { remote } from 'webdriverio';
 
@@ -36,181 +36,142 @@ const driver = await remote({
     'appium:newCommandTimeout': 240,
     'appium:wdaLaunchTimeout': 600000,
     'appium:wdaConnectionTimeout': 600000,
-    'appium:webviewConnectTimeout': 30000,
-    'appium:includeSafariInWebviews': false,
   },
 });
 
-async function shot(name) {
-  await driver.switchContext('NATIVE_APP');
-  await driver.saveScreenshot(`${OUT}/${name}.png`);
-  await toWeb();
-}
-async function toWeb() {
-  for (let i = 0; i < 90; i++) {
-    const all = await driver.getContexts();
-    if (i % 15 === 0) console.log(`contexts: ${JSON.stringify(all)}`);
-    const web = all.find((c) => String(c.id ?? c).startsWith('WEBVIEW'));
-    if (web) {
-      await driver.switchContext(String(web.id ?? web));
-      return;
-    }
-    await sleep(1000);
-  }
-  throw new Error("the app's web view never appeared");
-}
-const text = () =>
-  driver.execute(() => (document.getElementById('main') ?? document.body).innerText.trim());
-const errors = () => driver.execute(() => (window.__iosErrors ?? []).splice(0));
-const watchErrors = () =>
-  driver.execute(() => {
-    if (window.__iosErrors) return;
-    window.__iosErrors = [];
-    addEventListener('error', (e) => window.__iosErrors.push(String(e.message)));
-    addEventListener('unhandledrejection', (e) =>
-      window.__iosErrors.push(`unhandled: ${String(e.reason?.message ?? e.reason)}`),
-    );
-  });
-// In-app move, as the tab bar does: no reload, the same signed-in session.
-const go = (path) =>
-  driver.execute((p) => {
-    history.pushState({}, '', p);
-    dispatchEvent(new PopStateEvent('popstate', { state: {} }));
-  }, path);
+const shot = (name) => driver.saveScreenshot(`${OUT}/${name}.png`).catch(() => {});
+// An element by what VoiceOver reads (its label or name), of one type.
+const byLabel = (type, re) =>
+  driver.$(
+    `-ios predicate string:type == '${type}' AND (label MATCHES[c] '${re}' OR name MATCHES[c] '${re}')`,
+  );
+const ofType = (type) => driver.$(`-ios predicate string:type == '${type}'`);
 async function waitFor(fn, ms) {
   const end = Date.now() + ms;
   for (;;) {
     const v = await fn().catch(() => null);
     if (v || Date.now() > end) return v;
-    await sleep(500);
+    await sleep(700);
   }
 }
+const visible = async (el) => ((await el.isExisting()) ? el : null);
+// Every bit of text on screen, as VoiceOver would read it.
+const screenText = async () => {
+  const src = await driver.getPageSource();
+  return [...src.matchAll(/(?:label|value)="([^"]*)"/g)].map((m) => m[1]).join(' \n');
+};
 
 try {
-  await toWeb();
-  await watchErrors();
+  await sleep(4000);
   await shot('00-open');
 
   // Sign in with email, as a member would on the welcome screen.
-  await go('/join');
-  await sleep(1500);
-  const click = (sel, re) =>
-    driver.execute(
-      (s, r) => {
-        const el = [...document.querySelectorAll(s)].find((x) =>
-          new RegExp(r, 'i').test(x.innerText || x.getAttribute('aria-label') || ''),
-        );
-        if (el) el.click();
-        return !!el;
-      },
-      sel,
-      re,
-    );
-  await click('button', 'already have an account');
-  await sleep(800);
-  if (
-    !(await driver.execute(() => !!document.querySelector('input[placeholder="you@example.com"]')))
-  )
-    await click('button', 'Sign in with email|Use email and password|Other ways to sign in');
-  const email = await waitFor(
-    () =>
-      driver
-        .$('input[placeholder="you@example.com"]')
-        .then((e) => e.isExisting().then((x) => x && e)),
-    15000,
-  );
-  if (!email) throw new Error('no email box on the sign-in screen');
-  await email.setValue(process.env.LT_EMAIL);
-  await (await driver.$('input[type="password"]')).setValue(process.env.LT_PASSWORD);
-  await shot('01-sign-in');
-  await click('button', '^\\s*sign in\\s*$');
-  const signedIn = await waitFor(
-    () =>
-      driver.execute(
-        () => !location.pathname.startsWith('/join') && !!document.getElementById('main'),
-      ),
+  const already = await waitFor(
+    () => visible(byLabel('XCUIElementTypeButton', '.*already have an account.*')),
     30000,
   );
-  if (!signedIn) {
-    await shot('01-sign-in-failed');
-    throw new Error('sign-in did not finish within 30 s');
+  if (!already) throw new Error('no "I already have an account" on the welcome screen');
+  await already.click();
+  await sleep(1500);
+  let email = await waitFor(() => visible(ofType('XCUIElementTypeTextField')), 4000);
+  if (!email) {
+    const toggle = await visible(
+      byLabel('XCUIElementTypeButton', '.*(sign in|join) with email.*|.*use email and password.*'),
+    );
+    if (toggle) await toggle.click();
+    email = await waitFor(() => visible(ofType('XCUIElementTypeTextField')), 10000);
   }
-  note(`signed in, at ${await driver.execute(() => location.pathname)}`);
+  if (!email) throw new Error('no email box on the sign-in screen');
+  await email.click();
+  await email.setValue(process.env.LT_EMAIL);
+  const password = await ofType('XCUIElementTypeSecureTextField');
+  await password.click();
+  await password.setValue(process.env.LT_PASSWORD);
+  await shot('01-sign-in');
+  const signIn = await visible(byLabel('XCUIElementTypeButton', '\\s*sign in\\s*'));
+  if (!signIn) throw new Error('no "Sign in" button');
+  await signIn.click();
+  const tabBar = await waitFor(
+    () => visible(byLabel('XCUIElementTypeLink', '(Home|Events)(,.*)?')),
+    30000,
+  );
+  if (!tabBar) {
+    await shot('01-sign-in-failed');
+    throw new Error('the tab bar did not appear within 30 s of signing in');
+  }
+  note('signed in');
 
-  // The main pages: each must draw something, stop saying Loading… within 15 s, and raise no page error.
-  for (const [i, path] of [
-    '/home',
-    '/chat',
-    '/events',
-    '/peers',
-    '/notifications',
-    '/me',
-  ].entries()) {
-    await go(path);
+  // Each tab: something on it within 15 s, and not still "Loading…".
+  for (const [i, tab] of ['Home', 'Peers', 'Chat', 'Events', 'Me'].entries()) {
+    const link = await waitFor(
+      () => visible(byLabel('XCUIElementTypeLink', `${tab}(,.*)?`)),
+      10000,
+    );
+    if (!link) {
+      problem(`no ${tab} tab`);
+      continue;
+    }
+    await link.click();
     const drawn = await waitFor(async () => {
-      const t = await text();
-      return t.length > 3 && !/^Loading…$|Loading…$/.test(t) && t;
+      const t = await screenText();
+      return t.length > 80 && !/Loading…/.test(t) && t;
     }, 15000);
-    const t = await text().catch(() => '');
-    if (!drawn) problem(`${path}: ${t.length < 3 ? 'blank' : 'still "Loading…"'} after 15 s`);
-    const wide = await driver.execute(() => document.documentElement.scrollWidth > innerWidth + 1);
-    if (wide) problem(`${path}: wider than the screen`);
-    for (const e of await errors()) problem(`${path}: page error: ${e}`);
-    report.pages.push({ path, chars: t.length });
-    await shot(`1${i}-${path.slice(1)}`);
+    const t = await screenText().catch(() => '');
+    if (!drawn)
+      problem(`${tab}: ${/Loading…/.test(t) ? 'still "Loading…"' : 'nearly empty'} after 15 s`);
+    report.pages.push({ tab, chars: t.length });
+    await shot(`1${i}-${tab.toLowerCase()}`);
   }
 
   // Keyboard: open the first conversation, tap the message box, and check the box sits above the keyboard.
-  await go('/chat');
+  await (await byLabel('XCUIElementTypeLink', 'Chat(,.*)?')).click();
   await sleep(2500);
-  const opened = await driver.execute(() => {
-    const a = [...document.querySelectorAll('a[href^="/chat/t/"]')][0];
-    if (a) a.click();
-    return a?.getAttribute('href') ?? null;
-  });
-  if (!opened) note('no conversation to open: keyboard check skipped');
+  const convo = await waitFor(
+    () =>
+      visible(
+        driver.$(
+          `-ios predicate string:type == 'XCUIElementTypeLink' AND NOT (label MATCHES[c] '(Home|Peers|Chat|Events|Me)(,.*)?')`,
+        ),
+      ),
+    10000,
+  );
+  if (!convo) note('no conversation to open: keyboard check skipped');
   else {
-    const box = await waitFor(
-      () => driver.$('textarea').then((e) => e.isExisting().then((x) => x && e)),
-      15000,
-    );
-    if (!box) problem(`${opened}: no message box`);
+    const name = await convo.getAttribute('label');
+    await convo.click();
+    const box = await waitFor(() => visible(ofType('XCUIElementTypeTextView')), 15000);
+    if (!box) problem(`conversation "${name}": no message box`);
     else {
       await box.click();
       await sleep(2500);
-      await driver.switchContext('NATIVE_APP');
       const shown = await driver.isKeyboardShown().catch(() => false);
-      let kbTop = null;
-      if (shown) {
-        const kb = await driver.$('-ios class chain:**/XCUIElementTypeKeyboard');
-        if (await kb.isExisting()) kbTop = await kb.getLocation('y');
-      }
-      await driver.saveScreenshot(`${OUT}/20-keyboard.png`);
-      await toWeb();
+      await shot('20-keyboard');
       if (!shown)
-        note(
-          'the Simulator showed no on-screen keyboard (hardware keyboard on?): keyboard check skipped',
-        );
+        note('no on-screen keyboard appeared (hardware keyboard on?): keyboard check skipped');
       else {
-        // The web view fills the screen (contentInset never), so page points are screen points.
-        const bottom = await driver.execute(
-          () => document.querySelector('textarea').getBoundingClientRect().bottom,
-        );
-        note(`keyboard top ${kbTop}, message box bottom ${Math.round(bottom)}`);
-        if (kbTop != null && bottom > kbTop + 2)
+        const kb = await driver.$('-ios class chain:**/XCUIElementTypeKeyboard');
+        const kbTop = (await kb.getLocation()).y;
+        const at = await box.getLocation();
+        const size = await box.getSize();
+        const bottom = at.y + size.height;
+        note(`keyboard top ${kbTop}, message box bottom ${bottom}`);
+        if (bottom > kbTop + 2)
           problem(
-            `${opened}: the message box is under the keyboard (box bottom ${Math.round(bottom)}, keyboard top ${kbTop})`,
+            `conversation "${name}": the message box is under the keyboard (box bottom ${bottom}, keyboard top ${kbTop})`,
           );
       }
-      for (const e of await errors()) problem(`${opened}: page error: ${e}`);
     }
   }
 } catch (err) {
   problem(`stopped: ${String(err?.message ?? err).split('\n')[0]}`);
-  await driver.saveScreenshot(`${OUT}/99-stopped.png`).catch(() => {});
+  await shot('99-stopped');
+  await driver
+    .getPageSource()
+    .then((s) => writeFileSync(`${OUT}/99-stopped-tree.xml`, s))
+    .catch(() => {});
 } finally {
   writeFileSync(`${OUT}/report.json`, JSON.stringify(report, null, 1));
   await driver.deleteSession().catch(() => {});
 }
-console.log(`${report.pages.length} pages, ${report.problems.length} problem(s)`);
+console.log(`${report.pages.length} tabs, ${report.problems.length} problem(s)`);
 process.exit(report.problems.length ? 1 : 0);
