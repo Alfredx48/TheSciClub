@@ -144,11 +144,12 @@ try {
   // Keyboard: open the first conversation, tap the message box, and check the box sits above the keyboard.
   await (await byLabel('XCUIElementTypeLink', 'Chat(,.*)?')).click();
   await sleep(2500);
+  // A conversation row says when its last message came (4:21am, Yesterday, Mon, Nov 3): not a tab or a filter.
   const convo = await waitFor(
     () =>
       visible(
         driver.$(
-          `-ios predicate string:type == 'XCUIElementTypeLink' AND NOT (label MATCHES[c] '(Home|Peers|Chat|Events|Me)(,.*)?')`,
+          `-ios predicate string:(type == 'XCUIElementTypeLink' OR type == 'XCUIElementTypeButton') AND label MATCHES[c] '.*([0-9]{1,2}:[0-9]{2} ?(am|pm)|yesterday).*'`,
         ),
       ),
     10000,
@@ -156,9 +157,18 @@ try {
   if (!convo) note('no conversation to open: keyboard check skipped');
   else {
     const name = await convo.getAttribute('label');
+    note(`opening the conversation "${name}"`);
     await convo.click();
-    const box = await waitFor(() => visible(ofType('XCUIElementTypeTextView')), 15000);
-    if (!box) problem(`conversation "${name}": no message box`);
+    await sleep(2500);
+    // Left the Chat list? Its "Ask or post to the club" box would otherwise be the one measured.
+    const stillList = await visible(
+      byLabel('XCUIElementTypeStaticText', 'Ask or post to the club'),
+    );
+    if (stillList) problem(`tapping "${name}" did not open the conversation`);
+    const box = stillList
+      ? null
+      : await waitFor(() => visible(ofType('XCUIElementTypeTextView')), 15000);
+    if (!box && !stillList) problem(`conversation "${name}": no message box`);
     else {
       await box.click();
       await sleep(2500);
