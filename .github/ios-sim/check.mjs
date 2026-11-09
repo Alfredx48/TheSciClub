@@ -8,6 +8,9 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { remote } from 'webdriverio';
 
+// Words on a button that change something; never tapped by the click-through.
+const DENY =
+  /\b(delete|remove|leave|block|unblock|report|sign ?out|log ?out|pause|send|post|save|submit|confirm|yes|decline|accept|approve|invite|join|rsvp|going|interested|register|check ?in|mute|like|react|follow|add|create|new|publish|share|copy|upload|photo|camera|edit|change|update|reset|turn|allow|mark|clear|start|end|answer|connect|introduce|link|ask|request|apply|claim|download|call|email|text|cancel|undo|hide|use my)\b/i;
 const OUT = 'out';
 mkdirSync(OUT, { recursive: true });
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -141,6 +144,40 @@ try {
       problem(`${tab}: ${/Loading…/.test(t) ? 'still "Loading…"' : 'nearly empty'} after 15 s`);
     report.pages.push({ tab, chars: t.length });
     await shot(`1${i}-${tab.toLowerCase()}`);
+    // Click-through: every safe button on the tab (nothing that sends, saves, deletes, joins, blocks or signs out),
+    // checking the app still shows its tab bar and nothing is stuck on "Loading…" afterwards.
+    const names = [];
+    for (const b of await driver.$$(
+      `-ios predicate string:type == 'XCUIElementTypeButton' AND visible == 1`,
+    )) {
+      const n = ((await b.getAttribute('label').catch(() => '')) || '').trim();
+      if (n && !DENY.test(n) && n.length < 60 && !names.includes(n)) names.push(n);
+    }
+    let tapped = 0;
+    for (const n of names.slice(0, 12)) {
+      const b = await visible(byLabel('XCUIElementTypeButton', n.replace(/[^\w ]/g, '.')));
+      if (!b) continue;
+      await b.click().catch(() => {});
+      tapped++;
+      await sleep(1500);
+      const after = await screenText().catch(() => '');
+      if (
+        /Loading…/.test(after) &&
+        !(await waitFor(async () => !/Loading…/.test(await screenText()), 12000))
+      )
+        problem(`${tab} after tapping "${n}": still "Loading…" after 12 s`);
+      // Back to the tab: tap the tab itself, or close what opened first.
+      let home = await visible(byLabel('XCUIElementTypeLink', `${tab}(,.*)?`));
+      if (!home) {
+        const back = await visible(byLabel('XCUIElementTypeButton', '(Back|Close.*|Done)'));
+        if (back) await back.click().catch(() => {});
+        home = await waitFor(() => visible(byLabel('XCUIElementTypeLink', `${tab}(,.*)?`)), 8000);
+      }
+      if (home) await home.click().catch(() => {});
+      else problem(`${tab} after tapping "${n}": the tab bar did not come back`);
+      await sleep(800);
+    }
+    report.pages[report.pages.length - 1].tapped = tapped;
   }
 
   // Keyboard: open the first conversation, tap the message box, and check the box sits above the keyboard.
@@ -189,6 +226,18 @@ try {
           problem(
             `conversation "${name}": the message box is under the keyboard (box bottom ${bottom}, keyboard top ${kbTop})`,
           );
+      }
+      // Send a message and see it in the conversation (a test project; the nightly trim removes it).
+      const mark = `iPhone check ${new Date().toISOString().slice(0, 16)} [lt:ios#sim]`;
+      await box.setValue(mark).catch(() => {});
+      const send = await visible(byLabel('XCUIElementTypeButton', 'Send.*'));
+      if (!send) problem(`conversation "${name}": no Send button`);
+      else {
+        await send.click();
+        const seen = await waitFor(async () => (await screenText()).includes(mark), 15000);
+        if (!seen) problem(`conversation "${name}": a sent message did not appear within 15 s`);
+        else note('sent a message and saw it in the conversation');
+        await shot('21-sent');
       }
     }
   }
