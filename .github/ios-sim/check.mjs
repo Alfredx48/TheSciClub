@@ -35,6 +35,8 @@ const driver = await remote({
     'appium:bundleId': 'com.thesciclub.app',
     'appium:newCommandTimeout': 240,
     'appium:wdaLaunchTimeout': 600000,
+    // GitHub's shared Macs can take minutes to report the iPhone booted (Nov 8: 2 min was not enough).
+    'appium:simulatorStartupTimeout': 600000,
     'appium:wdaConnectionTimeout': 600000,
   },
 });
