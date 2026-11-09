@@ -23,6 +23,9 @@ const note = (s) => {
 
 const driver = await remote({
   hostname: '127.0.0.1',
+  // The first session builds WebDriverAgent on the runner: several minutes.
+  connectionRetryTimeout: 900000,
+  connectionRetryCount: 0,
   port: 4723,
   logLevel: 'warn',
   capabilities: {
@@ -31,6 +34,8 @@ const driver = await remote({
     'appium:udid': process.env.UDID,
     'appium:bundleId': 'com.thesciclub.app',
     'appium:newCommandTimeout': 240,
+    'appium:wdaLaunchTimeout': 600000,
+    'appium:wdaConnectionTimeout': 600000,
     'appium:webviewConnectTimeout': 30000,
     'appium:includeSafariInWebviews': false,
   },
@@ -42,8 +47,10 @@ async function shot(name) {
   await toWeb();
 }
 async function toWeb() {
-  for (let i = 0; i < 30; i++) {
-    const web = (await driver.getContexts()).find((c) => String(c.id ?? c).startsWith('WEBVIEW'));
+  for (let i = 0; i < 90; i++) {
+    const all = await driver.getContexts();
+    if (i % 15 === 0) console.log(`contexts: ${JSON.stringify(all)}`);
+    const web = all.find((c) => String(c.id ?? c).startsWith('WEBVIEW'));
     if (web) {
       await driver.switchContext(String(web.id ?? web));
       return;
