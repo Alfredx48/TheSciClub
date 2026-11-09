@@ -1,0 +1,9 @@
+{
+  "name": "ios-sim-checks",
+  "private": true,
+  "type": "module",
+  "description": "Robot checks of the store app in the iPhone Simulator (ios-sim-checks.yml). Not part of the app's build.",
+  "dependencies": {
+    "webdriverio": "^9.0.0"
+  }
+}

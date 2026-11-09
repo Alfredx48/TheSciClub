@@ -1,0 +1,128 @@
+# Robot checks of the store app in the iPhone Simulator, against a TEST Supabase project, never the club's.
+# Builds the app as ios-build-check.yml does, points it at the test project, boots a Simulator and runs
+# .github/ios-sim/check.mjs through Appium: sign in, the main pages, the keyboard over a conversation's box.
+# Screenshots and report.json are the run's artifact.
+#
+# Needs these secrets in Alfredx48/TheSciClub (the owner's word, 2026-11-08):
+#   LT_SUPABASE_URL, LT_SUPABASE_ANON_KEY  the test project's address and public key
+#   LT_EMAIL, LT_PASSWORD                  a robot member of that project
+# The repository is public: its run logs are too. Secrets are masked in them.
+
+name: iOS simulator checks
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ios-sim-checks-2026-11-08]
+
+concurrency:
+  group: ios-sim-checks-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  XCODE_VERSION: '26.6'
+  # The club's own project: the build refuses to point at it.
+  PROD_REF: erijdvqnxavwezsbbojv
+
+jobs:
+  simulator:
+    if: github.repository == 'Alfredx48/TheSciClub'
+    runs-on: macos-26
+    timeout-minutes: 60
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Pick Xcode
+        run: |
+          app="/Applications/Xcode_${XCODE_VERSION}.app"
+          [ -d "$app" ] || { echo "Xcode $XCODE_VERSION is not on this runner:"; ls -d /Applications/Xcode*.app; exit 1; }
+          sudo xcode-select -s "$app/Contents/Developer"
+          xcrun simctl list runtimes
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          check-latest: true
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      # The test project, never production: its address goes into the build and the app's own CSP.
+      - name: Point the build at the test project
+        env:
+          LT_SUPABASE_URL: ${{ secrets.LT_SUPABASE_URL }}
+          LT_SUPABASE_ANON_KEY: ${{ secrets.LT_SUPABASE_ANON_KEY }}
+        run: |
+          case "$LT_SUPABASE_URL" in ""|*"$PROD_REF"*) echo "LT_SUPABASE_URL is missing or is the club's own project"; exit 1;; esac
+          test_ref=$(echo "$LT_SUPABASE_URL" | sed -E 's#https://([a-z0-9]+)\.supabase\.co.*#\1#')
+          sed -i '' "s/$PROD_REF/$test_ref/g" netlify.toml
+          if grep -q "$PROD_REF" netlify.toml; then echo "netlify.toml still names production"; exit 1; fi
+          {
+            echo "VITE_SUPABASE_URL=$LT_SUPABASE_URL"
+            echo "VITE_SUPABASE_ANON_KEY=$LT_SUPABASE_ANON_KEY"
+          } > .env.native.local
+
+      - name: Build the web app for the shell
+        run: |
+          pnpm build:native
+          if grep -rq "$PROD_REF" dist-native; then echo "the build names production"; exit 1; fi
+
+      - name: Sync
+        run: |
+          pnpm exec cap sync ios
+          node scripts/check-native-build.mjs
+
+      - name: Build for the Simulator, unsigned
+        working-directory: ios/App
+        run: |
+          xcodebuild build -project App.xcodeproj -scheme App -configuration Debug \
+            -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath build CODE_SIGNING_ALLOWED=NO | tail -20
+
+      # An iPhone with the on-screen keyboard (not the Mac's), so the keyboard check sees it.
+      - name: Boot an iPhone and install the app
+        run: |
+          defaults write com.apple.iphonesimulator ConnectHardwareKeyboard -bool false
+          udid=$(xcrun simctl list devices available -j | node -e '
+            const d = JSON.parse(require("fs").readFileSync(0, "utf8")).devices;
+            const all = Object.entries(d).filter(([rt]) => rt.includes("iOS")).flatMap(([, list]) => list);
+            const p = all.filter((x) => /^iPhone \d+$/.test(x.name)).sort((a, b) => b.name.localeCompare(a.name, undefined, { numeric: true }))[0] ?? all.find((x) => x.name.startsWith("iPhone"));
+            console.log(p.udid); console.error(p.name);')
+          echo "UDID=$udid" >> "$GITHUB_ENV"
+          xcrun simctl boot "$udid"
+          xcrun simctl bootstatus "$udid" -b
+          xcrun simctl install "$udid" ios/App/build/Build/Products/Debug-iphonesimulator/App.app
+          xcrun simctl launch "$udid" com.thesciclub.app
+
+      - name: Start Appium
+        run: |
+          npm install -g appium@2
+          appium driver install xcuitest
+          (appium --log appium.log --log-level warn &) 
+          for i in $(seq 1 30); do curl -sf http://127.0.0.1:4723/status >/dev/null && break; sleep 2; done
+
+      - name: Run the checks
+        working-directory: .github/ios-sim
+        env:
+          LT_EMAIL: ${{ secrets.LT_EMAIL }}
+          LT_PASSWORD: ${{ secrets.LT_PASSWORD }}
+        run: |
+          npm install --no-audit --no-fund
+          node check.mjs
+
+      - name: Keep the screenshots and report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-sim-checks
+          path: |
+            .github/ios-sim/out
+            appium.log
+          if-no-files-found: warn
