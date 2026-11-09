@@ -83,15 +83,18 @@ try {
   }
   if (!email) throw new Error('no email box on the sign-in screen');
   // Type, then close the keyboard as a member would: it covers the password box, and a tap there hits a key.
+  // Close the keyboard as a member would, by tapping the page's heading: a web page drops its keyboard when
+  // nothing is focused. Without this the keyboard covers the password box and a tap there hits a key.
   const closeKeyboard = async () => {
-    if (await driver.isKeyboardShown().catch(() => false)) {
-      const done = await driver.$(
-        `-ios predicate string:type == 'XCUIElementTypeButton' AND label IN {'Done', 'Return', 'return', 'Next', 'next', 'Go', 'go'}`,
-      );
-      if (await done.isExisting()) await done.click();
-      else await driver.hideKeyboard().catch(() => {});
-      await sleep(800);
-    }
+    if (!(await driver.isKeyboardShown().catch(() => false))) return;
+    const heading = await driver.$(
+      `-ios predicate string:type == 'XCUIElementTypeStaticText' AND label MATCHES[c] '(Welcome back|Sign in).*'`,
+    );
+    if (await heading.isExisting()) await heading.click();
+    else await driver.execute('mobile: tap', { x: 30, y: 160 });
+    await sleep(1000);
+    if (await driver.isKeyboardShown().catch(() => false))
+      note('the keyboard stayed open after tapping the page');
   };
   await email.click();
   await email.setValue(process.env.LT_EMAIL);
