@@ -114,6 +114,40 @@ try {
   const signIn = await visible(byLabel('XCUIElementTypeButton', '\\s*sign in\\s*'));
   if (!signIn) throw new Error('no "Sign in" button');
   await signIn.click();
+  // First launch, once signed in: "Turn on notifications?" before the club (owner, 2026-11-09).
+  const first = await waitFor(async () => {
+    if (/Turn on notifications\?/.test(await screenText())) return 'asked';
+    return (await visible(byLabel('XCUIElementTypeLink', '(Home|Events)(,.*)?'))) ? 'club' : null;
+  }, 30000);
+  await shot('02-notifications-ask');
+  if (first === 'club')
+    problem('first launch went straight to the club: no "Turn on notifications?"');
+  if (first === 'asked') {
+    note('asked "Turn on notifications?" right after signing in, on the first launch');
+    const on = await visible(byLabel('XCUIElementTypeButton', '\\s*Turn on notifications\\s*'));
+    if (!on) problem('no "Turn on notifications" button');
+    else {
+      await on.click();
+      // Apple's own question comes from the system, not the app.
+      const asked = await waitFor(() => driver.getAlertText(), 10000);
+      await shot('03-apple-question');
+      if (!asked) problem('tapping "Turn on notifications" did not bring up Apple\'s question');
+      else {
+        note(`Apple asked: "${asked.split('\n')[0]}"`);
+        await driver
+          .execute('mobile: alert', { action: 'accept', buttonLabel: 'Allow' })
+          .catch(() => driver.acceptAlert());
+      }
+    }
+    // Still asking (e.g. the Simulator gave no device token): note it, and go on with "Not now".
+    await sleep(4000);
+    const t = await screenText().catch(() => '');
+    if (/Turn on notifications\?/.test(t)) {
+      note(`still on the question after answering: ${t.replace(/\s+/g, ' ').slice(0, 160)}`);
+      const later = await visible(byLabel('XCUIElementTypeButton', '\\s*Not now\\s*'));
+      if (later) await later.click();
+    }
+  }
   const tabBar = await waitFor(
     () => visible(byLabel('XCUIElementTypeLink', '(Home|Events)(,.*)?')),
     30000,
