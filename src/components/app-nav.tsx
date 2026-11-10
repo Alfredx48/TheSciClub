@@ -75,9 +75,15 @@ export function AppNav() {
   const wide = useWideLayout();
   const lit = litTab(location.pathname, location.state);
   // On a phone only: a desktop's bar is at the top, out of the way already, and
-  // a narrow desktop window keeps its bottom bar still.
+  // a narrow desktop window keeps its bottom bar still. And on Home's feed only:
+  // elsewhere it gained little and going in odd places confused (the owner,
+  // 2026-11-09).
   const bar = useRef<HTMLElement | null>(null);
-  const { hidden, show } = useHideOnScroll(wide === false && touchScreen(), location.pathname, bar);
+  const { hidden, show } = useHideOnScroll(
+    wide === false && touchScreen() && location.pathname === '/home',
+    location.pathname,
+    bar,
+  );
 
   // The bar is on every screen, so somebody writing to you while you read an
   // event is heard here: each unmuted message writes this member a

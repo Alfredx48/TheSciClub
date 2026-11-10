@@ -15,7 +15,7 @@ import { NotificationsStep } from '@/routes/onboarding/notifications-step';
  * synchronous, so a member who is not asked never sees this flash past.
  *
  * The iPhone app reads its permission from iOS, which answers asynchronously:
- * nothing is drawn for that moment. Its first launch never asks.
+ * nothing is drawn for that moment. It asks from the first launch (2026-11-09).
  */
 export function AskOnOpening({ children }: { children: React.ReactNode }) {
   const [asking, setAsking] = useState<boolean | null>(() =>

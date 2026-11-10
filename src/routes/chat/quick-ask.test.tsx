@@ -80,6 +80,14 @@ describe('asking from Home', () => {
     // Leaving it empty folds it up.
     await userEvent.click(document.body);
     expect(screen.queryByRole('button', { name: 'Post' })).toBeNull();
+    // The X folds it up with the words thrown away (the owner, 2026-11-09).
+    const box = screen.getByRole('textbox', { name: 'Ask or post to the club' });
+    await userEvent.type(box, 'Never mind');
+    await userEvent.click(screen.getByRole('button', { name: 'Close without posting' }));
+    expect(box).toHaveValue('');
+    expect(box).not.toHaveFocus();
+    expect(screen.queryByRole('button', { name: 'Post' })).toBeNull();
+    expect(sessionStorage.length).toBe(0);
   });
 
   it('posts to General as a question in one tap, and opens it with the way back', async () => {

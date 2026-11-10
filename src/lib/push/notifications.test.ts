@@ -494,19 +494,17 @@ describe('turning on and off', () => {
       });
     });
 
-    it('never asks on the app’s first launch on a phone, and asks on a later one', async () => {
-      expect(askOnOpening(await appOpeningFacts())).toBe(false);
-      expect(localStorage.getItem('thesciclub.appOpenedBefore')).not.toBeNull();
-      vi.resetModules();
-      const later = await import('@/lib/push/notifications');
-      const facts = await later.appOpeningFacts();
+    it('asks on the app’s first launch on a phone, and not again within 5 days of "Not now"', async () => {
+      const facts = await appOpeningFacts();
       expect(facts).toEqual({
         enabled: true,
         standalone: true,
         permission: 'default',
         askedRecently: false,
       });
-      expect(later.askOnOpening(facts)).toBe(true);
+      expect(askOnOpening(facts)).toBe(true);
+      markNotificationsAsked();
+      expect(askOnOpening(await appOpeningFacts())).toBe(false);
     });
   });
 

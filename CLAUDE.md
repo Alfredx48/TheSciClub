@@ -25,3 +25,8 @@ an existing test over adding a new one.
 **While working**, run only the tests the change touches:
 `pnpm test:related <changed files>`. Run the full `pnpm test` once, before a
 push. The Check workflow runs it on every push to `main` and every PR.
+
+## Commits (owner, 2026-11-09)
+
+No `Co-Authored-By: Claude` line (or any Claude trailer) in commit
+messages, for everyone working here.

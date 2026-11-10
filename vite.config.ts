@@ -250,5 +250,7 @@ export default defineConfig(({ mode }) => ({
     setupFiles: ['./src/test/setup.ts'],
     css: true,
     exclude: [...configDefaults.exclude, '.claude/**', 'dist-native/**', 'ios/**', 'android/**'],
+    // Half the cores locally: sessions share this laptop, and two full runs once took all 16. CI keeps the default.
+    ...(process.env.CI ? {} : { maxWorkers: '50%' }),
   },
 }));

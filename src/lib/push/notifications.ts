@@ -153,26 +153,12 @@ export function openingFacts(): OpeningFacts {
   };
 }
 
-// The app's first launch on a phone never asks: the member has only just
-// arrived. Remembered per device; when it cannot be, it does not ask.
-const APP_OPENED_KEY = 'thesciclub.appOpenedBefore';
-let firstAppLaunch: boolean | null = null;
-
-function isFirstAppLaunch(): boolean {
-  if (firstAppLaunch === null) {
-    try {
-      firstAppLaunch = localStorage.getItem(APP_OPENED_KEY) === null;
-      if (firstAppLaunch) localStorage.setItem(APP_OPENED_KEY, new Date().toISOString());
-    } catch {
-      firstAppLaunch = true;
-    }
-  }
-  return firstAppLaunch;
-}
-
-/** openingFacts for the iPhone app, whose permission iOS answers asynchronously. */
+/**
+ * openingFacts for the iPhone app, whose permission iOS answers asynchronously.
+ * Asks from the first launch, once signed in (the owner, 2026-11-09).
+ */
 export async function appOpeningFacts(): Promise<OpeningFacts> {
-  const askedRecently = isFirstAppLaunch() || notificationsAskedRecently();
+  const askedRecently = notificationsAskedRecently();
   const { appPermission } = await loadApp();
   return { enabled: true, standalone: true, permission: await appPermission(), askedRecently };
 }

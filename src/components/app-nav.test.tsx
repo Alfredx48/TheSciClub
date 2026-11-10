@@ -88,11 +88,13 @@ describe('the bar on a scroll', () => {
     wide,
     height = 2000,
     bar = 60,
+    path = '/home',
   }: {
     coarse: boolean;
     wide: boolean;
     height?: number;
     bar?: number;
+    path?: string;
   }) {
     vi.stubGlobal('matchMedia', (query: string) => ({
       matches: query.includes('pointer') ? coarse : wide,
@@ -100,7 +102,7 @@ describe('the bar on a scroll', () => {
       removeEventListener: () => undefined,
     }));
     render(
-      <MemoryRouter>
+      <MemoryRouter initialEntries={[path]}>
         <AppNav />
         <div data-testid="box" />
       </MemoryRouter>,
@@ -119,6 +121,11 @@ describe('the bar on a scroll', () => {
 
   it('goes on a phone', () => {
     expect(scrollOn({ coarse: true, wide: false }).style.marginBottom).toBe('-60px');
+  });
+
+  // Home's feed only (the owner, 2026-11-09).
+  it('stays on every other screen', () => {
+    expect(scrollOn({ coarse: true, wide: false, path: '/events' }).style.marginBottom).toBe('');
   });
 
   // 200 to scroll, 110 once a 90 bar has gone: it would only bounce.

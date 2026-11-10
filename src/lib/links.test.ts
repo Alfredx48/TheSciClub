@@ -45,6 +45,45 @@ describe('findLinks', () => {
   });
 });
 
+// The owner, 2026-11-09: an address in a message opens Google Maps.
+describe('street addresses', () => {
+  const addresses = (text: string) =>
+    findLinks(text).flatMap((piece) => (piece.kind === 'link' ? [piece.label] : []));
+
+  it('links one to Google Maps, with its unit, city, state and ZIP', () => {
+    expect(findLinks('Meet at 1200 Valencia St, San Francisco, CA 94110 at noon.')).toEqual([
+      { kind: 'text', text: 'Meet at ' },
+      {
+        kind: 'link',
+        href: 'https://www.google.com/maps/search/?api=1&query=1200%20Valencia%20St%2C%20San%20Francisco%2C%20CA%2094110',
+        label: '1200 Valencia St, San Francisco, CA 94110',
+      },
+      { kind: 'text', text: ' at noon.' },
+    ]);
+    expect(addresses('It is 350 5th Ave Suite 3, New York NY')).toEqual([
+      '350 5th Ave Suite 3, New York NY',
+    ]);
+    expect(addresses('Try 100 Park Avenue South. Or 42 St Marks Pl')).toEqual([
+      '100 Park Avenue South',
+      '42 St Marks Pl',
+    ]);
+    // A city with no state after it is left out rather than guessed at.
+    expect(addresses('See you at 9 Main St, I will be early')).toEqual(['9 Main St']);
+  });
+
+  it('leaves numbers that are not addresses alone', () => {
+    for (const text of [
+      'I did 3 laps around the track',
+      'We have 2 big dogs',
+      'Back at 10 PM',
+      'C5 since 2012, T6 Complete',
+      'Room 204 is on the left',
+    ]) {
+      expect(addresses(text)).toEqual([]);
+    }
+  });
+});
+
 describe('hrefFor', () => {
   it('refuses an address with no dotted host', () => {
     expect(hrefFor('http://localhost/x')).toBeNull();

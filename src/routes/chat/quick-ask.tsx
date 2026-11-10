@@ -1,4 +1,4 @@
-import { MessageCirclePlus } from 'lucide-react';
+import { MessageCirclePlus, X } from 'lucide-react';
 import { useEffect, useId, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { roomsByCategory } from '@/lib/chat/rooms';
@@ -23,7 +23,8 @@ import { SimilarTopics } from '@/routes/chat/similar-topics';
  *
  * Those open with the tap into the box, not after the first word (the owner,
  * 2026-10-22), so they are seen before the words are written; tapping away
- * from an empty box folds them up again.
+ * from an empty box folds them up again, and the X in its corner folds it up
+ * with whatever was typed thrown away (the owner, 2026-11-09).
  *
  * The words are the topic's title, and its first post too: a post needs words,
  * and the topic page does not draw them twice. 140 characters, the title's
@@ -130,17 +131,39 @@ export function QuickAsk({
         if (!event.currentTarget.contains(event.relatedTarget)) setFocused(false);
       }}
     >
-      <label htmlFor={`${id}-text`} className="flex items-center gap-2.5">
-        <span
-          aria-hidden="true"
-          className="grid h-[2.2em] w-[2.2em] flex-none place-items-center rounded-full bg-tint text-emphasis"
-        >
-          <MessageCirclePlus className="h-[1.2em] w-[1.2em]" />
-        </span>
-        <span className="font-extrabold font-head text-[0.9375rem] text-ink">
-          {fixedRoom ? `Ask or post in ${fixedRoom.name}` : 'Ask or post to the club'}
-        </span>
-      </label>
+      <div className="flex items-center gap-2.5">
+        <label htmlFor={`${id}-text`} className="flex min-w-0 flex-1 items-center gap-2.5">
+          <span
+            aria-hidden="true"
+            className="grid h-[2.2em] w-[2.2em] flex-none place-items-center rounded-full bg-tint text-emphasis"
+          >
+            <MessageCirclePlus className="h-[1.2em] w-[1.2em]" />
+          </span>
+          <span className="font-extrabold font-head text-[0.9375rem] text-ink">
+            {fixedRoom ? `Ask or post in ${fixedRoom.name}` : 'Ask or post to the club'}
+          </span>
+        </label>
+        {expanded ? (
+          <button
+            type="button"
+            aria-label="Close without posting"
+            // Kept from taking focus: the box folding up as the words lose it
+            // would take this button away before the tap lands (Safari).
+            onMouseDown={(event) => {
+              event.preventDefault();
+            }}
+            onClick={() => {
+              setText('');
+              setFailure(null);
+              setFocused(false);
+              box.current?.blur();
+            }}
+            className="-my-2 -mr-2 grid h-11 w-11 flex-none place-items-center rounded-full text-grey hover:bg-tint hover:text-ink"
+          >
+            <X aria-hidden="true" className="h-5 w-5" />
+          </button>
+        ) : null}
+      </div>
       <textarea
         id={`${id}-text`}
         ref={box}

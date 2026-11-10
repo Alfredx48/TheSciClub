@@ -117,7 +117,7 @@ describe('in the iPhone app', () => {
     expect(await screen.findByText('Turn on notifications?')).toBeInTheDocument();
   });
 
-  it('goes to the club when it should not ask, the first launch included', async () => {
+  it('goes to the club when this phone said "Not now" recently', async () => {
     db.app = true;
     db.facts = { ...db.facts, askedRecently: true };
     renderOpening();
