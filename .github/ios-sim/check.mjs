@@ -217,12 +217,12 @@ try {
   // Keyboard: open the first conversation, tap the message box, and check the box sits above the keyboard.
   await (await byLabel('XCUIElementTypeLink', 'Chat(,.*)?')).click();
   await sleep(2500);
-  // A conversation row says when its last message came (4:21am, Yesterday, Mon, Nov 3): not a tab or a filter.
+  // A conversation row says when its last message came (4:21am, Yesterday, Mon, Oct 30): not a tab or a filter.
   const convo = await waitFor(
     () =>
       visible(
         driver.$(
-          `-ios predicate string:(type == 'XCUIElementTypeLink' OR type == 'XCUIElementTypeButton') AND label MATCHES[c] '.*([0-9]{1,2}:[0-9]{2} ?(am|pm)|yesterday).*'`,
+          `-ios predicate string:(type == 'XCUIElementTypeLink' OR type == 'XCUIElementTypeButton') AND label MATCHES[c] '.*([0-9]{1,2}:[0-9]{2} ?(am|pm)|yesterday|(mon|tue|wed|thu|fri|sat|sun)|(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec) [0-9]{1,2}).*'`,
         ),
       ),
     10000,
