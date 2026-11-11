@@ -14,15 +14,21 @@ vi.mock('@/lib/members', () => ({
 
 const map = vi.hoisted(() => ({ props: null as ClubMapProps | null }));
 vi.mock('@/lib/map', () => ({ loadMapCanvas: () => Promise.resolve({ default: () => null }) }));
-vi.mock('@/lib/map-data', () => ({
-  useMapData: (): MapData => ({
-    status: 'ready',
-    retry: () => undefined,
+const mapContents = vi.hoisted(() => {
+  const current: MapData['contents'] = {
     events: [],
     peerCities: [],
     organizations: [],
     home: null,
-    contents: { events: [], peerCities: [], organizations: [], home: null },
+  };
+  return { current };
+});
+vi.mock('@/lib/map-data', () => ({
+  useMapData: (): MapData => ({
+    status: 'ready',
+    retry: () => undefined,
+    ...mapContents.current,
+    contents: mapContents.current,
   }),
 }));
 vi.mock('@/routes/map/club-map', () => ({
@@ -85,6 +91,7 @@ const deck = [
 beforeEach(() => {
   state.current = { members: deck, loading: false, error: null, signedOut: false };
   map.props = null;
+  mapContents.current = { events: [], peerCities: [], organizations: [], home: null };
 });
 
 describe('PeersPage', () => {
@@ -93,6 +100,23 @@ describe('PeersPage', () => {
     expect(await screen.findByText('Nicole')).toBeInTheDocument();
     expect(screen.getByText('Todd')).toBeInTheDocument();
     expect(screen.getByText('Kerry')).toBeInTheDocument();
+  });
+
+  // A friend 30 minutes away was left out by a starting distance (the owner, 2026-11-10).
+  it('starts at any distance, so somebody far from home is listed', async () => {
+    const sanJose = { latitude: 37.34, longitude: -121.89 };
+    const nearby = Array.from({ length: 20 }, (_, i) => `n${i}`);
+    mapContents.current = {
+      events: [],
+      organizations: [],
+      home: { ...sanJose, city: 'San Jose', state: 'CA' } as never,
+      peerCities: [
+        { ...sanJose, city: 'San Jose', state: 'CA', memberIds: ['1', '3', ...nearby] },
+        { latitude: 38.75, longitude: -121.29, city: 'Roseville', state: 'CA', memberIds: ['2'] },
+      ] as never,
+    };
+    renderPage();
+    expect(await screen.findByText('Todd')).toBeInTheDocument();
   });
 
   // Display is on Me only (the owner, 2026-10-22).

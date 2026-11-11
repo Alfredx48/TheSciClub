@@ -6,6 +6,7 @@ import {
   keepPendingRegistration,
   pendingRegistration,
   publicEventUrl,
+  registeredRecently,
   registerForEvent,
 } from '@/lib/event-audience';
 
@@ -70,6 +71,26 @@ describe('the registration kept on this device', () => {
     });
     forgetPendingRegistration();
     expect(pendingRegistration()).toBeNull();
+  });
+
+  // It greeted a browser weeks later (the owner, 2026-11-10): news for a day only.
+  it('is news for a day, and an old one with no time never', () => {
+    const day = 24 * 60 * 60 * 1000;
+    keepPendingRegistration({
+      eventId: 'e1',
+      status: 'going',
+      name: '',
+      email: 'a@b.co',
+      phone: '',
+    });
+    expect(registeredRecently()).toBe(true);
+    expect(registeredRecently(Date.now() + day + 1)).toBe(false);
+    expect(pendingRegistration()).not.toBeNull();
+    window.localStorage.setItem(
+      'sciclub.eventRegistration',
+      '{"eventId":"e1","email":"a@b.co","status":"going"}',
+    );
+    expect(registeredRecently()).toBe(false);
   });
 
   it('ignores something that is not one', () => {

@@ -1,9 +1,10 @@
 /**
- * invite-signup: makes a confirmed account for somebody with an invite link or
- * a live code, so there is no email to wait for. The rules are in handler.ts.
+ * invite-signup: makes a confirmed account for somebody with an invite link, a
+ * live code, or an address that may join now, so there is no email to wait
+ * for. The rules are in handler.ts.
  *
  * `POST { email, password, token?, code? }`, with no session yet, so deployed
- * with --no-verify-jwt. What guards it is the token or the code.
+ * with --no-verify-jwt. What guards it is the token, the code or the sign-up rule.
  *
  * SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are provided by the platform.
  */
@@ -66,6 +67,14 @@ const deps: Deps = {
     // Unknown is treated as invited: the ordinary sign-up is always safe.
     if (!response.ok) return true;
     return ((await response.json()) as unknown[]).length > 0;
+  },
+  async mayJoin(address) {
+    const response = await fetch(`${SUPABASE_URL}/rest/v1/rpc/email_may_join_now`, {
+      method: 'POST',
+      headers: serviceHeaders,
+      body: JSON.stringify({ p_address: address }),
+    });
+    return response.ok && (await response.json()) === true;
   },
   async createConfirmedUser(email, password, metadata) {
     const response = await fetch(`${SUPABASE_URL}/auth/v1/admin/users`, {

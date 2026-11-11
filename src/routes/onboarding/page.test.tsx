@@ -1127,7 +1127,9 @@ describe('the invite link', () => {
     await waitFor(() => {
       expect(screen.getByLabelText('Email')).toHaveValue('dana@example.com');
     });
-    expect(JSON.parse(window.localStorage.getItem('sciclub.eventRegistration') ?? '{}')).toEqual({
+    expect(
+      JSON.parse(window.localStorage.getItem('sciclub.eventRegistration') ?? '{}'),
+    ).toMatchObject({
       eventId: 'climb',
       status: 'going',
       name: 'Dana Ruiz',

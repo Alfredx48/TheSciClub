@@ -2,10 +2,30 @@ import { describe, expect, it } from 'vitest';
 import { geocodeNow, RUN_FOR_MS } from './geocode-now.js';
 
 /** Each claim takes the next batch; then nothing. Records every call. */
-function fakeSupabase(batches) {
+function fakeSupabase(batches, tables = {}) {
   const calls = [];
+  const written = [];
+  // A query chain that ends in the table's rows, whatever it filters on.
+  const read = (table) => {
+    const chain = {
+      select: () => chain,
+      not: () => chain,
+      gte: () => chain,
+      // biome-ignore lint/suspicious/noThenProperty: a Supabase query is awaited as a thenable
+      then: (done) => done({ data: tables[table] ?? [], error: null }),
+    };
+    return chain;
+  };
   return {
     calls,
+    written,
+    from: (table) => ({
+      ...read(table),
+      upsert: (row) => {
+        written.push([table, row]);
+        return Promise.resolve({ error: null });
+      },
+    }),
     rpc: (name, args) => {
       calls.push([name, args?.p_target ?? null]);
       if (name === 'geocodes_enqueue_stale') return Promise.resolve({ data: 2, error: null });
@@ -20,6 +40,19 @@ const row = (target_id, query) => ({ kind: 'event', target_id, query, state: 'CA
 const at = { state: 'CA', latitude: 38.5, longitude: -121.7, precision: 'exact' };
 
 describe('geocodeNow', () => {
+  it("places a new member's zip, not waiting for the nightly import", async () => {
+    const supabase = fakeSupabase([], { members: [{ zip: '94536' }] });
+    await geocodeNow(supabase, {
+      lookup: () => Promise.resolve(at),
+      lookUpZip: () => Promise.resolve({ state: 'CA', latitude: 37.56, longitude: -122.01 }),
+      lookUpCity: () => Promise.resolve(null),
+      pauseMs: 0,
+    });
+    expect(supabase.written).toEqual([
+      ['zip_places', expect.objectContaining({ zip: '94536', latitude: 37.56 })],
+    ]);
+  });
+
   it('queues, claims and places through the shared queue until nothing is claimable', async () => {
     const supabase = fakeSupabase([[row('e1', 'A, CA'), row('e2', 'B, CA')]]);
     const asked = [];

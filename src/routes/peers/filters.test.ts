@@ -5,7 +5,7 @@ import {
   ageBandsIn,
   filterMembers,
   hasConditions,
-  membersWithin,
+  membersBeyond,
   milesForEnough,
   organizationsIn,
   organizationsWithin,
@@ -107,15 +107,20 @@ describe('filters', () => {
       { latitude: 37.8, longitude: -122.27, city: 'Oakland', state: 'CA', memberIds: ['near'] },
       { latitude: 34.05, longitude: -118.24, city: 'LA', state: 'CA', memberIds: ['far'] },
     ];
-    expect([...(membersWithin({ home, peerCities }, 50) ?? [])]).toEqual(['near']);
-    expect(membersWithin({ home, peerCities }, null)).toBeNull();
-    expect(membersWithin({ home: null, peerCities }, 50)).toBeNull();
-    const deck = [makeMember({ id: 'near' }), makeMember({ id: 'unplaced' })];
+    expect([...(membersBeyond({ home, peerCities }, 50) ?? [])]).toEqual(['far']);
+    expect(membersBeyond({ home, peerCities }, null)).toBeNull();
+    expect(membersBeyond({ home: null, peerCities }, 50)).toBeNull();
+    // Somebody not placed yet (a new member before the lookup) stays, in order.
+    const deck = [
+      makeMember({ id: 'far' }),
+      makeMember({ id: 'near' }),
+      makeMember({ id: 'unplaced' }),
+    ];
     expect(
-      filterMembers(deck, { ...none, withinMiles: 50 }, 'everyone', new Set(['near'])).map(
+      filterMembers(deck, { ...none, withinMiles: 50 }, 'everyone', new Set(['far'])).map(
         (m) => m.id,
       ),
-    ).toEqual(['near']);
+    ).toEqual(['near', 'unplaced']);
   });
 
   it('matches a topic filter against interests too, since people file things under both', () => {

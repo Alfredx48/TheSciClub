@@ -384,9 +384,20 @@ export async function claimEventRegistrations(): Promise<string[]> {
 
 const PENDING_KEY = 'sciclub.eventRegistration';
 
+/**
+ * How long the welcome page says "You're on our list". The registration itself
+ * is kept until its owner is in, but the line is news only for a day: kept for
+ * ever, it greeted whoever opened the club in that browser weeks later (the
+ * owner, 2026-11-10).
+ */
+const ON_THE_LIST_MS = 24 * 60 * 60 * 1000;
+
 export function keepPendingRegistration(registration: Registration): void {
   try {
-    window.localStorage.setItem(PENDING_KEY, JSON.stringify(registration));
+    window.localStorage.setItem(
+      PENDING_KEY,
+      JSON.stringify({ ...registration, keptAt: Date.now() }),
+    );
   } catch {
     // Private browsing: the registration is kept by the club all the same.
   }
@@ -408,6 +419,19 @@ export function pendingRegistration(): Registration | null {
     };
   } catch {
     return null;
+  }
+}
+
+/** Whether the kept registration was made recently enough to greet its owner with. */
+export function registeredRecently(now = Date.now()): boolean {
+  try {
+    const raw = window.localStorage.getItem(PENDING_KEY);
+    if (!raw || pendingRegistration() === null) return false;
+    const { keptAt } = JSON.parse(raw) as { keptAt?: unknown };
+    // One kept before the day's limit carries no time: not news.
+    return typeof keptAt === 'number' && now - keptAt >= 0 && now - keptAt < ON_THE_LIST_MS;
+  } catch {
+    return false;
   }
 }
 

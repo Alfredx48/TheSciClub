@@ -198,13 +198,13 @@ export function organizationsWithin(
 }
 
 /**
- * Who is within so many miles of the reader, from what the map already holds:
- * where each city's members are placed (the middle of a ZIP code or city, never
- * closer), so a distance says nothing the map does not. Somebody who keeps off
- * the map has no place to measure and is not counted. Null with no distance
- * asked, or no home to measure from: nothing is narrowed.
+ * Who is placed further than so many miles from the reader, from what the map
+ * already holds (the middle of a ZIP code or city, never closer). Somebody with
+ * no place yet, or who keeps off the map, cannot be measured and stays in the
+ * list (the owner, 2026-11-10: a new member vanished until the nightly import).
+ * Null with no distance asked, or no home to measure from.
  */
-export function membersWithin(
+export function membersBeyond(
   contents: Pick<MapContents, 'home' | 'peerCities'>,
   miles: number | null,
 ): ReadonlySet<string> | null {
@@ -212,7 +212,7 @@ export function membersWithin(
   if (miles === null || !home) return null;
   return new Set(
     contents.peerCities
-      .filter((city) => milesBetween(home, city) <= miles)
+      .filter((city) => milesBetween(home, city) > miles)
       .flatMap((city) => city.memberIds),
   );
 }
@@ -221,13 +221,13 @@ export function filterMembers(
   members: BrowseMember[],
   chosen: MemberFilters,
   segment: PeersSegment,
-  chosenNear: ReadonlySet<string> | null = null,
+  chosenFar: ReadonlySet<string> | null = null,
 ): BrowseMember[] {
   // A search looks through everybody (the owner, 2026-11-01): no filter or
   // distance hides somebody whose name was typed. Mentors still means mentors.
   const searching = chosen.search.trim() !== '';
   const filters = searching ? { ...EMPTY_MEMBER_FILTERS, search: chosen.search } : chosen;
-  const near = searching ? null : chosenNear;
+  const far = searching ? null : chosenFar;
   const kept = members.filter((member) => {
     if (!matchesSegment(member, segment)) return false;
     if (!matchesLevel(member, filters)) return false;
@@ -237,7 +237,7 @@ export function filterMembers(
     if (filters.organization && !organizationsOf(member).includes(filters.organization)) {
       return false;
     }
-    if (near && !near.has(member.id)) return false;
+    if (far?.has(member.id)) return false;
     // A member matches a topic filter if any selected topic appears in their
     // topics *or* their interests — people file the same thing under both.
     //

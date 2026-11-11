@@ -114,6 +114,21 @@ describe('signUpWithEmail', () => {
   });
 });
 
+// The owner, 2026-11-10: an invited address, or anybody while joining is open.
+it('asks the server first with no link or code, and signs in when it made the account', async () => {
+  auth.invoked = [];
+  auth.created = true;
+  window.localStorage.removeItem('sciclub.inviteToken');
+  window.localStorage.removeItem('sciclub.qrCode');
+  expect(await signUpWithEmail('dana@example.com', 'a long password')).toEqual({
+    ok: true,
+    signedIn: true,
+  });
+  expect(auth.invoked[0]?.body).toMatchObject({ token: null, code: null });
+  expect(auth.calls.map((call) => call.fn)).toEqual(['signInWithPassword']);
+  auth.created = false;
+});
+
 describe('signing up from an emailed invite', () => {
   beforeEach(() => {
     auth.calls = [];

@@ -8,11 +8,27 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
+import { placeMemberCities, placeMemberZips } from './city-places.js';
 import { placeStaleEvents } from './stale-places.js';
 
 export const RUN_FOR_MS = 5 * 60_000;
 
-export async function geocodeNow(supabase, { lookup, pauseMs, now = () => Date.now() } = {}) {
+export async function geocodeNow(
+  supabase,
+  { lookup, lookUpZip, lookUpCity, pauseMs, now = () => Date.now() } = {},
+) {
+  // A new member's zip and town too (the owner, 2026-11-10): until placed,
+  // nobody's Peers list can measure them. Few to do, so first.
+  for (const place of [
+    () => placeMemberZips(supabase, { dryRun: false }, lookUpZip),
+    () => placeMemberCities(supabase, { dryRun: false }, lookUpCity),
+  ]) {
+    try {
+      await place();
+    } catch (error) {
+      console.error(`  FAILED: ${error.message}`);
+    }
+  }
   await placeStaleEvents(
     supabase,
     { dryRun: false, stopAt: now() + RUN_FOR_MS },

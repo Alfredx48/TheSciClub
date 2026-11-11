@@ -15,9 +15,12 @@
  * account is noted as unproven, to be confirmed from Me (20261104110000); if
  * that cannot be noted, the account is taken away again.
  *
+ * Otherwise, an address that may join now (invited, or joining is open: the
+ * sign-up hook's rule) is let in too, to confirm later (the owner, 2026-11-10).
+ *
  * Anything else answers `created: false`, with no reason given, and the page
- * goes on to the ordinary sign-up and its code. That sign-up says what needs
- * saying, and this says nothing about whether an address has an account.
+ * goes on to the ordinary sign-up. That sign-up says what needs saying, and
+ * this says nothing about whether an address has an account.
  */
 
 export const MIN_PASSWORD = 8;
@@ -29,6 +32,8 @@ export interface Deps {
   codeAdmits(code: string): Promise<boolean>;
   /** Whether a pending invite is waiting for this address. */
   invited(address: string): Promise<boolean>;
+  /** Not blocked, and invited or joining is open (email_may_join_now). */
+  mayJoin(address: string): Promise<boolean>;
   /** Makes the account, confirmed: its id, or null if it was refused for any reason. */
   createConfirmedUser(
     email: string,
@@ -72,6 +77,13 @@ export async function inviteSignup(body: unknown, deps: Deps): Promise<{ created
     if ((await deps.codeAdmits(code)) && !(await deps.invited(address))) {
       return make(deps, address, password, { qr_code: code }, false);
     }
+  }
+
+  if (await deps.mayJoin(address)) {
+    const held: Record<string, string> = {};
+    if (typeof token === 'string' && token.trim()) held.invite_token = token;
+    if (typeof code === 'string' && code.trim()) held.qr_code = code;
+    return make(deps, address, password, held, false);
   }
   return { created: false };
 }

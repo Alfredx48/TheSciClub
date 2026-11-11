@@ -6,6 +6,7 @@ function deps(
     address?: string | null;
     admits?: boolean;
     invited?: boolean;
+    mayJoin?: boolean;
     made?: boolean;
     noted?: boolean;
   } = {},
@@ -14,6 +15,7 @@ function deps(
     address = 'sam@example.com',
     admits = true,
     invited = false,
+    mayJoin = false,
     made = true,
     noted = true,
   } = overrides;
@@ -21,6 +23,7 @@ function deps(
     inviteAddress: vi.fn(() => Promise.resolve(address)),
     codeAdmits: vi.fn(() => Promise.resolve(admits)),
     invited: vi.fn(() => Promise.resolve(invited)),
+    mayJoin: vi.fn(() => Promise.resolve(mayJoin)),
     createConfirmedUser: vi.fn(() => Promise.resolve(made ? 'new-account' : null)),
     noteUnproven: vi.fn(() => Promise.resolve(noted)),
     removeUser: vi.fn(() => Promise.resolve()),
@@ -122,6 +125,38 @@ describe('an address still to confirm', () => {
   it('takes the account away again when it cannot be noted', async () => {
     const d = deps({ noted: false });
     expect(await inviteSignup(byCode, d)).toEqual({ created: false });
+    expect(d.removeUser).toHaveBeenCalledWith('new-account');
+  });
+});
+
+// The owner, 2026-11-10: invited, or joining is open, is in now too.
+describe('an address that may join now, with no link or code', () => {
+  it('is let in, noted to confirm later', async () => {
+    const d = deps({ mayJoin: true });
+    expect(await inviteSignup(body, d)).toEqual({ created: true });
+    expect(d.mayJoin).toHaveBeenCalledWith('sam@example.com');
+    expect(d.createConfirmedUser).toHaveBeenCalledWith('sam@example.com', 'long enough', {});
+    expect(d.noteUnproven).toHaveBeenCalledWith('new-account');
+  });
+
+  it('is refused when not invited and joining is closed, or blocked', async () => {
+    const d = deps({ mayJoin: false });
+    expect(await inviteSignup(body, d)).toEqual({ created: false });
+    expect(d.createConfirmedUser).not.toHaveBeenCalled();
+  });
+
+  it('keeps a code the code path refused, for its credit', async () => {
+    const d = deps({ invited: true, mayJoin: true });
+    expect(await inviteSignup(byCode, d)).toEqual({ created: true });
+    expect(d.createConfirmedUser).toHaveBeenCalledWith('sam@example.com', 'long enough', {
+      qr_code: 'abc',
+    });
+    expect(d.noteUnproven).toHaveBeenCalled();
+  });
+
+  it('takes the account away again when it cannot be noted', async () => {
+    const d = deps({ mayJoin: true, noted: false });
+    expect(await inviteSignup(body, d)).toEqual({ created: false });
     expect(d.removeUser).toHaveBeenCalledWith('new-account');
   });
 });

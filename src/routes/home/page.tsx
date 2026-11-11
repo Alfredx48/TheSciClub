@@ -50,7 +50,7 @@ import { PersonCard } from '@/routes/home/person-card';
 import { PhotoCard } from '@/routes/home/photo-card';
 import { ProfileCard, useProfileAsk } from '@/routes/home/profile-card';
 import { type CardLikes, TopicCard } from '@/routes/home/topic-card';
-import { membersWithin } from '@/routes/peers/filters';
+import { membersBeyond } from '@/routes/peers/filters';
 import type { ClubEvent, RsvpStatus } from '@/types/domain';
 
 /**
@@ -127,8 +127,8 @@ export default function HomePage() {
   // Peers measured as the Peers tab does, from what the map holds.
   const home = useHome();
   const mapData = useMapData(filters.withinMiles !== null);
-  const peersNear = useMemo(
-    () => membersWithin(mapData.contents, filters.withinMiles),
+  const peersFar = useMemo(
+    () => membersBeyond(mapData.contents, filters.withinMiles),
     [mapData.contents, filters.withinMiles],
   );
   const events = useMemo(
@@ -160,15 +160,15 @@ export default function HomePage() {
   const people = useMemo(
     () =>
       suggestPeople(
-        peersNear
-          ? membersRead.members.filter((member) => peersNear.has(member.id))
+        peersFar
+          ? membersRead.members.filter((member) => !peersFar.has(member.id))
           : membersRead.members,
         memberId,
         talkedTo,
         new Date(),
         SEGMENT_PEOPLE,
       ),
-    [membersRead.members, peersNear, memberId, talkedTo],
+    [membersRead.members, peersFar, memberId, talkedTo],
   );
 
   const authors = useChatAuthors(

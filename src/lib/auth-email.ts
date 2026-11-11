@@ -52,10 +52,10 @@ export function cleanEmail(value: string): string {
 }
 
 /**
- * Straight in with an invite link, or a live code that lets
- * people in (the owner, 2026-11-01; supabase/functions/invite-signup/handler.ts).
- * False for anything else, the server not answering included, and the ordinary
- * sign-up goes on.
+ * Straight in, confirming later, with an invite link, a live code, an invited
+ * address or while joining is open (the owner, 2026-11-01 and 2026-11-10;
+ * supabase/functions/invite-signup/handler.ts). False for anything else, the
+ * server not answering included, and the ordinary sign-up goes on.
  */
 async function signUpStraightIn(
   email: string,
@@ -83,7 +83,7 @@ export async function signUpWithEmail(email: string, password: string): Promise<
   const query = new URLSearchParams({ [CONFIRMED_PARAM]: '1', next });
   const token = heldInviteToken();
   const code = heldQrCode();
-  if ((token || code) && (await signUpStraightIn(email, password, token, code))) {
+  if (await signUpStraightIn(email, password, token, code)) {
     return { ok: true, signedIn: true };
   }
   const { data, error } = await getSupabase().auth.signUp({

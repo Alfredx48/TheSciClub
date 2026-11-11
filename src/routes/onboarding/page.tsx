@@ -17,7 +17,11 @@ import {
   verifySignUpCode,
 } from '@/lib/auth-email';
 import { describeError } from '@/lib/describe-error';
-import { keepPendingRegistration, pendingRegistration } from '@/lib/event-audience';
+import {
+  keepPendingRegistration,
+  pendingRegistration,
+  registeredRecently,
+} from '@/lib/event-audience';
 import { useGoogleInBrowser } from '@/lib/google-in-browser';
 import { googlePhotoUrl } from '@/lib/google-photo';
 import {
@@ -156,6 +160,8 @@ export default function OnboardingPage() {
   // Just registered for a public event (src/lib/event-audience.ts): the
   // welcome page says so, and joining starts from what they typed.
   const [registered] = useState(pendingRegistration);
+  // The welcome page's "You're on our list" only while it is news.
+  const [onTheList] = useState(registeredRecently);
   const [data, setData] = useState<OnboardingData>(() =>
     registered
       ? {
@@ -846,7 +852,7 @@ export default function OnboardingPage() {
     return (
       <WelcomeScreen
         joiningOpen={joiningOpen}
-        registered={registered}
+        registered={onTheList ? registered : null}
         onJoin={() => {
           setStep('join');
         }}
