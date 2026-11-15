@@ -19,6 +19,8 @@ export function AddressField({
   className,
   describedBy,
   maxLength,
+  placeholder,
+  suggest = true,
 }: {
   label: ReactNode;
   value: string;
@@ -27,6 +29,9 @@ export function AddressField({
   className: string;
   describedBy?: string;
   maxLength?: number;
+  placeholder?: string;
+  /** False: a plain box, nothing sent (an online event's "On Zoom"). */
+  suggest?: boolean;
 }) {
   const id = useId();
   const listId = `${id}-list`;
@@ -59,7 +64,7 @@ export function AddressField({
   const ask = (typed: string) => {
     stop();
     setActive(-1);
-    if (typed.trim().length < SUGGEST_AFTER) {
+    if (!suggest || typed.trim().length < SUGGEST_AFTER) {
       setSuggestions([]);
       setOpen(false);
       setSaid('');
@@ -136,6 +141,7 @@ export function AddressField({
           ref={input}
           className={className}
           maxLength={maxLength}
+          placeholder={placeholder}
           role="combobox"
           aria-autocomplete="list"
           aria-expanded={expanded}

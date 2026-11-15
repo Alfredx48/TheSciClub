@@ -2,8 +2,8 @@ import { act, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { AddressField } from '@/components/address-field';
 import type { AddressSuggestion } from '@/lib/address-suggestions';
-import { AddressField } from '@/routes/admin/address-field';
 
 const place = (housenumber: string, name?: string) => ({
   type: 'Feature',

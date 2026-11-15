@@ -1,6 +1,6 @@
 import { ArrowDown, ArrowUp, Plus, Trash2 } from 'lucide-react';
+import { AddressField } from '@/components/address-field';
 import type { OrganizationPlaceDraft as OrganizationPlace } from '@/lib/organization-management';
-import { AddressField } from '@/routes/admin/address-field';
 import { US_STATES } from '@/types/domain';
 
 const field =

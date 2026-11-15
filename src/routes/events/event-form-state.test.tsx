@@ -36,6 +36,21 @@ vi.mock('@/lib/event-audience', async (importOriginal) => ({
   fetchEventVisibility: () => Promise.resolve({ ok: true, value: null }),
 }));
 vi.mock('@/lib/photos', () => ({ usePhotoUrl: () => null }));
+vi.mock('@/lib/address-suggestions', async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  suggestAddresses: () =>
+    Promise.resolve([
+      {
+        key: 'w1',
+        name: 'Lakeside Park',
+        street: '666 Bellevue Avenue',
+        city: 'Bend',
+        state: 'OR',
+        postalCode: '97701',
+        line: '666 Bellevue Avenue, Bend, OR 97701',
+      },
+    ]),
+}));
 
 const { default: EventFormPage } = await import('@/routes/events/event-form');
 
@@ -88,6 +103,20 @@ describe("an event's state on its form", () => {
     await userEvent.selectOptions(state, 'OR');
     await userEvent.selectOptions(host, 'borp');
     expect(state).toHaveValue('OR');
+  });
+
+  it('fills Where, City and State from a picked address, and the host no longer moves the state', async () => {
+    renderForm();
+    const host = await screen.findByLabelText('Who is hosting it?');
+    await userEvent.selectOptions(host, 'borp');
+    const where = screen.getByRole('combobox', { name: 'Where' });
+    await userEvent.type(where, '666 Bell');
+    await userEvent.click(await screen.findByRole('option', { name: /Lakeside Park/ }));
+    expect(where).toHaveValue('Lakeside Park, 666 Bellevue Avenue');
+    expect(screen.getByLabelText('City (optional)')).toHaveValue('Bend');
+    expect(screen.getByLabelText('State')).toHaveValue('OR');
+    await userEvent.selectOptions(host, 'hf');
+    expect(screen.getByLabelText('State')).toHaveValue('OR');
   });
 
   it('lists the organizations they belong to, and finds the rest by search', async () => {

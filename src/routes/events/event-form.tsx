@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Navigate, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { AddressField } from '@/components/address-field';
 import { BackLink } from '@/components/back-link';
 import { OrganizationPicker } from '@/components/organization-picker';
 import { SegmentPills } from '@/components/segment-pills';
@@ -700,18 +701,26 @@ function EventForm({
           className="flex-wrap"
         />
 
-        <label
-          htmlFor="event-location"
-          className="mt-1 block font-bold font-head text-[0.8125rem] text-ink"
-        >
-          {draft.format === 'online' ? 'Where (optional)' : 'Where'}
-        </label>
-        <input
-          id="event-location"
+        {/* Addresses suggested as it is typed, as on an organization's locations. */}
+        <AddressField
+          label={
+            <span className="mt-1 block font-bold font-head text-[0.8125rem]">
+              {draft.format === 'online' ? 'Where (optional)' : 'Where'}
+            </span>
+          }
           value={draft.location}
           maxLength={LOCATION_MAX}
-          onChange={(e) => {
-            set('location', e.target.value);
+          suggest={draft.format !== 'online'}
+          onChange={(location) => {
+            set('location', location);
+          }}
+          onPick={(found) => {
+            const where = found.name ? `${found.name}, ${found.street}` : found.street;
+            set('location', where.slice(0, LOCATION_MAX));
+            set('city', found.city.slice(0, CITY_MAX));
+            // A picked place's state is a choice: the host no longer moves it.
+            setStateChosen(true);
+            set('state', found.state);
           }}
           placeholder={draft.format === 'online' ? 'On Zoom' : 'Lakeside Park, 666 Bellevue Ave'}
           className={FIELD}
