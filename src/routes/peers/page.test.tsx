@@ -197,8 +197,11 @@ describe('PeersPage', () => {
   it('names the search, not the filters, when the search is what emptied the deck', async () => {
     renderPage();
     await userEvent.type(screen.getByRole('searchbox'), 'nobody at all');
-    expect(screen.getByText(/clear the search/i)).toBeInTheDocument();
+    const clear = screen.getByRole('button', { name: 'Clear search' });
+    expect(clear).toBeInTheDocument();
     expect(screen.queryByText(/widening the filters/i)).not.toBeInTheDocument();
+    await userEvent.click(clear);
+    expect(screen.getByRole('searchbox')).toHaveValue('');
   });
 
   it('tells a signed-out visitor the club is members only, not "permission denied"', () => {

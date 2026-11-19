@@ -295,18 +295,23 @@ export default function PeersPage() {
               </div>
             </div>
             {visible.length === 0 ? (
-              /* The advice names the lever that is actually holding the deck
-                 shut. "Try widening the filters" was the only line here, and it
-                 sends somebody into the sheet to loosen filters they may not
-                 have set — the deck is far more often empty because of three
-                 words in the search box. */
-              <p className="px-6 py-10 text-center text-[0.875rem] text-grey leading-relaxed">
-                Nobody matches that yet.
-                <br />
-                {filters.search
-                  ? 'Try fewer words, or clear the search.'
-                  : 'Try widening the filters.'}
-              </p>
+              <div className="px-6 py-10 text-center text-[0.875rem] text-grey leading-relaxed">
+                <p>
+                  Nobody matches that yet.
+                  <br />
+                  {filters.search ? 'Try fewer words.' : 'Try widening the filters.'}
+                </p>
+                <button
+                  type="button"
+                  className="mt-2 min-h-11 font-semibold text-emphasis underline underline-offset-2"
+                  onClick={() => {
+                    if (filters.search) setFilters((current) => ({ ...current, search: '' }));
+                    else setSheetOpen(true);
+                  }}
+                >
+                  {filters.search ? 'Clear search' : 'Change filters'}
+                </button>
+              </div>
             ) : null}
           </>
         )}
