@@ -27,17 +27,14 @@ import DeleteAccountPage from '@/routes/legal/delete-account';
 import PrivacyPage from '@/routes/legal/privacy';
 import TermsPage from '@/routes/legal/terms';
 import NotFoundPage from '@/routes/not-found/page';
-import OnboardingPage from '@/routes/onboarding/page';
+import type OnboardingScreen from '@/routes/onboarding/page';
 
 /*
  * Every screen but the doors is fetched when it is first opened, not with the
  * first page (2026-10-14: one 1.16MB script held all of them, Admin and the
- * event editor included). Home, joining and the legal pages stay in the first
- * script: Home is where the club opens, and the other three are already drawn
- * in the HTML (scripts/prerender-legal.mjs), which a loading screen would
- * blank. The service worker precaches every chunk, so the installed app still
- * opens any screen offline. The four other tabs are fetched once the first
- * screen is up (prefetchTabs).
+ * event editor included). Home and the legal pages stay in the first script.
+ * /join keeps its prerendered HTML while its script loads (main.tsx).
+ * The other tabs are fetched once the first screen is up (prefetchTabs).
  */
 const OrganizationManagementPage = lazy(
   () => import('@/routes/admin/organization-management-page'),
@@ -80,6 +77,21 @@ const ProfileDetailsPage = lazy(() => import('@/routes/profile/details'));
 const ProfileSurveyPage = lazy(() => import('@/routes/profile/page'));
 const RequestInvitePage = lazy(() => import('@/routes/request-invite/page'));
 const ResetPasswordPage = lazy(() => import('@/routes/reset-password/page'));
+
+let loadedOnboarding: typeof OnboardingScreen | undefined;
+
+export async function loadOnboarding() {
+  const module = await import('@/routes/onboarding/page');
+  loadedOnboarding = module.default;
+  return module;
+}
+
+const LazyOnboarding = lazy(loadOnboarding);
+
+function OnboardingPage() {
+  const [Page] = useState(() => loadedOnboarding ?? LazyOnboarding);
+  return <Page />;
+}
 
 // The other four tabs, fetched after the first screen so a first tap on one
 // does not wait for its script.
