@@ -30,4 +30,5 @@ export const EVENTS: ReadonlySet<string> = new Set([
   'family_link',
   'checked_in',
   'important',
+  'waiting',
 ]);

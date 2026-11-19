@@ -114,6 +114,47 @@ export async function loadNotifications(
   }
 }
 
+/**
+ * What still waits on the member to do something (20261119100000): a held
+ * calendar invitation, somebody asking to join or for an invite, a report.
+ * It stays until it is done, by them or anybody else, however often it is
+ * read; oldest first.
+ */
+export interface WaitingNotification extends AppNotification {
+  /** When the oldest thing still undone arrived. */
+  waitingSince: string;
+}
+
+export async function loadWaitingNotifications(): Promise<
+  { ok: true; notifications: WaitingNotification[] } | { ok: false; error: string }
+> {
+  try {
+    const { data, error } = (await getSupabase().rpc('my_waiting_notifications')) as {
+      data: (Row & { waiting_since: string })[] | null;
+      error: Failure | null;
+    };
+    if (error) return { ok: false, error: describeError(error, 'Could not load notifications.') };
+    return {
+      ok: true,
+      notifications: (data ?? []).map((row) => ({
+        ...toNotification(row),
+        waitingSince: row.waiting_since,
+      })),
+    };
+  } catch (e) {
+    return { ok: false, error: describeThrown(e, 'Could not load notifications.') };
+  }
+}
+
+/** "Waiting 3 hours", "Waiting 2 days": how long it has waited, not when. */
+export function waitingFor(since: string, now: Date = new Date()): string {
+  const hours = Math.floor((now.getTime() - new Date(since).getTime()) / 3_600_000);
+  if (!Number.isFinite(hours) || hours < 1) return 'Waiting under an hour';
+  if (hours < 24) return `Waiting ${hours} ${hours === 1 ? 'hour' : 'hours'}`;
+  const days = Math.floor(hours / 24);
+  return `Waiting ${days} ${days === 1 ? 'day' : 'days'}`;
+}
+
 /** The bell stops counting what is already listed. */
 export async function markNotificationsSeen(): Promise<void> {
   await getSupabase().rpc('notifications_mark_seen');

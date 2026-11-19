@@ -15,6 +15,7 @@ const db = vi.hoisted(() => ({
   seen: 0,
   read: [] as (string | undefined)[],
   failure: null as string | null,
+  waiting: [] as Notifications.WaitingNotification[],
 }));
 
 vi.mock('@/lib/notifications', async (importOriginal) => ({
@@ -24,6 +25,7 @@ vi.mock('@/lib/notifications', async (importOriginal) => ({
     if (db.failure) return Promise.resolve({ ok: false, error: db.failure });
     return Promise.resolve({ ok: true, notifications: db.pages.shift() ?? [] });
   },
+  loadWaitingNotifications: () => Promise.resolve({ ok: true, notifications: db.waiting }),
   markNotificationsSeen: () => {
     db.seen += 1;
     return Promise.resolve();
@@ -75,6 +77,7 @@ beforeEach(() => {
   db.seen = 0;
   db.read = [];
   db.failure = null;
+  db.waiting = [];
 });
 
 describe('the notifications list', () => {
@@ -140,6 +143,25 @@ describe('the notifications list', () => {
     expect(db.asked).toEqual([null, '2026-10-09T10:20:00Z']);
     expect(await screen.findAllByRole('listitem')).toHaveLength(41);
     expect(screen.queryByRole('button', { name: 'Show earlier' })).toBeNull();
+  });
+
+  it('keeps what still needs the member on top, read or not, and lists it once', async () => {
+    const asked = item({
+      id: 'asked',
+      kind: 'join_request',
+      read: true,
+      actorName: 'Ana',
+      place: 'Ride On',
+      url: '/events/organizations/o',
+    });
+    db.pages = [[item({ id: 'r1', createdAt: '2026-10-09T11:00:00Z' }), asked]];
+    db.waiting = [{ ...asked, waitingSince: new Date(Date.now() - 30 * 3_600_000).toISOString() }];
+    renderPage();
+    const needs = await screen.findByRole('region', { name: 'Waiting on you (1)' });
+    expect(needs).toHaveTextContent('Ana asked to join Ride On');
+    expect(needs).toHaveTextContent('Waiting 1 day');
+    expect(await screen.findAllByText('Ana asked to join Ride On')).toHaveLength(1);
+    expect(screen.getByText('Jan replied to your post “Best cushion?”')).toBeInTheDocument();
   });
 
   it('says plainly when there is nothing', async () => {

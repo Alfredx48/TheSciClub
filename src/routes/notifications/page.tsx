@@ -3,6 +3,8 @@ import {
   Ban,
   Bell,
   CalendarDays,
+  ChevronRight,
+  CircleAlert,
   Flag,
   HandCoins,
   Handshake,
@@ -32,11 +34,14 @@ import {
   type AppNotification,
   announceNotificationsChanged,
   loadNotifications,
+  loadWaitingNotifications,
   markNotificationsRead,
   markNotificationsSeen,
   NOTIFICATIONS_PAGE,
   type NotificationKind,
   notificationSentence,
+  type WaitingNotification,
+  waitingFor,
 } from '@/lib/notifications';
 import { cn } from '@/lib/utils';
 import { importantWords } from '@/routes/chat/important';
@@ -52,6 +57,11 @@ import { importantWords } from '@/routes/chat/important';
  *
  * Rows say what happened in the words the lock screen uses, with the start of
  * the message or post under it while that still stands.
+ *
+ * What still needs the member to do something (a held calendar invitation,
+ * somebody asking to join or for an invite, a report) is kept on top under
+ * "Waiting on you" until it is done, read or not, and is emailed once it has
+ * waited a day (the owner, 2026-11-19; 20261119100000).
  */
 const KIND_ICON: Record<NotificationKind, LucideIcon> = {
   direct: MessageCircle,
@@ -95,9 +105,14 @@ export default function NotificationsPage() {
   // 2026-11-13: "up to the top"; 20261113140000).
   const [waiting, setWaiting] = useState<WaitingImportant[]>([]);
   const [acknowledging, setAcknowledging] = useState<string | null>(null);
+  const [needs, setNeeds] = useState<WaitingNotification[]>([]);
 
   const load = useCallback(async () => {
     void fetchMyImportant().then(setWaiting);
+    // Without it, they are still in the list below, so a failure says nothing.
+    void loadWaitingNotifications().then((result) => {
+      if (result.ok) setNeeds(result.notifications);
+    });
     const result = await loadNotifications();
     if (!result.ok) {
       setError(result.error);
@@ -136,6 +151,7 @@ export default function NotificationsPage() {
   function open(item: AppNotification) {
     if (!item.read) {
       setItems((current) => current.map((n) => (n.id === item.id ? { ...n, read: true } : n)));
+      setNeeds((current) => current.map((n) => (n.id === item.id ? { ...n, read: true } : n)));
       void markNotificationsRead(item.id).then(announceNotificationsChanged);
     }
     void navigate(item.url);
@@ -170,14 +186,17 @@ export default function NotificationsPage() {
 
   // A pinned one is not listed twice.
   const pinned = new Set(waiting.map((w) => w.messageId));
+  const needed = new Set(needs.map((n) => n.id));
   const listed = items.filter(
     (n) =>
+      !needed.has(n.id) &&
       !(
         n.kind === 'important' &&
         n.detail !== 'waiting' &&
         [...pinned].some((id) => n.url.includes(`message=${id}`))
       ),
   );
+  const onTop = waiting.length > 0 || needs.length > 0;
 
   const unread = items.filter((n) => !n.read).length;
 
@@ -189,7 +208,9 @@ export default function NotificationsPage() {
             <h1 className="font-extrabold font-display text-[1.5625rem] text-ink tracking-[-0.01em]">
               Notifications
             </h1>
-            <p className="mt-0.5 text-[0.78125rem] text-grey">The last 30 days.</p>
+            {needs.length > 0 ? null : (
+              <p className="mt-0.5 text-[0.78125rem] text-grey">The last 30 days.</p>
+            )}
           </div>
           {unread > 0 ? (
             <button
@@ -261,16 +282,48 @@ export default function NotificationsPage() {
             </ul>
           </section>
         ) : null}
+        {needs.length > 0 ? (
+          <section aria-labelledby="needs-heading" className="mb-4">
+            <h2
+              id="needs-heading"
+              className="mb-2 flex items-center gap-1.5 font-bold text-[0.78125rem] text-gold-ink uppercase tracking-[0.06em]"
+            >
+              <CircleAlert aria-hidden="true" className="h-4 w-4" />
+              Waiting on you ({needs.length})
+            </h2>
+            <ul className="overflow-hidden rounded-[14px] border-2 border-gold bg-paper">
+              {needs.map((item) => (
+                <li key={item.id} className="border-line border-b last:border-b-0">
+                  <NotificationRow
+                    item={item}
+                    waitingSince={item.waitingSince}
+                    onOpen={() => {
+                      open(item);
+                    }}
+                  />
+                </li>
+              ))}
+            </ul>
+            <p className="mt-1.5 text-[0.8125rem] text-ink2 leading-[1.45]">
+              These stay until they’re done. After a day, we email you.
+            </p>
+          </section>
+        ) : null}
+        {onTop && !loading && listed.length > 0 ? (
+          <h2 className="mb-2 font-bold text-[0.78125rem] text-grey uppercase tracking-[0.06em]">
+            Everything else, the last 30 days
+          </h2>
+        ) : null}
         {loading ? (
           <LoadingCards label="Loading…" count={5} height={64} rows />
-        ) : listed.length === 0 && waiting.length === 0 && !error ? (
+        ) : listed.length === 0 && !onTop && !error ? (
           <div className="rounded-[14px] border border-line bg-paper px-4 py-6 text-center">
             <p className="font-bold font-head text-[0.9375rem] text-ink">Nothing yet</p>
             <p className="mt-1 text-[0.8125rem] text-ink2 leading-[1.5]">
               Messages, replies, likes and event reminders show here for 30 days.
             </p>
           </div>
-        ) : (
+        ) : listed.length > 0 ? (
           <ul className="arrive overflow-hidden rounded-[14px] border border-line bg-paper">
             {listed.map((item) => (
               <li key={item.id} className="border-line border-b last:border-b-0">
@@ -283,7 +336,7 @@ export default function NotificationsPage() {
               </li>
             ))}
           </ul>
-        )}
+        ) : null}
         {more ? (
           <button
             type="button"
@@ -301,7 +354,16 @@ export default function NotificationsPage() {
   );
 }
 
-function NotificationRow({ item, onOpen }: { item: AppNotification; onOpen: () => void }) {
+function NotificationRow({
+  item,
+  onOpen,
+  waitingSince,
+}: {
+  item: AppNotification;
+  onOpen: () => void;
+  /** On top under Waiting on you: how long it has waited, in place of when it came. */
+  waitingSince?: string;
+}) {
   useMinute();
   // A kind added after this build gets the bell, not a crash.
   const Icon = Object.hasOwn(KIND_ICON, item.kind) ? KIND_ICON[item.kind] : Bell;
@@ -312,7 +374,7 @@ function NotificationRow({ item, onOpen }: { item: AppNotification; onOpen: () =
       onClick={onOpen}
       className={cn(
         'flex w-full items-start gap-3 px-3.5 py-3 text-left transition-colors hover:bg-tint',
-        !item.read && 'bg-tint/60',
+        !item.read && !waitingSince && 'bg-tint/60',
       )}
     >
       <span aria-hidden="true" className="relative flex-none">
@@ -338,10 +400,10 @@ function NotificationRow({ item, onOpen }: { item: AppNotification; onOpen: () =
         <span
           className={cn(
             'block text-[0.9375rem] text-ink leading-[1.4]',
-            item.read ? 'font-medium' : 'font-bold',
+            item.read && !waitingSince ? 'font-medium' : 'font-bold',
           )}
         >
-          {item.read ? null : <span className="sr-only">New: </span>}
+          {item.read || waitingSince ? null : <span className="sr-only">New: </span>}
           {sentence}
         </span>
         {item.excerpt ? (
@@ -349,9 +411,24 @@ function NotificationRow({ item, onOpen }: { item: AppNotification; onOpen: () =
             {markdownToPlain(item.excerpt)}
           </span>
         ) : null}
-        <span className="mt-1 block text-[0.75rem] text-grey">{chatTime(item.createdAt)}</span>
+        {waitingSince ? (
+          <span
+            className={cn(
+              'mt-1 block text-[0.75rem]',
+              Date.now() - new Date(waitingSince).getTime() >= 86_400_000
+                ? 'font-semibold text-destructive'
+                : 'text-grey',
+            )}
+          >
+            {waitingFor(waitingSince)}
+          </span>
+        ) : (
+          <span className="mt-1 block text-[0.75rem] text-grey">{chatTime(item.createdAt)}</span>
+        )}
       </span>
-      {item.read ? null : (
+      {waitingSince ? (
+        <ChevronRight aria-hidden="true" className="mt-1 h-5 w-5 flex-none self-center text-grey" />
+      ) : item.read ? null : (
         <span aria-hidden="true" className="mt-2 h-2.5 w-2.5 flex-none rounded-full bg-emphasis" />
       )}
     </button>

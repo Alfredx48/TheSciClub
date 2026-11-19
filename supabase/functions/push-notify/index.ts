@@ -31,6 +31,7 @@ import { EVENTS } from './events.ts';
 import { fcmDevice, fcmSender } from './fcm.ts';
 import { type DueInvite, memberInviteEmail } from './invite-email.ts';
 import { type DueEmail, reminderEmail } from './reminder-email.ts';
+import { type DueWaiting, waitingEmail } from './waiting-email.ts';
 import { sendPush } from './webpush.ts';
 
 declare const Deno: {
@@ -221,7 +222,9 @@ Deno.serve(async (request) => {
       ? await emailReminders(secret, key)
       : event === 'event_notice'
         ? await emailInvites(secret, key)
-        : 0;
+        : event === 'waiting'
+          ? await emailWaiting(secret, key)
+          : 0;
 
   return reply(200, { owed: owed.length, sent, skipped, forgotten: gone.length, emailed });
 });
@@ -266,6 +269,45 @@ async function emailReminders(secret: string, key: unknown): Promise<number> {
 }
 
 const SITE = Deno.env.get('SITE_URL') ?? 'https://thesciclub.com';
+
+/**
+ * What has waited a day on a member (20261119100000), hourly in the day:
+ * waiting_emails records and returns each member owed one, so a second run
+ * sends nothing. One that Resend refuses is logged, not retried.
+ */
+async function emailWaiting(secret: string, key: unknown): Promise<number> {
+  if (!RESEND_API_KEY || !EMAIL_FROM) {
+    console.log('push-notify: RESEND_API_KEY or INVITE_FROM is not set; no waiting emails');
+    return 0;
+  }
+  const dueResponse = await rpc('waiting_emails', { p_secret: secret, p_key: key });
+  if (!dueResponse.ok) {
+    console.error(
+      'push-notify: waiting_emails failed',
+      dueResponse.status,
+      await dueResponse.text(),
+    );
+    return 0;
+  }
+  const due = (await dueResponse.json()) as DueWaiting[];
+  let emailed = 0;
+  for (const row of due) {
+    if (row.items.length === 0) continue;
+    const message = waitingEmail(row, SITE);
+    try {
+      const sendResponse = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ from: EMAIL_FROM, ...message }),
+      });
+      if (sendResponse.ok) emailed++;
+      else console.error('push-notify: a waiting email was refused', sendResponse.status);
+    } catch (e) {
+      console.error('push-notify: a waiting email failed', e);
+    }
+  }
+  return emailed;
+}
 
 /**
  * Members invited by name to an invite-only event, emailed the event with
