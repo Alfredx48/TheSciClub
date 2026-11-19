@@ -44,6 +44,7 @@ const VAPID = {
   publicKey: Deno.env.get('VAPID_PUBLIC_KEY') ?? '',
   privateKey: Deno.env.get('VAPID_PRIVATE_KEY') ?? '',
 };
+const WEB_PUSH_CONFIGURED = Boolean(VAPID.publicKey && VAPID.privateKey);
 // How a push service reaches us about abuse. A site URL rather than
 // somebody's inbox.
 const SUBJECT = Deno.env.get('VAPID_SUBJECT') ?? 'https://thesciclub.netlify.app';
@@ -115,6 +116,7 @@ async function deliver(row: Owed, message: PushMessage): Promise<Delivery> {
     return 'failed';
   }
   if (!row.endpoint.startsWith('https://') || !row.p256dh || !row.auth) return 'failed';
+  if (!WEB_PUSH_CONFIGURED) return 'skipped';
   const status = await sendPush(
     { endpoint: row.endpoint, p256dh: row.p256dh, auth: row.auth },
     JSON.stringify(message),
@@ -146,8 +148,8 @@ function rpc(name: string, args: Record<string, unknown>): Promise<Response> {
 
 Deno.serve(async (request) => {
   if (request.method !== 'POST') return reply(405, { error: 'POST only' });
-  if (!VAPID.publicKey || !VAPID.privateKey) {
-    console.error('push-notify: VAPID keys are not set');
+  if (!WEB_PUSH_CONFIGURED && !FCM) {
+    console.error('push-notify: VAPID keys and FCM credentials are not set');
     return reply(500, { error: 'not configured' });
   }
 
