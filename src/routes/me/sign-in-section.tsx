@@ -246,8 +246,10 @@ function AppleCard({ details, reload }: { details: SignInDetails | null; reload:
     try {
       const result = await linkAppleNatively();
       if (result.ok) {
-        announce('Apple is linked.');
-        reload();
+        if (!result.redirected) {
+          announce('Apple is linked.');
+          reload();
+        }
       } else if (result.error) setError(result.error);
     } catch (e: unknown) {
       setError(describeThrown(e, 'Apple was not linked.'));

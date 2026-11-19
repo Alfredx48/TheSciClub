@@ -15,6 +15,12 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 /** APPLE_RETURN_PARAM's values (apple-sign-in.ts), which imports the client. */
 const BACK_FROM_APPLE = /[?&]apple=(signin|linked)(&|$)/;
 
+export async function keepAppleRefreshToken(client: SupabaseClient, token: string): Promise<void> {
+  await client.functions
+    .invoke('apple-token', { body: { refresh_token: token } })
+    .catch(() => undefined);
+}
+
 export function watchForAppleRefreshToken(client: SupabaseClient): void {
   let sent: string | null = null;
   client.auth.onAuthStateChange((event, session) => {
@@ -24,9 +30,7 @@ export function watchForAppleRefreshToken(client: SupabaseClient): void {
     sent = token;
     // After the callback, which holds the client's lock.
     setTimeout(() => {
-      void client.functions
-        .invoke('apple-token', { body: { refresh_token: token } })
-        .catch(() => undefined);
+      void keepAppleRefreshToken(client, token);
     }, 0);
   });
 }

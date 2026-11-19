@@ -404,13 +404,20 @@ describe('the iPhone’s Text Size', () => {
     });
   });
 
-  it('follows a tapped notification on an iPhone, and listens for none on Android', () => {
+  it('routes native notification taps on iPhone and configured Android', () => {
     const navigate = vi.fn();
     native.tapped = null;
     vi.spyOn(Capacitor, 'getPlatform').mockReturnValue('android');
     stop = startNativeShell(navigate);
     expect(native.tapped).toBeNull();
     stop();
+
+    vi.stubEnv('VITE_ANDROID_PUSH', 'true');
+    stop = startNativeShell(navigate);
+    tapNotification('/chat/t/1?n=thread');
+    expect(navigate).toHaveBeenCalledWith('/chat/t/1?n=thread');
+    stop();
+    vi.unstubAllEnvs();
 
     vi.spyOn(Capacitor, 'getPlatform').mockReturnValue('ios');
     stop = startNativeShell(navigate);

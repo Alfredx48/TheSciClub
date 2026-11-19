@@ -135,6 +135,11 @@
 # here, with no redirect, and wants JSON though the name has no extension.
 # The file is real, so the catch-all above never answers for it.
 [[headers]]
+  for = "/.well-known/assetlinks.json"
+  [headers.values]
+    Content-Type = "application/json"
+
+[[headers]]
   for = "/.well-known/apple-app-site-association"
   [headers.values]
     Content-Type = "application/json"

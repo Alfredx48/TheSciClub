@@ -4,22 +4,14 @@ import { describeError } from '@/lib/describe-error';
 import { makeNonce } from '@/lib/google-identity';
 import { GOOGLE_NOT_SIGNED_IN, linkGoogleToken, signInWithGoogleToken } from '@/lib/google-sign-in';
 import { hintSignIn } from '@/lib/sign-in-record';
-import { isNative } from '@/lib/standalone';
+import { isAndroidApp, isNative } from '@/lib/standalone';
 import { getSupabase } from '@/lib/supabase';
 
 /**
- * Sign in with Apple and Google in the store app, natively: Apple's own
- * sheet, and Google Sign-In's. Neither web flow can come back into the app
- * (Google refuses its widget in a web view; Apple's redirect lands on the
- * website). Each ends in an ID token Supabase checks, with a nonce: the
+ * Google and iOS Apple sign-in give Supabase an ID token with a nonce: the
  * SHA-256 of a fresh random value goes to Apple or Google, which put it in
  * the token, and Supabase is given the value itself to compare.
- *
- * iPhone only for now. Android's Google needs a client made with the Play
- * signing key, and Apple there is a web flow: both stay off until then.
- *
- * The plugin is loaded only here, only in the app, so the website never
- * downloads it.
+ * Android Apple sign-in returns from the browser with a PKCE code.
  */
 
 export interface NativeWaysIn {
@@ -33,7 +25,18 @@ export function googleIosClientId(): string | null {
   return id && /^[0-9]+-[a-z0-9]+\.apps\.googleusercontent\.com$/.test(id) ? id : null;
 }
 
+function googleAndroidWebClientId(): string | null {
+  const id = (import.meta.env.VITE_GOOGLE_ANDROID_WEB_CLIENT_ID as string | undefined)?.trim();
+  return id && /^[0-9]+-[a-z0-9]+\.apps\.googleusercontent\.com$/.test(id) ? id : null;
+}
+
 export function nativeWaysIn(): NativeWaysIn {
+  if (isAndroidApp()) {
+    return {
+      apple: import.meta.env.VITE_ANDROID_APPLE_SIGN_IN === 'true',
+      google: googleAndroidWebClientId() !== null,
+    };
+  }
   if (!isNative() || Capacitor.getPlatform() !== 'ios') return { apple: false, google: false };
   return { apple: true, google: googleIosClientId() !== null };
 }
@@ -43,6 +46,12 @@ let loading: Promise<SocialLoginPlugin> | null = null;
 function plugin(): Promise<SocialLoginPlugin> {
   loading ??= (async () => {
     const { SocialLogin } = await import('@capgo/capacitor-social-login');
+    if (isAndroidApp()) {
+      const webClientId = googleAndroidWebClientId();
+      if (!webClientId) throw new Error('Android Google sign-in is not configured.');
+      await SocialLogin.initialize({ google: { webClientId, mode: 'online' } });
+      return SocialLogin;
+    }
     const google = googleIosClientId();
     await SocialLogin.initialize({
       // The authorization code back, unspent, for apple-token to exchange.
@@ -122,7 +131,9 @@ export async function keepAppleCode(code: string): Promise<void> {
 }
 
 /** Ok, or a sentence to show; null for a sheet the member closed. */
-export type NativeResult = { ok: true; name: string | null } | { ok: false; error: string | null };
+export type NativeResult =
+  | { ok: true; name: string | null; redirected?: true }
+  | { ok: false; error: string | null };
 
 export const APPLE_NOT_SIGNED_IN = 'Apple did not sign you in. Try again, or use your email.';
 export const APPLE_TAKEN =
@@ -136,6 +147,10 @@ function hasName(metadata: Record<string, unknown> | undefined): boolean {
 }
 
 export async function signInWithAppleNatively(): Promise<NativeResult> {
+  if (isAndroidApp()) {
+    const { startAndroidApple } = await import('@/lib/android-apple-sign-in');
+    return startAndroidApple('signin');
+  }
   let credential: Credential;
   try {
     credential = await askApple();
@@ -174,6 +189,10 @@ export async function signInWithGoogleNatively(): Promise<NativeResult> {
 }
 
 export async function linkAppleNatively(): Promise<NativeResult> {
+  if (isAndroidApp()) {
+    const { startAndroidApple } = await import('@/lib/android-apple-sign-in');
+    return startAndroidApple('linked');
+  }
   let credential: Credential;
   try {
     credential = await askApple();

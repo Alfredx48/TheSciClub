@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { qrJoinUrl } from '@/lib/qr-codes';
+import ANDROID_MANIFEST from '../android/app/src/main/AndroidManifest.xml?raw';
 import ENTITLEMENTS from '../ios/App/App/App.entitlements?raw';
 import NETLIFY from '../netlify.toml?raw';
 import FILE from '../public/.well-known/apple-app-site-association?raw';
@@ -115,5 +116,59 @@ describe('the links that open the store app', () => {
 
   it('match the app’s entitlement', () => {
     expect(ENTITLEMENTS).toContain('<string>applinks:thesciclub.com</string>');
+  });
+
+  it('keeps browser sign-in returns separate from invites and email links on Android', () => {
+    const manifest = new DOMParser().parseFromString(ANDROID_MANIFEST, 'application/xml');
+    const verified = [...manifest.querySelectorAll('intent-filter')].filter(
+      (filter) => filter.getAttribute('android:autoVerify') === 'true',
+    );
+    expect(verified).toHaveLength(2);
+    const groups = verified.flatMap((filter) => [
+      ...filter.querySelectorAll('uri-relative-filter-group'),
+    ]);
+    const legacyPaths = verified.flatMap((filter) =>
+      [...filter.children]
+        .filter((child) => child.localName === 'data')
+        .map((child) => child.getAttribute('android:path')),
+    );
+    for (const path of ['/join', '/me', '/auth/confirm.html']) {
+      expect(legacyPaths).not.toContain(path);
+    }
+
+    for (const candidate of [
+      '/join?invite=one',
+      '/join?from=qr',
+      '/join?invite=one&apple=signin',
+      '/join?google=signin',
+      '/join?confirmed=1',
+      '/me',
+      '/me?email=changed',
+      '/me?apple=linked',
+      '/auth/confirm.html?type=recovery&token_hash=one',
+      '/auth/confirm.html',
+      '/events/one',
+      '/events/picture.png',
+    ]) {
+      const href = `https://thesciclub.com${candidate}`;
+      const url = new URL(href);
+      const match = groups.find((group) =>
+        [...group.children].every((rule) => {
+          const path = rule.getAttribute('android:path');
+          if (path !== null) return path === url.pathname;
+          const pattern = rule.getAttribute('android:pathPattern');
+          if (pattern !== null)
+            return new RegExp(`^${pattern.replaceAll('\\\\', '\\')}$`).test(url.pathname);
+          const query = rule.getAttribute('android:queryAdvancedPattern');
+          return (
+            query !== null &&
+            [...url.searchParams].some(([key, value]) =>
+              new RegExp(`^${query}$`).test(`${key}=${value}`),
+            )
+          );
+        }),
+      );
+      expect(match?.getAttribute('android:allow') === 'true', candidate).toBe(opensTheApp(href));
+    }
   });
 });

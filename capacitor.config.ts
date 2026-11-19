@@ -17,6 +17,9 @@ const config: CapacitorConfig = {
     contentInset: 'never',
   },
   plugins: {
+    SystemBars: {
+      initialViewportFitValueHint: 'cover',
+    },
     SplashScreen: {
       // Hidden by the app once its first screen is drawn (src/lib/native-shell.ts).
       launchAutoHide: false,

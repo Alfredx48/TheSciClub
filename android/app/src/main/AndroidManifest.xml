@@ -1,22 +1,150 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <application
-        android:allowBackup="true"
+        android:allowBackup="false"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
+        <meta-data android:name="firebase_messaging_auto_init_enabled" android:value="false" />
+        <meta-data android:name="firebase_analytics_collection_enabled" android:value="false" />
         <activity
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode|navigation|density"
             android:name=".MainActivity"
             android:label="@string/title_activity_main"
             android:theme="@style/AppTheme.NoActionBarLaunch"
+            android:windowSoftInputMode="adjustResize"
             android:launchMode="singleTask"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+
+            <!-- App Links with query matching from Android 15. -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="thesciclub.com" />
+                <data android:path="/__app_links_android_15__" />
+                <uri-relative-filter-group android:allow="false">
+                    <data android:path="/" />
+                </uri-relative-filter-group>
+                <uri-relative-filter-group android:allow="false">
+                    <data android:path="/join" />
+                    <data android:queryAdvancedPattern="google=.+" />
+                </uri-relative-filter-group>
+                <uri-relative-filter-group android:allow="false">
+                    <data android:path="/join" />
+                    <data android:queryAdvancedPattern="apple=.+" />
+                </uri-relative-filter-group>
+                <uri-relative-filter-group android:allow="false">
+                    <data android:path="/join" />
+                    <data android:queryAdvancedPattern="confirmed=.+" />
+                </uri-relative-filter-group>
+                <uri-relative-filter-group android:allow="true">
+                    <data android:path="/join" />
+                    <data android:queryAdvancedPattern="invite=.+" />
+                </uri-relative-filter-group>
+                <uri-relative-filter-group android:allow="true">
+                    <data android:path="/join" />
+                    <data android:queryAdvancedPattern="from=.+" />
+                </uri-relative-filter-group>
+                <uri-relative-filter-group android:allow="false">
+                    <data android:path="/join" />
+                </uri-relative-filter-group>
+                <uri-relative-filter-group android:allow="false">
+                    <data android:path="/me" />
+                    <data android:queryAdvancedPattern="google=.+" />
+                </uri-relative-filter-group>
+                <uri-relative-filter-group android:allow="false">
+                    <data android:path="/me" />
+                    <data android:queryAdvancedPattern="apple=.+" />
+                </uri-relative-filter-group>
+                <uri-relative-filter-group android:allow="false">
+                    <data android:path="/me" />
+                    <data android:queryAdvancedPattern="email=.+" />
+                </uri-relative-filter-group>
+                <uri-relative-filter-group android:allow="true">
+                    <data android:path="/auth/confirm.html" />
+                    <data android:queryAdvancedPattern="token_hash=.+" />
+                </uri-relative-filter-group>
+                <uri-relative-filter-group android:allow="false">
+                    <data android:pathPattern="/auth/.*" />
+                </uri-relative-filter-group>
+                <uri-relative-filter-group android:allow="false">
+                    <data android:path="/app-sign-in" />
+                </uri-relative-filter-group>
+                <uri-relative-filter-group android:allow="false">
+                    <data android:pathPattern="/app-sign-in/.*" />
+                </uri-relative-filter-group>
+                <uri-relative-filter-group android:allow="false">
+                    <data android:path="/reset-password" />
+                </uri-relative-filter-group>
+                <uri-relative-filter-group android:allow="false">
+                    <data android:path="/dev-login" />
+                </uri-relative-filter-group>
+                <uri-relative-filter-group android:allow="false">
+                    <data android:path="/share" />
+                </uri-relative-filter-group>
+                <uri-relative-filter-group android:allow="false">
+                    <data android:pathPattern="/share/.*" />
+                </uri-relative-filter-group>
+                <uri-relative-filter-group android:allow="false">
+                    <data android:pathPattern="/embed/.*" />
+                </uri-relative-filter-group>
+                <uri-relative-filter-group android:allow="false">
+                    <data android:pathPattern="/\\.well-known/.*" />
+                </uri-relative-filter-group>
+                <uri-relative-filter-group android:allow="false">
+                    <data android:pathPattern="/.*\\..*" />
+                </uri-relative-filter-group>
+                <uri-relative-filter-group android:allow="true">
+                    <data android:pathPattern="/.*" />
+                </uri-relative-filter-group>
+            </intent-filter>
+
+            <!-- Static paths for Android 14 and earlier. -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="thesciclub.com" />
+                <data android:path="/home" />
+                <data android:path="/peers" />
+                <data android:path="/chat" />
+                <data android:path="/events" />
+                <data android:path="/notifications" />
+                <data android:path="/invites" />
+                <data android:path="/stats" />
+                <data android:path="/partner" />
+                <data android:path="/admin" />
+                <data android:path="/request-invite" />
+                <data android:path="/profile" />
+                <data android:path="/about" />
+                <data android:path="/privacy" />
+                <data android:path="/terms" />
+                <data android:path="/delete-account" />
+                <data android:pathAdvancedPattern="/home/[^.]*" />
+                <data android:pathAdvancedPattern="/peers/[^.]*" />
+                <data android:pathAdvancedPattern="/introductions/[^.]*" />
+                <data android:pathAdvancedPattern="/chat/[^.]*" />
+                <data android:pathAdvancedPattern="/events/[^.]*" />
+                <data android:pathAdvancedPattern="/e/[^.]*" />
+                <data android:pathAdvancedPattern="/me/[^.]*" />
+                <data android:pathAdvancedPattern="/organizations/[^.]*" />
+                <data android:pathAdvancedPattern="/admin/[^.]*" />
+                <data android:pathAdvancedPattern="/profile/[^.]*" />
+                <data android:pathAdvancedPattern="/about/[^.]*" />
+            </intent-filter>
+
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="com.thesciclub.app" android:host="auth" android:path="/apple" />
             </intent-filter>
         </activity>
 

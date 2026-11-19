@@ -10,6 +10,10 @@ export function isNative(): boolean {
   return Capacitor.isNativePlatform();
 }
 
+export function isAndroidApp(): boolean {
+  return isNative() && Capacitor.getPlatform() === 'android';
+}
+
 /**
  * Whether this is the club opened from the Home Screen, not a browser tab.
  *

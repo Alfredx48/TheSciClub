@@ -4,6 +4,7 @@ import { noticeWrites } from '@/lib/kept-reads';
 import { timedFetch } from '@/lib/page-speed';
 import { watchForRecoveryLink } from '@/lib/recovery-link';
 import { watchSignIns } from '@/lib/sign-in-record';
+import { isAndroidApp } from '@/lib/standalone';
 import { acceptSessionFromUrl, sessionStorageKey } from '@/lib/url-session';
 
 /**
@@ -34,15 +35,21 @@ export function getSupabase(): SupabaseClient {
   // (src/lib/url-session.ts). Passkeys are a Supabase beta behind
   // VITE_PASSKEYS (src/lib/passkeys.ts).
   const detectSessionInUrl = acceptSessionFromUrl(sessionStorageKey(url));
+  const auth = {
+    detectSessionInUrl,
+    ...(isAndroidApp() && import.meta.env.VITE_ANDROID_APPLE_SIGN_IN === 'true'
+      ? { flowType: 'pkce' as const }
+      : {}),
+  };
   // Every request is timed for page speed (src/lib/page-speed.ts); a write
   // lets the kept tabs' reads go (src/lib/kept-reads.ts).
   const global = { fetch: noticeWrites(timedFetch()) };
   client = import.meta.env.VITE_PASSKEYS
     ? createClient(url, key, {
-        auth: { detectSessionInUrl, experimental: { passkey: true } },
+        auth: { ...auth, experimental: { passkey: true } },
         global,
       })
-    : createClient(url, key, { auth: { detectSessionInUrl }, global });
+    : createClient(url, key, { auth, global });
   // Before the client's first await, so a reset link it reads is seen.
   watchForRecoveryLink(client);
   // Likewise, so the session it reads from the address is reported, and

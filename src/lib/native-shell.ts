@@ -5,6 +5,7 @@ import { Keyboard } from '@capacitor/keyboard';
 import { PushNotifications } from '@capacitor/push-notifications';
 import { SplashScreen } from '@capacitor/splash-screen';
 import { TextZoom } from '@capacitor/text-zoom';
+import { androidAppleCallback, finishAndroidApple } from '@/lib/android-apple-sign-in';
 import {
   APP_SCHEME,
   clubPath,
@@ -143,6 +144,7 @@ function quietly(work: Promise<unknown>): void {
 
 export function startNativeShell(navigate: (to: string | number) => void): () => void {
   const listeners: Promise<PluginListenerHandle>[] = [];
+  const platform = Capacitor.getPlatform();
   // index.css moves every screen below the status bar.
   document.documentElement.dataset.nativeApp = '';
 
@@ -150,7 +152,10 @@ export function startNativeShell(navigate: (to: string | number) => void): () =>
   // full-height screen and adds it below the rest (2026-11-07).
   const root = document.documentElement;
   const keyboardOpen = (height: number) => {
-    root.style.setProperty('--keyboard-height', `${String(Math.max(0, Math.round(height)))}px`);
+    // Android's WebView already resizes for the keyboard.
+    if (platform !== 'android') {
+      root.style.setProperty('--keyboard-height', `${String(Math.max(0, Math.round(height)))}px`);
+    }
     root.dataset.keyboard = '';
   };
   const keyboardClosed = () => {
@@ -187,6 +192,17 @@ export function startNativeShell(navigate: (to: string | number) => void): () =>
   // (app-handoff.ts). Kept by the plugin until this listener takes it.
   listeners.push(
     App.addListener('appUrlOpen', ({ url }) => {
+      if (platform === 'android' && import.meta.env.VITE_ANDROID_APPLE_SIGN_IN === 'true') {
+        const callback = androidAppleCallback(url);
+        if (callback) {
+          quietly(
+            finishAndroidApple(callback).then((path) => {
+              if (path) window.location.replace(path);
+            }),
+          );
+          return;
+        }
+      }
       const opened = readOpenedLink(url, window.location.origin);
       if (!opened) return;
       if (!opened.code) {
@@ -202,8 +218,11 @@ export function startNativeShell(navigate: (to: string | number) => void): () =>
   );
 
   // A tapped notification, cold or warm; kept by the plugin until this
-  // listener takes it. iPhone only: Android has no sender yet.
-  if (Capacitor.getPlatform() === 'ios') {
+  // listener takes it.
+  if (
+    platform === 'ios' ||
+    (platform === 'android' && import.meta.env.VITE_ANDROID_PUSH === 'true')
+  ) {
     listeners.push(
       PushNotifications.addListener('pushNotificationActionPerformed', ({ notification }) => {
         const path = notificationPath(notification.data, window.location.origin);
