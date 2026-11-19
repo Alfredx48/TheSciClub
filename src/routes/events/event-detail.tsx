@@ -48,6 +48,7 @@ import { PrivacyChip, privacyLabel } from '@/routes/events/privacy-chip';
 import { RepeatsLine } from '@/routes/events/repeats-line';
 import { EventDescription, safeHref } from '@/routes/events/rich-text';
 import { SAVED_FROM_LINK, useRsvpFromLink } from '@/routes/events/rsvp-from-link';
+import { CancelledEvent, useScheduleUpdates } from '@/routes/events/schedule-updates';
 import { ShareEventButton } from '@/routes/events/share-event';
 import { ReviewsSection } from '@/routes/reviews/reviews-section';
 import type { EventAttendee, RsvpStatus } from '@/types/domain';
@@ -69,6 +70,7 @@ export default function EventDetailPage() {
   const session = useSession();
   const announce = useAnnounce();
   const memberId = session.status === 'signed-in' ? session.userId : null;
+  const [scheduleUpdate] = useScheduleUpdates(id ? memberId : null, id);
 
   const { events, loading, error, reload } = useEvents({
     id: id ?? '00000000-0000-0000-0000-000000000000',
@@ -177,9 +179,13 @@ export default function EventDetailPage() {
         onFollowed={() => reload?.()}
         missing={
           <div className="px-6 py-10 text-center">
-            <p className="text-[0.875rem] text-ink2 leading-relaxed">
-              This event is not on the calendar.
-            </p>
+            {scheduleUpdate?.new_start === null ? (
+              <CancelledEvent update={scheduleUpdate} />
+            ) : (
+              <p className="text-[0.875rem] text-ink2 leading-relaxed">
+                This event is not on the calendar.
+              </p>
+            )}
             <button
               type="button"
               onClick={() => {
