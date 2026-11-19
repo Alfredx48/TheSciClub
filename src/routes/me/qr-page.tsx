@@ -38,7 +38,10 @@ import { cn } from '@/lib/utils';
  * when it was made, when it expires, and a way to turn it off.
  *
  * A professional's own code, with no organization, lets people in as an
- * org admin's does (20261029100000).
+ * org admin's does (20261029100000). An org admin may leave their
+ * organization out too (the owner, 2026-11-19: "any active admin of any
+ * organization", 20261119140000): whoever joins is credited to them and joins
+ * no organization.
  */
 
 const WHEN: Intl.DateTimeFormatOptions = {
@@ -237,9 +240,8 @@ export default function QrCodePage() {
             void make();
           }}
         >
-          {offered.length > 1 ||
-          (isAdmin && everyOrganization.length > 0) ||
-          (ownCode && offered.length > 0) ? (
+          {/* An org admin may leave their organization out too (20261119140000). */}
+          {offered.length > 0 || (isAdmin && everyOrganization.length > 0) ? (
             <OrganizationPicker
               id="qr-organization"
               label="Who it's for"
@@ -247,13 +249,7 @@ export default function QrCodePage() {
               others={isAdmin ? everyOrganization : []}
               value={forOrganization ?? NO_ORGANIZATION}
               onChange={setOrganizationId}
-              none={
-                isAdmin
-                  ? 'No organization'
-                  : ownCode
-                    ? `Just you, as ${PARTNER_ROLE_NAME.toLowerCase()}`
-                    : undefined
-              }
+              none={ownCode ? `Just you, as ${PARTNER_ROLE_NAME.toLowerCase()}` : 'No organization'}
               className={FIELD}
             />
           ) : forOrganization ? (

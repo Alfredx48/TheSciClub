@@ -51,7 +51,8 @@ export function qrJoinUrl(code: string, origin: string = siteOrigin()): string {
 }
 
 export interface QrCodeDetails {
-  inviterName: string;
+  /** Null for a shared question's link: who shared it is not said (20261119140000). */
+  inviterName: string | null;
   eventName: string | null;
   joiningOpen: boolean;
   /** Only while joining is closed, for a code that does not let them in: who to ask. */
@@ -71,7 +72,7 @@ export async function fetchQrCodeDetails(code: string): Promise<QrCodeDetails | 
     const row: unknown = data;
     if (error || !row || typeof row !== 'object') return null;
     const r = row as Record<string, unknown>;
-    if (typeof r.inviter_name !== 'string') return null;
+    if (r.inviter_name !== null && typeof r.inviter_name !== 'string') return null;
     return {
       inviterName: r.inviter_name,
       eventName: typeof r.event_name === 'string' ? r.event_name : null,

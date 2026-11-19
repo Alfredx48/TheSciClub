@@ -16,6 +16,7 @@ const db = vi.hoisted(() => ({
   shared: [] as { postId: string; target: ShareTarget; authorId: string; line: string }[],
   failure: null as string | null,
   isAdmin: false,
+  orgAdmin: false,
 }));
 
 vi.mock('@/lib/account', () => ({
@@ -70,6 +71,12 @@ vi.mock('@/components/member-avatar', () => ({
 const shared = vi.hoisted(() => ({
   links: [] as { url: string; text: string }[],
   outcome: 'copied',
+}));
+vi.mock('@/lib/organization-representatives', () => ({
+  useMyOrganizations: (memberId: string | null) => ({
+    ids: new Set(memberId && db.orgAdmin ? ['ncs'] : []),
+    loading: false,
+  }),
 }));
 vi.mock('@/lib/share-link', () => ({
   shareLink: (link: { url: string; text: string }) => {
@@ -296,8 +303,18 @@ describe('sharing a post into a conversation', () => {
 });
 
 // The owner, 2026-10-28: a link to send outside the club; 2026-11-16: "only
-// admins can share them and only in private discussions, not on any platforms".
+// admins can share them and only in private discussions, not on any platforms";
+// 2026-11-19: "any active admin of any organization".
 describe('a post’s link outside the club', () => {
+  it('is offered to an organization’s admin too', async () => {
+    db.orgAdmin = true;
+    renderButton();
+    await userEvent.click(screen.getByRole('button', { name: /^Share / }));
+    expect(await screen.findByRole('button', { name: 'Copy link' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Share elsewhere' })).not.toBeInTheDocument();
+    db.orgAdmin = false;
+  });
+
   it('is not offered to a member, and is only copied by an administrator, with none of its words', async () => {
     db.isAdmin = false;
     const { unmount } = renderButton();

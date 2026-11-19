@@ -17,10 +17,7 @@ describe('a link to a question in a text message', () => {
     expect(topicIdIn(`/chat/rooms/r/topics/${ID}`)).toBe(ID);
     expect(topicIdIn('/chat/rooms/r')).toBeNull();
 
-    const shared = sharedQuestionPage(
-      { title: 'Cushions: <Roho> or "Jay"?', inviter_name: 'Wojtek' },
-      URL,
-    );
+    const shared = sharedQuestionPage({ title: 'Cushions: <Roho> or "Jay"?' }, URL);
     expect(shared).toContain(
       '<meta property="og:title" content="Cushions: &lt;Roho&gt; or &quot;Jay&quot;?" />',
     );

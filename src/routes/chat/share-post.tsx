@@ -12,6 +12,7 @@ import type { ChatThread } from '@/lib/chat/types';
 import { useDialogFocus } from '@/lib/dialog-focus';
 import { markdownToPlain } from '@/lib/markdown';
 import { useBrowseMembers } from '@/lib/members';
+import { useMyOrganizations } from '@/lib/organization-representatives';
 import { linkWithCode, shareTopicCode, turnOffQrCode } from '@/lib/qr-codes';
 import { matchesSearch } from '@/lib/search';
 import { canShareElsewhere, copyLink, shareLink } from '@/lib/share-link';
@@ -50,13 +51,6 @@ export function SharePostButton({
 }) {
   const [open, setOpen] = useState(false);
   const account = useAccount();
-  // The owner, 2026-11-16: "These questions are not meant to be shared, only
-  // admins can share them and only in private discussions, not on any
-  // platforms". A member shares a post inside the club only; an administrator
-  // also gets its link to copy into a private message, and no Share elsewhere.
-  const admin = account.status === 'member' && account.isAdmin;
-  const outside = admin ? link : undefined;
-  const invites = admin && topicId ? topicId : null;
   const what = `“${excerpt(markdownToPlain(words))}”`;
   return (
     <>
@@ -74,15 +68,13 @@ export function SharePostButton({
       </button>
       {open
         ? createPortal(
-            <ShareSheet
-              heading="Share post"
+            <SharePostSheet
+              postId={postId}
               what={what}
-              {...(outside ? { link: outside } : {})}
-              {...(invites ? { inviteTopic: invites } : {})}
-              linkHeading="Link, for administrators"
-              linkNote="Send it only in a private message. Never post it anywhere. Only members can open it."
-              sendNote="Only members who can read the post will see it."
-              send={(to, authorId, line) => sharePost(postId, to, authorId, line)}
+              link={link}
+              topicId={topicId}
+              memberId={account.status === 'member' ? account.userId : null}
+              isAdmin={account.status === 'member' && account.isAdmin}
               onClose={() => {
                 setOpen(false);
               }}
@@ -91,6 +83,51 @@ export function SharePostButton({
           )
         : null}
     </>
+  );
+}
+
+/**
+ * The owner, 2026-11-16: "These questions are not meant to be shared, only
+ * admins can share them and only in private discussions, not on any
+ * platforms". A member shares a post inside the club only; an admin also gets
+ * its link to copy into a private message, and no Share elsewhere. An admin is
+ * a club administrator or, since 2026-11-19, an admin of any organization
+ * ("any active admin of any organization", 20261119140000). Whether they are
+ * one is read once the sheet opens, not for every post on the screen.
+ */
+function SharePostSheet({
+  postId,
+  what,
+  link,
+  topicId,
+  memberId,
+  isAdmin,
+  onClose,
+}: {
+  postId: string;
+  what: string;
+  link: string | undefined;
+  topicId: string | undefined;
+  memberId: string | null;
+  isAdmin: boolean;
+  onClose: () => void;
+}) {
+  const mine = useMyOrganizations(isAdmin ? null : memberId);
+  const admin = isAdmin || mine.ids.size > 0;
+  const outside = admin ? link : undefined;
+  const invites = admin && topicId ? topicId : null;
+  return (
+    <ShareSheet
+      heading="Share post"
+      what={what}
+      {...(outside ? { link: outside } : {})}
+      {...(invites ? { inviteTopic: invites } : {})}
+      linkHeading="Link, for admins"
+      linkNote="Send it only in a private message. Never post it anywhere. Only members can open it."
+      sendNote="Only members who can read the post will see it."
+      send={(to, authorId, line) => sharePost(postId, to, authorId, line)}
+      onClose={onClose}
+    />
   );
 }
 

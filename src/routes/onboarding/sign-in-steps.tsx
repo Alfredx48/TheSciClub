@@ -384,7 +384,7 @@ export function JoinStep({
           `${inviteFrom ? `${inviteFrom} invited you.` : 'You have an invite.'} Join with any email or account.`
         ) : fromCode && (fromCode.joiningOpen || fromCode.admits) ? (
           // An org admin's code lets them in while it is live (20261028960000).
-          `${fromCode.inviterName}${fromCode.organizationName ? ` from ${fromCode.organizationName}` : ''} invited you to The SCI Club. Join with any email or account.`
+          `${fromCode.inviterName ? `${fromCode.inviterName}${fromCode.organizationName ? ` from ${fromCode.organizationName}` : ''} invited you to The SCI Club.` : "You're invited to The SCI Club."} Join with any email or account.`
         ) : fromCode ? (
           <AskForInvite who={fromCode} />
         ) : joiningOpen ? (
@@ -675,7 +675,8 @@ export function InvitationOnly({ invitedLine = true }: { invitedLine?: boolean }
 export function AskForInvite({ who }: { who: QrCodeDetails }) {
   return (
     <>
-      Joining is by invitation right now. Ask {who.inviterName} for an invite.
+      Joining is by invitation right now. Ask {who.inviterName ?? 'whoever sent you the link'} for
+      an invite.
       {who.contactEmail ? (
         <>
           {' '}

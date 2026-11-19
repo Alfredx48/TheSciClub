@@ -47,10 +47,7 @@ export function questionTitle(title: string): string {
  * owner, 2026-11-16: "Help answer inside theSCIClub and contribute to our
  * knowledge base", in place of who invited them).
  */
-export function sharedQuestionPage(
-  shared: { title: string; inviter_name: string },
-  url: string,
-): string {
+export function sharedQuestionPage(shared: { title: string }, url: string): string {
   const title = escaped(questionTitle(shared.title));
   const description = escaped(
     'Help answer inside The SCI Club and contribute to our knowledge base.',
@@ -103,18 +100,17 @@ async function readShared(
   key: string,
   code: string,
   topic: string,
-): Promise<{ title: string; inviter_name: string } | null> {
+): Promise<{ title: string } | null> {
   const response = await fetch(`${base}/rest/v1/rpc/shared_topic_preview`, {
     method: 'POST',
     headers: { apikey: key, Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({ p_code: code, p_topic: topic }),
   });
   if (!response.ok) return null;
-  const rows = (await response.json()) as { title?: unknown; inviter_name?: unknown }[];
+  // The title only: who shared it is never said (the owner, 2026-11-19).
+  const rows = (await response.json()) as { title?: unknown }[];
   const row = rows[0];
-  return typeof row?.title === 'string' && typeof row.inviter_name === 'string'
-    ? { title: row.title, inviter_name: row.inviter_name }
-    : null;
+  return typeof row?.title === 'string' ? { title: row.title } : null;
 }
 
 function page(html: string): Response {

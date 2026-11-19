@@ -22,7 +22,8 @@ export function LockedPost({ door }: { door: string }) {
   // 2026-11-16: "Maybe we have the question text up top, and then the button
   // says Join to answer"): what the link's preview already showed.
   const { pathname } = useLocation();
-  const [inviter, setInviter] = useState<string | null>(null);
+  // The link lets them in: who sent it is not said (20261119140000).
+  const [inviter, setInviter] = useState(false);
   const [question, setQuestion] = useState<string | null>(null);
   useEffect(() => {
     const code = new URLSearchParams(door.split('?')[1] ?? '').get(QR_PARAM);
@@ -30,7 +31,7 @@ export function LockedPost({ door }: { door: string }) {
     const topic = TOPIC_PATH.exec(pathname)?.[1] ?? null;
     let live = true;
     void fetchQrCodeDetails(code).then((details) => {
-      if (live && details?.admits) setInviter(details.inviterName);
+      if (live && details?.admits) setInviter(true);
     });
     if (topic) {
       void fetchSharedQuestion(code, topic).then((title) => {
