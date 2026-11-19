@@ -1,4 +1,4 @@
-import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, type ReactNode, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Link,
   Navigate,
@@ -50,12 +50,16 @@ import { ListingPrice } from '@/routes/chat/listing-price';
 import { MoveTopic } from '@/routes/chat/move-topic';
 import { MuteButton } from '@/routes/chat/mute-button';
 import { Post } from '@/routes/chat/post';
-import { PostComposer } from '@/routes/chat/post-composer';
 import { ReactionBar } from '@/routes/chat/reaction-bar';
 import { ReportSheet } from '@/routes/chat/report-sheet';
 import { SaveTopicButton } from '@/routes/chat/save-button';
 import { SharePostButton } from '@/routes/chat/share-post';
 import { BlockMemberSheet } from '@/routes/peers/block-sheet';
+
+const PostComposer = lazy(async () => {
+  const { PostComposer } = await import('@/routes/chat/post-composer');
+  return { default: PostComposer };
+});
 
 /**
  * One topic: the question, every reply, and the box to add to it.
@@ -661,65 +665,73 @@ export default function TopicPage() {
           </div>
           <div className="mx-auto w-full max-w-[720px]">
             {canPost ? (
-              <PostComposer
-                // A new topic is a new box, with that topic's draft.
-                key={topicId}
-                draftKey={topicId ? `topic:${topicId}` : undefined}
-                placeholder="Reply to this post"
-                maxLength={POST_MAX}
-                sendLabel="Post this reply"
-                folder={attachmentFolder('room', room.id)}
-                mentionScope={mentionScope}
-                editing={
-                  edited
-                    ? {
-                        id: edited.id,
-                        initial: edited.body,
-                        noun: 'post',
-                        photos: edited.attachments.length,
-                        attachments: edited.attachments,
-                        plain: titleOnly(edited),
-                        appendOnly: answered(edited),
-                        anchor: `post-${edited.id}`,
-                        onSave: (body, added, kept) =>
-                          titleOnly(edited)
-                            ? saveTitleEdit(edited.id, body, added)
-                            : saveEdit(edited.id, body, added, kept),
-                        onClose: () => {
-                          setEditingId(null);
-                        },
-                      }
-                    : null
+              <Suspense
+                fallback={
+                  <p className="py-4 text-center text-[0.8125rem] text-grey" role="status">
+                    Loading reply editor…
+                  </p>
                 }
-                replyingTo={
-                  replyingTo
-                    ? {
-                        id: replyingTo.id,
-                        name: nameOf(replyingTo),
-                        onCancel: () => {
-                          setReplyingTo(null);
-                        },
-                      }
-                    : null
-                }
-                onSend={async (body, paths) => {
-                  if (!account.userId) return 'You are signed out.';
-                  // The photographs are up already, under the room's folder,
-                  // which is what the read policy checks; a refused row takes
-                  // them back out (post-composer.tsx).
-                  const result = await sendPost(
-                    topic.id,
-                    account.userId,
-                    body,
-                    paths,
-                    replyingTo?.id ?? null,
-                  );
-                  if (!result.ok) return result.error;
-                  setReplyingTo(null);
-                  reload();
-                  return null;
-                }}
-              />
+              >
+                <PostComposer
+                  // A new topic is a new box, with that topic's draft.
+                  key={topicId}
+                  draftKey={topicId ? `topic:${topicId}` : undefined}
+                  placeholder="Reply to this post"
+                  maxLength={POST_MAX}
+                  sendLabel="Post this reply"
+                  folder={attachmentFolder('room', room.id)}
+                  mentionScope={mentionScope}
+                  editing={
+                    edited
+                      ? {
+                          id: edited.id,
+                          initial: edited.body,
+                          noun: 'post',
+                          photos: edited.attachments.length,
+                          attachments: edited.attachments,
+                          plain: titleOnly(edited),
+                          appendOnly: answered(edited),
+                          anchor: `post-${edited.id}`,
+                          onSave: (body, added, kept) =>
+                            titleOnly(edited)
+                              ? saveTitleEdit(edited.id, body, added)
+                              : saveEdit(edited.id, body, added, kept),
+                          onClose: () => {
+                            setEditingId(null);
+                          },
+                        }
+                      : null
+                  }
+                  replyingTo={
+                    replyingTo
+                      ? {
+                          id: replyingTo.id,
+                          name: nameOf(replyingTo),
+                          onCancel: () => {
+                            setReplyingTo(null);
+                          },
+                        }
+                      : null
+                  }
+                  onSend={async (body, paths) => {
+                    if (!account.userId) return 'You are signed out.';
+                    // The photographs are up already, under the room's folder,
+                    // which is what the read policy checks; a refused row takes
+                    // them back out (post-composer.tsx).
+                    const result = await sendPost(
+                      topic.id,
+                      account.userId,
+                      body,
+                      paths,
+                      replyingTo?.id ?? null,
+                    );
+                    if (!result.ok) return result.error;
+                    setReplyingTo(null);
+                    reload();
+                    return null;
+                  }}
+                />
+              </Suspense>
             ) : (
               <p className="mt-4 rounded-[14px] border border-line bg-paper px-3.5 py-3 text-center text-[0.78125rem] text-grey leading-[1.45]">
                 This room is closed. No member can see it yet.

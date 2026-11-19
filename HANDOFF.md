@@ -601,7 +601,8 @@ All live. Migration headers and the files named say how and why.
   again behind what is drawn, so hooks keep their data while they re-read
   the same query (`shown` refs). Tab taps refresh the tab selected and
   combine repeated taps while its reads are out. Writes still invalidate
-  shared reads. A new member, or none, remounts the shell
+  shared reads. A topic paints while its reply editor loads. A new member,
+  or none, remounts the shell
   and clears signed URLs and shared reads (`RequireMember`). Photographs
   have a small copy beside them (`<name>.thumb.<ext>`: 400px for members,
   800px for chat), made at upload (`uploadPhoto`, `uploadAttachments`);
