@@ -147,7 +147,7 @@ export function useMentionSuggestions({
 
   // Up to 20, in a list that scrolls (the owner, 2026-10-29).
   // Organizations by full name too, everywhere members are (the owner, 2026-11-17).
-  const { organizations } = useOrganizations();
+  const { organizations } = useOrganizations(wanted && query.text !== '');
   const orgs: Organization[] =
     wanted && query.text !== ''
       ? organizations
