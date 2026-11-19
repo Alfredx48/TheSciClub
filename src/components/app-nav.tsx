@@ -1,5 +1,5 @@
 import { Bell } from 'lucide-react';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { litTab } from '@/components/lit-tab';
 import { ChatIcon, EventsIcon, HomeIcon, MeIcon, PeersIcon } from '@/components/nav-icons';
@@ -9,7 +9,7 @@ import { useBadgeRealtime } from '@/lib/badges';
 import { useUnreadThreads } from '@/lib/chat/unread';
 import { useUnprovenEmail } from '@/lib/email-proof';
 import { useIconBadge } from '@/lib/icon-badge';
-import { keptReadsStale } from '@/lib/kept-reads';
+import { keptReadsStale, onReadsInFlight, readsInFlight } from '@/lib/kept-reads';
 import { useUnseenNotifications } from '@/lib/notifications';
 import { rememberTabPlace, tabPlace } from '@/lib/tab-places';
 import { cn } from '@/lib/utils';
@@ -50,6 +50,64 @@ const TABS = [
 // Which tab a screen lights is lit-tab.ts, shared with the line back.
 export { litTab } from '@/components/lit-tab';
 
+/** At least this long, so a quick read still shows as a turn and not a flicker. */
+export const TAB_SPIN_MIN_MS = 600;
+/** A read not sent by then was not this tap's. */
+const TAB_SPIN_WAIT_MS = 400;
+/** However long the reads take, the spinner goes by then. */
+const TAB_SPIN_MAX_MS = 10_000;
+
+/**
+ * Which tab spins: the one just tapped, while what it shows is read again
+ * (the owner, 2026-11-19: "a loading spinner wheel maybe overlapping the tab
+ * that was pressed"). It spins until the reads out after the tap have all
+ * landed, failed or been dropped (lib/kept-reads.ts counts them), for at
+ * least TAB_SPIN_MIN_MS and at most TAB_SPIN_MAX_MS.
+ */
+export function useTabSpinner(): { spinning: string | null; tapped: (tab: string) => void } {
+  const [tap, setTap] = useState<{ tab: string; at: number } | null>(null);
+  const [spinning, setSpinning] = useState<string | null>(null);
+  useEffect(() => {
+    if (!tap) return;
+    setSpinning(tap.tab);
+    let seen = false;
+    let done = false;
+    const timers: ReturnType<typeof setTimeout>[] = [];
+    const finish = () => {
+      if (done) return;
+      done = true;
+      const left = Math.max(0, TAB_SPIN_MIN_MS - (Date.now() - tap.at));
+      timers.push(
+        setTimeout(() => {
+          setSpinning((now) => (now === tap.tab ? null : now));
+        }, left),
+      );
+    };
+    const check = () => {
+      if (readsInFlight() > 0) seen = true;
+      else if (seen) finish();
+    };
+    const stop = onReadsInFlight(check);
+    check();
+    timers.push(
+      setTimeout(() => {
+        if (!seen) finish();
+      }, TAB_SPIN_WAIT_MS),
+      setTimeout(finish, TAB_SPIN_MAX_MS),
+    );
+    return () => {
+      stop();
+      for (const timer of timers) clearTimeout(timer);
+    };
+  }, [tap]);
+  return {
+    spinning,
+    tapped: (tab) => {
+      setTap({ tab, at: Date.now() });
+    },
+  };
+}
+
 export function AppNav() {
   // Reading a conversation happens on a screen that is not this one, so the
   // hook listens for `unreadChanged()` rather than this refetching on every
@@ -66,6 +124,7 @@ export function AppNav() {
   const location = useLocation();
   const wide = useWideLayout();
   const lit = litTab(location.pathname, location.state);
+  const { spinning, tapped } = useTabSpinner();
   useEffect(() => {
     if (lit) rememberTabPlace(lit, `${location.pathname}${location.search}`, location.state);
   }, [lit, location.pathname, location.search, location.state]);
@@ -123,7 +182,9 @@ export function AppNav() {
               onClick={() => {
                 sayNext('tab');
                 keptReadsStale();
+                tapped(to);
               }}
+              aria-busy={spinning === to ? true : undefined}
               state={kept?.state}
               aria-current={isActive ? 'page' : undefined}
               // The dot is decorative, so without this the tab is called "Chat"
@@ -154,6 +215,16 @@ export function AppNav() {
                   on one line. */}
               <span className="relative grid h-7 w-7 place-items-center rounded-[10px]">
                 <Icon className={cn('h-[20px] w-[20px]', isActive && '[stroke-width:2.3]')} />
+                {spinning === to ? (
+                  // A ring turning round the icon while the tab reads again.
+                  // Still for somebody who asks for less motion: the ring
+                  // with its one bright arc still says it is busy.
+                  <span
+                    aria-hidden="true"
+                    data-testid="tab-spinner"
+                    className="-inset-[3px] -translate-y-px pointer-events-none absolute rounded-full border-2 border-line border-t-emphasis border-r-emphasis motion-safe:animate-spin"
+                  />
+                ) : null}
                 {to === '/home' && unseen > 0 ? (
                   <span
                     aria-hidden="true"

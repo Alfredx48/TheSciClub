@@ -1,9 +1,9 @@
-import { fireEvent, render, renderHook, screen } from '@testing-library/react';
+import { act, fireEvent, render, renderHook, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { AppNav, litTab } from '@/components/app-nav';
+import { AppNav, litTab, TAB_SPIN_MIN_MS } from '@/components/app-nav';
 import type * as BadgesModule from '@/lib/badges';
-import { useKeptRead } from '@/lib/kept-reads';
+import { noticeWrites, useKeptRead } from '@/lib/kept-reads';
 import type * as NotificationsModule from '@/lib/notifications';
 
 const unseen = vi.hoisted(() => ({ count: 0, unproven: null as string | null }));
@@ -165,5 +165,41 @@ describe('the Me tab', () => {
   it('is plain otherwise', () => {
     renderNav();
     expect(screen.getByRole('link', { name: 'Me' })).toBeInTheDocument();
+  });
+});
+
+// The owner, 2026-11-19: a spinner on the tab tapped while it reads again.
+describe('the tab tapped', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('spins while its read is out, at least a moment, and stops once it lands', async () => {
+    vi.useFakeTimers();
+    let land: (response: Response) => void = () => undefined;
+    const reads = noticeWrites(
+      () =>
+        new Promise<Response>((resolve) => {
+          land = resolve;
+        }),
+    );
+    render(
+      <MemoryRouter initialEntries={['/home']}>
+        <AppNav />
+      </MemoryRouter>,
+    );
+    fireEvent.click(screen.getByRole('link', { name: 'Peers' }));
+    const sent = reads('https://x.supabase.co/rest/v1/rpc/browse_members', { method: 'POST' });
+    await act(() => vi.advanceTimersByTimeAsync(TAB_SPIN_MIN_MS + 500));
+    // Still out after the least time: still turning, on Peers only.
+    expect(screen.getByRole('link', { name: 'Peers' })).toHaveAttribute('aria-busy', 'true');
+    expect(screen.getAllByTestId('tab-spinner')).toHaveLength(1);
+    await act(async () => {
+      land(new Response('[]'));
+      await sent;
+    });
+    await act(() => vi.advanceTimersByTimeAsync(0));
+    expect(screen.queryByTestId('tab-spinner')).toBeNull();
+    expect(screen.getByRole('link', { name: 'Peers' })).not.toHaveAttribute('aria-busy');
   });
 });

@@ -127,11 +127,40 @@ function requestParts(input: RequestInfo | URL, init?: RequestInit): [string, st
   return [init?.method ?? input.method, input.url];
 }
 
-/** Wraps the client's fetch: a write makes kept reads stale, sent and landed. */
+let reading = 0;
+const readingListeners = new Set<() => void>();
+
+/** Reads sent and not yet landed, failed or aborted. */
+export function readsInFlight(): number {
+  return reading;
+}
+
+/** Told each time a read is sent and each time one ends. Returns how to stop. */
+export function onReadsInFlight(listener: () => void): () => void {
+  readingListeners.add(listener);
+  return () => {
+    readingListeners.delete(listener);
+  };
+}
+
+function countReads(by: number) {
+  reading = Math.max(0, reading + by);
+  for (const listener of readingListeners) listener();
+}
+
+/**
+ * Wraps the client's fetch: a write makes kept reads stale, sent and landed;
+ * a read is counted while it is out, for the tab bar's spinner (app-nav.tsx).
+ */
 export function noticeWrites(next: typeof fetch): typeof fetch {
   return (input, init) => {
     const [method, url] = requestParts(input, init);
-    if (!isWrite(method, url)) return next(input, init);
+    if (!isWrite(method, url)) {
+      countReads(1);
+      return next(input, init).finally(() => {
+        countReads(-1);
+      });
+    }
     keptReadsStale();
     return next(input, init).finally(keptReadsStale);
   };
