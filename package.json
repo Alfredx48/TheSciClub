@@ -12,6 +12,7 @@
     "build": "tsc -b && vite build && node scripts/prerender-legal.mjs",
     "build:native": "tsc -b && vite build --mode native",
     "native:sync": "pnpm build:native && cap sync",
+    "android:release": "pnpm native:sync && (cd android && ./gradlew bundleRelease) && node scripts/android-release-path.mjs",
     "native:assets": "pnpm dlx --allow-build=sharp @capacitor/assets@3.0.5 generate --ios --android --iconBackgroundColor '#102A4C' --iconBackgroundColorDark '#102A4C' --splashBackgroundColor '#102A4C' --splashBackgroundColorDark '#102A4C'",
     "preview": "vite preview",
     "test": "vitest run",

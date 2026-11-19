@@ -1,5 +1,14 @@
 apply plugin: 'com.android.application'
 
+def signingValue = { String property, String variable ->
+    providers.gradleProperty(property).orElse(providers.environmentVariable(variable)).orNull
+}
+def uploadStore = signingValue('sciClubUploadStore', 'SCICLUB_UPLOAD_STORE')
+def uploadAlias = signingValue('sciClubUploadAlias', 'SCICLUB_UPLOAD_ALIAS')
+def uploadStorePassword = signingValue('sciClubUploadStorePassword', 'SCICLUB_UPLOAD_STORE_PASSWORD')
+def uploadKeyPassword = signingValue('sciClubUploadKeyPassword', 'SCICLUB_UPLOAD_KEY_PASSWORD')
+def uploadSigningReady = [uploadStore, uploadAlias, uploadStorePassword, uploadKeyPassword].every { it }
+
 android {
     namespace = "com.thesciclub.app"
     compileSdk = rootProject.ext.compileSdkVersion
@@ -7,8 +16,8 @@ android {
         applicationId "com.thesciclub.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        versionCode 2
+        versionName "1.0.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -16,11 +25,29 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    signingConfigs {
+        release {
+            if (uploadSigningReady) {
+                storeFile file(uploadStore)
+                keyAlias uploadAlias
+                storePassword uploadStorePassword
+                keyPassword uploadKeyPassword
+            }
+        }
+    }
     buildTypes {
         release {
+            signingConfig signingConfigs.release
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
+    }
+}
+
+gradle.taskGraph.whenReady { graph ->
+    if (!uploadSigningReady &&
+        (graph.hasTask(':app:bundleRelease') || graph.hasTask(':app:assembleRelease'))) {
+        throw new GradleException('Set the SCI Club upload signing properties or environment variables before building a release.')
     }
 }
 
@@ -44,11 +71,6 @@ dependencies {
 
 apply from: 'capacitor.build.gradle'
 
-try {
-    def servicesJSON = file('google-services.json')
-    if (servicesJSON.text) {
-        apply plugin: 'com.google.gms.google-services'
-    }
-} catch(Exception e) {
-    logger.info("google-services.json not found, google-services plugin not applied. Push Notifications won't work")
+if (file('google-services.json').isFile()) {
+    apply plugin: 'com.google.gms.google-services'
 }

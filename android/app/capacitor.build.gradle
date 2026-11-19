@@ -11,9 +11,12 @@ apply from: "../capacitor-cordova-android-plugins/cordova.variables.gradle"
 dependencies {
     implementation project(':capacitor-app')
     implementation project(':capacitor-browser')
+    implementation project(':capacitor-geolocation')
     implementation project(':capacitor-keyboard')
+    implementation project(':capacitor-push-notifications')
     implementation project(':capacitor-splash-screen')
     implementation project(':capacitor-text-zoom')
+    implementation project(':capawesome-capacitor-badge')
     implementation project(':capgo-capacitor-social-login')
 
 }
