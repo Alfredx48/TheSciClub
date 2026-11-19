@@ -1,12 +1,11 @@
-import { useMemo, useRef } from 'react';
+import { createContext, useContext, useMemo, useRef, useSyncExternalStore } from 'react';
 import { onForgetSharedReads } from '@/lib/shared-reads';
 
 /**
  * A kept tab (App.tsx KeptTabs) shown again reads again only when its last
  * read is this old, or something it shows may have changed since: this
  * device wrote, or another screen was open (a topic, an event, a form).
- * A tab tapped in the bar always reads again (app-nav.tsx, the owner,
- * 2026-11-19); this minute is for a tab shown any other way, as by Back.
+ * A tap in the bar refreshes the selected tab; Back can reuse a recent read.
  */
 export const KEPT_FRESH_MS = 60_000;
 
@@ -26,6 +25,30 @@ export function onKeptReadsStale(listener: () => void): void {
 
 onForgetSharedReads(keptReadsStale);
 
+export const TabReadVersionContext = createContext(0);
+const tabVersions = new Map<string, number>();
+const tabListeners = new Set<() => void>();
+
+export function refreshTabReads(tab: string): void {
+  tabVersions.set(tab, (tabVersions.get(tab) ?? 0) + 1);
+  for (const listener of tabListeners) listener();
+}
+
+function subscribeTabs(listener: () => void): () => void {
+  tabListeners.add(listener);
+  return () => {
+    tabListeners.delete(listener);
+  };
+}
+
+export function useRequestedTabReadVersion(tab: string): number {
+  return useSyncExternalStore(subscribeTabs, () => tabVersions.get(tab) ?? 0);
+}
+
+export function useTabReadVersion(): number {
+  return useContext(TabReadVersionContext);
+}
+
 /**
  * For one hook's read: `fresh(key)` when the same read last landed under
  * KEPT_FRESH_MS ago with nothing stale since. `start(key)` returns what to
@@ -33,7 +56,8 @@ onForgetSharedReads(keptReadsStale);
  * shown again, the same component, ever finds it.
  */
 export function useKeptRead() {
-  const last = useRef<{ key: string; at: number; epoch: number } | null>(null);
+  const tabVersion = useTabReadVersion();
+  const last = useRef<{ key: string; at: number; epoch: number; tabVersion: number } | null>(null);
   return useMemo(
     () => ({
       fresh(key: string): boolean {
@@ -42,6 +66,7 @@ export function useKeptRead() {
           read !== null &&
           read.key === key &&
           read.epoch === epoch &&
+          read.tabVersion === tabVersion &&
           Date.now() - read.at < KEPT_FRESH_MS
         );
       },
@@ -50,11 +75,11 @@ export function useKeptRead() {
         const started = epoch;
         last.current = null;
         return () => {
-          last.current = { key, at, epoch: started };
+          last.current = { key, at, epoch: started, tabVersion };
         };
       },
     }),
-    [],
+    [tabVersion],
   );
 }
 

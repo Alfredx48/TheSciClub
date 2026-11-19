@@ -1,5 +1,5 @@
 import { Bell } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { litTab } from '@/components/lit-tab';
 import { ChatIcon, EventsIcon, HomeIcon, MeIcon, PeersIcon } from '@/components/nav-icons';
@@ -9,7 +9,7 @@ import { useBadgeRealtime } from '@/lib/badges';
 import { useUnreadThreads } from '@/lib/chat/unread';
 import { useUnprovenEmail } from '@/lib/email-proof';
 import { useIconBadge } from '@/lib/icon-badge';
-import { keptReadsStale, onReadsInFlight, readsInFlight } from '@/lib/kept-reads';
+import { onReadsInFlight, readsInFlight, refreshTabReads } from '@/lib/kept-reads';
 import { useUnseenNotifications } from '@/lib/notifications';
 import { rememberTabPlace, tabPlace } from '@/lib/tab-places';
 import { cn } from '@/lib/utils';
@@ -64,8 +64,12 @@ const TAB_SPIN_MAX_MS = 10_000;
  * landed, failed or been dropped (lib/kept-reads.ts counts them), for at
  * least TAB_SPIN_MIN_MS and at most TAB_SPIN_MAX_MS.
  */
-export function useTabSpinner(): { spinning: string | null; tapped: (tab: string) => void } {
-  const [tap, setTap] = useState<{ tab: string; at: number } | null>(null);
+export function useTabSpinner(): {
+  spinning: string | null;
+  tapped: (tab: string, destination: string) => boolean;
+} {
+  const pending = useRef<{ tab: string; at: number; destination: string } | null>(null);
+  const [tap, setTap] = useState<typeof pending.current>(null);
   const [spinning, setSpinning] = useState<string | null>(null);
   useEffect(() => {
     if (!tap) return;
@@ -79,7 +83,9 @@ export function useTabSpinner(): { spinning: string | null; tapped: (tab: string
       const left = Math.max(0, TAB_SPIN_MIN_MS - (Date.now() - tap.at));
       timers.push(
         setTimeout(() => {
-          setSpinning((now) => (now === tap.tab ? null : now));
+          if (pending.current !== tap) return;
+          pending.current = null;
+          setSpinning(null);
         }, left),
       );
     };
@@ -102,8 +108,13 @@ export function useTabSpinner(): { spinning: string | null; tapped: (tab: string
   }, [tap]);
   return {
     spinning,
-    tapped: (tab) => {
-      setTap({ tab, at: Date.now() });
+    tapped: (tab, destination) => {
+      if (pending.current?.tab === tab && pending.current.destination === destination) return false;
+      const next = { tab, at: Date.now(), destination };
+      pending.current = next;
+      setTap(next);
+      refreshTabReads(tab);
+      return true;
     },
   };
 }
@@ -171,18 +182,18 @@ export function AppNav() {
           // screen (the owner, 2026-11-19: "When I tap on home it should take
           // me to home, not the last page I was on").
           const kept = to === '/chat' && !isActive ? tabPlace(to) : undefined;
+          const destination = kept?.path ?? to;
           return (
             <Link
               key={to}
-              to={kept?.path ?? to}
-              // The way back is that tab's own (lib/back-trail.ts). And what
-              // the tab shows is read again behind what it already has, every
-              // tap (the owner, 2026-11-19: "load what is cached, but also
-              // refresh it"), not only after a minute (lib/kept-reads.ts).
-              onClick={() => {
+              to={destination}
+              onClick={(event) => {
+                if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+                if (!tapped(to, destination)) {
+                  event.preventDefault();
+                  return;
+                }
                 sayNext('tab');
-                keptReadsStale();
-                tapped(to);
               }}
               aria-busy={spinning === to ? true : undefined}
               state={kept?.state}
