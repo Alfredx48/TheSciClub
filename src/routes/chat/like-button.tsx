@@ -271,6 +271,8 @@ export function LikesSheet({
   const dialog = useRef<HTMLDivElement | null>(null);
   const heading = useRef<HTMLHeadingElement | null>(null);
   const title = 'Who upvoted this';
+  // Boost again changes nothing else on the sheet, so the line says it was done.
+  const [justNow, setJustNow] = useState(false);
   const known = memberIds.flatMap((id) => {
     const author = authors.get(id);
     return author ? [author] : [];
@@ -372,17 +374,19 @@ export function LikesSheet({
         {onBoost ? (
           <div className="flex-none border-line border-t px-[18px] py-3">
             <p className="font-bold text-[0.78125rem] text-grey">
-              For administrators: {boost ? 'boosted' : 'not boosted'}
+              For administrators:{' '}
+              {boost ? (justNow ? 'boosted just now' : 'boosted') : 'not boosted'}
             </p>
             <p className="mt-0.5 text-[0.75rem] text-grey leading-[1.45]">
-              A boost moves the post up in Top and on Home as a new reply would, and it sinks again
-              as other posts get replies. Members don't see it, and it isn't in the score. A long
-              press or right click on the up arrow boosts too.
+              A boost moves the post up in Top and on Home as a new reply would. It sinks as other
+              posts get replies, and you can boost it again. Members aren't told, and it isn't in
+              the score. A long press or right click on the up arrow boosts too.
             </p>
             <div className="mt-2 flex gap-2">
               <button
                 type="button"
                 onClick={() => {
+                  setJustNow(true);
                   onBoost(true);
                 }}
                 className="min-h-[44px] flex-1 rounded-xl bg-tint px-4 font-bold font-head text-[0.875rem] text-emphasis transition-colors hover:bg-line disabled:opacity-40"
@@ -393,6 +397,7 @@ export function LikesSheet({
                 type="button"
                 disabled={!boost}
                 onClick={() => {
+                  setJustNow(false);
                   onBoost(false);
                 }}
                 className="min-h-[44px] flex-1 rounded-xl bg-tint px-4 font-bold font-head text-[0.875rem] text-emphasis transition-colors hover:bg-line disabled:opacity-40"
