@@ -1,0 +1,56 @@
+name: Home startup bot
+
+on:
+  push:
+    branches: [tests]
+    paths:
+      - '.github/workflows/home-startup-bot.yml'
+      - 'scripts/home-startup-bot.mjs'
+      - 'src/App.tsx'
+      - 'src/components/app-nav.tsx'
+      - 'src/components/require-member.tsx'
+      - 'src/lib/account.tsx'
+      - 'src/lib/own-row.ts'
+      - 'src/lib/chat/rooms.ts'
+      - 'src/lib/home/**'
+      - 'src/routes/home/**'
+      - 'pnpm-lock.yaml'
+  workflow_dispatch:
+
+concurrency:
+  group: home-startup-bot-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  compare:
+    if: github.ref_name == 'tests'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install packages
+        run: pnpm install --frozen-lockfile
+
+      - name: Install WebKit
+        run: pnpm exec playwright install --with-deps webkit
+
+      - name: Build with fixture settings
+        env:
+          VITE_SUPABASE_URL: https://supabase.test.invalid
+          VITE_SUPABASE_ANON_KEY: fixture-public-key
+        run: pnpm build
+
+      - name: Measure cold Home startup
+        run: node scripts/home-startup-bot.mjs
