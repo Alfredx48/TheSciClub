@@ -34,14 +34,18 @@ export function MessageResults({
     return <p className="py-4 text-center text-[0.875rem] text-grey leading-relaxed">{error}</p>;
   }
   if (hits.length === 0) {
-    return (
+    return searching ? (
+      <Finding className="py-4" />
+    ) : (
       <p role="status" className="py-4 text-center text-[0.875rem] text-grey leading-relaxed">
-        {searching ? 'Searching messages…' : 'No message says that.'}
+        No message says that.
       </p>
     );
   }
   return (
     <>
+      {/* Still looking for the newest words typed: the last ones found stay. */}
+      {searching ? <Finding className="pb-2" /> : null}
       <ul className="rounded-[14px] border border-line bg-paper px-3.5">
         {hits.map((hit) => {
           const name =
@@ -80,6 +84,22 @@ export function MessageResults({
         </p>
       ) : null}
     </>
+  );
+}
+
+/** A turning ring and Finding messages…, while a search is out. */
+function Finding({ className }: { className: string }) {
+  return (
+    <p
+      role="status"
+      className={`flex items-center justify-center gap-2 text-[0.875rem] text-grey ${className}`}
+    >
+      <span
+        aria-hidden="true"
+        className="h-4 w-4 flex-none rounded-full border-2 border-line border-t-emphasis border-r-emphasis motion-safe:animate-spin"
+      />
+      Finding messages…
+    </p>
   );
 }
 

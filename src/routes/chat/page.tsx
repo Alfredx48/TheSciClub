@@ -1,5 +1,5 @@
 import { Search, SquarePen } from 'lucide-react';
-import { useCallback, useMemo, useState } from 'react';
+import { type ReactNode, useCallback, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { LoadingCards } from '@/components/loading-cards';
 import { SegmentPills } from '@/components/segment-pills';
@@ -229,23 +229,24 @@ export default function ChatPage() {
               error={threadsError}
               authors={authors}
               viewerId={account.userId}
-            />
-          ) : null}
-
-          {searching && showConversations ? (
-            <section aria-label="Messages" className="mt-4">
-              <h2 className="mb-2 font-extrabold font-head text-[0.75rem] text-grey uppercase tracking-[0.13em]">
-                Messages
-              </h2>
-              <MessageResults
-                query={search}
-                hits={hits}
-                searching={found.searching}
-                error={found.error}
-                viewerId={account.userId}
-                titleOf={titleOf}
-              />
-            </section>
+            >
+              {/* The words said, above Start a group (the owner, 2026-11-19). */}
+              {searching ? (
+                <section aria-label="Messages" className="mt-4">
+                  <h2 className="mb-2 font-extrabold font-head text-[0.75rem] text-grey uppercase tracking-[0.13em]">
+                    Messages
+                  </h2>
+                  <MessageResults
+                    query={search}
+                    hits={hits}
+                    searching={found.searching}
+                    error={found.error}
+                    viewerId={account.userId}
+                    titleOf={titleOf}
+                  />
+                </section>
+              ) : null}
+            </Conversations>
           ) : null}
 
           {/* Not drawn under conversations that are still loading: they
@@ -332,6 +333,7 @@ function Conversations({
   error,
   authors,
   viewerId,
+  children,
 }: {
   segment: ChatSegment;
   threads: ChatThread[];
@@ -340,6 +342,8 @@ function Conversations({
   error: string | null;
   authors: Map<string, ChatAuthor>;
   viewerId: string | null;
+  /** What goes between the conversations and Start a group. */
+  children?: ReactNode;
 }) {
   // Every group's picture signed in one request, under the reader's token, so
   // a group they have left comes back with no URL and draws its glyph.
@@ -451,6 +455,8 @@ function Conversations({
           )}
         </p>
       )}
+
+      {children}
 
       {segment === 'groups' || segment === 'all' ? <NewGroupLink /> : null}
     </>
