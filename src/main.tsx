@@ -1,7 +1,7 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
-import App, { loadOnboarding, preloadScreen } from '@/App';
+import App, { preloadPublicPage, preloadScreen } from '@/App';
 import { startDeviceCheck } from '@/lib/device-check';
 import { takeHandoff } from '@/lib/home-screen-handoff';
 import { startPageSpeed } from '@/lib/page-speed';
@@ -36,8 +36,8 @@ startPageSpeed((samples) => Promise.resolve(getSupabase().rpc('log_page_speed', 
 const pathname = window.location.pathname;
 preloadScreen(pathname);
 
-// Leave the prerendered welcome visible until the interactive page is ready.
-const onboarding = /^\/join\/?$/i.test(pathname) ? loadOnboarding().catch(() => undefined) : null;
+// Keep prerendered public pages visible until their scripts are ready.
+const publicPage = preloadPublicPage(pathname)?.catch(() => undefined);
 
 const root = document.getElementById('root');
 if (!root) throw new Error('No #root element in index.html');
@@ -63,4 +63,4 @@ const handoff = Promise.race([
   }),
 ]);
 
-void Promise.all([handoff, onboarding]).then(render);
+void Promise.all([handoff, publicPage]).then(render);
