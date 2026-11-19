@@ -1,4 +1,4 @@
-import { Activity, lazy, Suspense, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { type ComponentType, Activity, lazy, Suspense, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { AppNav } from '@/components/app-nav';
 import { AskAfterSending } from '@/components/ask-after-sending';
@@ -23,17 +23,13 @@ import { OpenedNotification } from '@/lib/push/opened-notification';
 import { countVisit } from '@/lib/web-analytics';
 import DevLoginPage from '@/routes/dev-login/page';
 import HomePage from '@/routes/home/page';
-import DeleteAccountPage from '@/routes/legal/delete-account';
-import PrivacyPage from '@/routes/legal/privacy';
-import TermsPage from '@/routes/legal/terms';
 import NotFoundPage from '@/routes/not-found/page';
-import type OnboardingScreen from '@/routes/onboarding/page';
 
 /*
  * Every screen but the doors is fetched when it is first opened, not with the
  * first page (2026-10-14: one 1.16MB script held all of them, Admin and the
- * event editor included). Home and the legal pages stay in the first script.
- * /join keeps its prerendered HTML while its script loads (main.tsx).
+ * event editor included). Home stays in the first script.
+ * Direct visits to public pages keep their prerendered HTML (main.tsx).
  * The other tabs are fetched once the first screen is up (prefetchTabs).
  */
 const OrganizationManagementPage = lazy(
@@ -79,19 +75,37 @@ const ProfileNextPage = lazy(() => import('@/routes/profile/next'));
 const RequestInvitePage = lazy(() => import('@/routes/request-invite/page'));
 const ResetPasswordPage = lazy(() => import('@/routes/reset-password/page'));
 
-let loadedOnboarding: typeof OnboardingScreen | undefined;
-
-export async function loadOnboarding() {
-  const module = await import('@/routes/onboarding/page');
-  loadedOnboarding = module.default;
-  return module;
+function publicPage(load: () => Promise<{ default: ComponentType }>) {
+  let ready: ComponentType | undefined;
+  async function prepare() {
+    const module = await load();
+    ready = module.default;
+    return module;
+  }
+  const LazyPage = lazy(prepare);
+  function Page() {
+    const [Content] = useState(() => ready ?? LazyPage);
+    return <Content />;
+  }
+  return { Page, prepare };
 }
 
-const LazyOnboarding = lazy(loadOnboarding);
+const publicPages = {
+  '/join': publicPage(() => import('@/routes/onboarding/page')),
+  '/privacy': publicPage(() => import('@/routes/legal/privacy')),
+  '/terms': publicPage(() => import('@/routes/legal/terms')),
+  '/delete-account': publicPage(() => import('@/routes/legal/delete-account')),
+} as const;
 
-function OnboardingPage() {
-  const [Page] = useState(() => loadedOnboarding ?? LazyOnboarding);
-  return <Page />;
+const OnboardingPage = publicPages['/join'].Page;
+const PrivacyPage = publicPages['/privacy'].Page;
+const TermsPage = publicPages['/terms'].Page;
+const DeleteAccountPage = publicPages['/delete-account'].Page;
+
+export function preloadPublicPage(pathname: string): Promise<unknown> | undefined {
+  const path = pathname.replace(/\/$/, '').toLowerCase();
+  if (!Object.hasOwn(publicPages, path)) return undefined;
+  return publicPages[path as keyof typeof publicPages].prepare();
 }
 
 // The other four tabs, fetched after the first screen so a first tap on one

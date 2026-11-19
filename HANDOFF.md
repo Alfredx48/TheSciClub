@@ -764,6 +764,10 @@ All live. Migration headers and the files named say how and why.
 - **Home startup**: the join screen has its own script. Direct visits to
   `/join` keep the prerendered welcome visible until that script is ready.
   The map warms when Peers or Events opens.
+  Legal pages are also split and keep their prerendered text.
+- **Reading on Home**: the organization directory waits for a possible
+  mention or a screen that needs the directory. Feed responses with room
+  labels let Home show cards while the room picker loads.
 - **Test PWA Home startup**: a cold `/home` reads membership, default posts
   and room labels with `home_startup`. It uses the caller's permissions
   and returns posts and rooms only to active members. Apply the migration
