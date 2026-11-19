@@ -156,6 +156,15 @@ describe('the public event page', () => {
     expect(within(ask).getByRole('link', { name: 'Sign in' })).toBeInTheDocument();
   });
 
+  it('returns to an unavailable event after signing in from its main action', async () => {
+    api.event = null;
+    renderAt('/e/picnic?invite=expired');
+    expect(await screen.findByRole('link', { name: 'Sign in to the club' })).toHaveAttribute(
+      'href',
+      '/join?next=%2Fevents%2Fpicnic',
+    );
+  });
+
   // The owner, 2026-11-14: an invite email opens the event, private or not, and
   // its Going, Maybe or Can't go is the answer, saved once as the page opens.
   it('shows a private event only to a live invite, and saves the answer pressed in the email', async () => {

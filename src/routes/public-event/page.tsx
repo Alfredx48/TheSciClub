@@ -8,6 +8,7 @@ import { type EventInvite, fetchEventInvite, inviteAnswerFrom } from '@/lib/even
 import { isEventOver } from '@/lib/event-over';
 import { recordRsvpClick, useRecordEventView } from '@/lib/event-views';
 import { HAND_ADDED_TIMEZONE } from '@/lib/events';
+import { signInDoor } from '@/lib/sign-in-destination';
 import { EventGallery } from '@/routes/events/event-gallery';
 import { eventMeetingLink } from '@/routes/events/event-meeting-link';
 import { longWhen, timeRange } from '@/routes/events/format';
@@ -108,6 +109,8 @@ export default function PublicEventPage() {
 
   if (account.status === 'member' && id) return <Navigate to={`/events/${id}`} replace />;
 
+  // A short link that has not resolved can be looked up again after sign-in.
+  const signInHref = signInDoor(id ? `/events/${id}` : `/e/${encodeURIComponent(given)}`);
   const timezone = event?.timezone ?? HAND_ADDED_TIMEZONE;
   const over = event ? isEventOver(event) : false;
   const place = event ? placeLine(event) : null;
@@ -123,7 +126,7 @@ export default function PublicEventPage() {
           <ClubMark size={44} className="h-11 w-auto" />
         </Link>
         <Link
-          to={signInTo(id ?? given)}
+          to={signInHref}
           className="font-bold font-head text-[0.875rem] text-emphasis underline"
         >
           Sign in
@@ -150,7 +153,7 @@ export default function PublicEventPage() {
             invited, sign in to see it.
           </p>
           <Link
-            to="/join"
+            to={signInHref}
             className="mt-4 inline-block font-bold font-head text-[0.9375rem] text-emphasis underline"
           >
             Sign in to the club
@@ -277,17 +280,14 @@ export default function PublicEventPage() {
               Join the club to see who's coming and join the group chat.
             </p>
             <Link
-              to={signInTo(id ?? given)}
+              to={signInHref}
               className="mt-3 flex min-h-[48px] items-center justify-center rounded-[13px] bg-gold font-bold font-head text-[0.9375rem] text-on-gold"
             >
               Join the club
             </Link>
             <p className="mt-2 text-center text-[#B9CADF] text-[0.8125rem]">
               Already a member?{' '}
-              <Link
-                to={signInTo(id ?? given)}
-                className="inline-block py-2 font-bold text-white underline"
-              >
+              <Link to={signInHref} className="inline-block py-2 font-bold text-white underline">
                 Sign in
               </Link>
             </p>
@@ -310,9 +310,4 @@ export default function PublicEventPage() {
       ) : null}
     </main>
   );
-}
-
-/** Sign in, and come back to the event's own page. */
-function signInTo(eventId: string): string {
-  return `/join?next=${encodeURIComponent(`/events/${eventId}`)}`;
 }
