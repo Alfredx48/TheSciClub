@@ -213,7 +213,7 @@ export function useOwnAccount({
           isAdmin: Boolean(row?.is_admin),
           displayName:
             typeof row?.display_name === 'string' && row.display_name ? row.display_name : null,
-          ...(coldTestHome && shared?.row === row && shared?.homeStartup
+          ...(coldTestHome && shared?.row === row && shared.homeStartup
             ? { homeStartup: shared.homeStartup }
             : {}),
         });

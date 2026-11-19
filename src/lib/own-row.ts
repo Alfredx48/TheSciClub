@@ -93,13 +93,12 @@ function missingColumn(error: { code?: unknown; message?: unknown }): boolean {
 
 async function readHomeStartup(userId: string): Promise<SharedRow> {
   try {
-    const { data, error } = await getSupabase().rpc('home_startup');
-    if (error || data?.viewer !== userId) return undefined;
-    const { member, feed, rooms } = data as {
-      member?: OwnRow | null;
-      feed?: unknown;
-      rooms?: unknown;
+    const { data, error } = (await getSupabase().rpc('home_startup')) as {
+      data: { viewer?: unknown; member?: OwnRow | null; feed?: unknown; rooms?: unknown } | null;
+      error: unknown;
     };
+    if (error || data?.viewer !== userId) return undefined;
+    const { member, feed, rooms } = data;
     if (member === null) return { row: null, error: null };
     if (member?.id !== userId) return undefined;
     if (member.status === 'active' && Array.isArray(feed) && Array.isArray(rooms)) {
