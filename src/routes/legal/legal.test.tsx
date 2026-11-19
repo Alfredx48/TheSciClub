@@ -14,7 +14,11 @@ vi.mock('@/lib/account', () => ({
 vi.mock('@/routes/onboarding/page', () => ({ default: () => <h1>Join</h1> }));
 
 const { default: App, preloadPublicPage } = await import('@/App');
-await Promise.all(['/privacy', '/terms', '/delete-account'].map(preloadPublicPage));
+await Promise.all(
+  ['/privacy', '/terms', '/delete-account']
+    .map(preloadPublicPage)
+    .filter((page) => page !== undefined),
+);
 const { PRIVACY_UPDATED, TERMS_UPDATED } = await import('@/lib/terms');
 
 function open(path: string) {
