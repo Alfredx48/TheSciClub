@@ -599,7 +599,9 @@ All live. Migration headers and the files named say how and why.
   `<Activity>`): hidden, a tab keeps its state and scroll and its effects
   stop; shown again, its reads run
   again behind what is drawn, so hooks keep their data while they re-read
-  the same query (`shown` refs). A new member, or none, remounts the shell
+  the same query (`shown` refs). Tab taps refresh the tab selected and
+  combine repeated taps while its reads are out. Writes still invalidate
+  shared reads. A new member, or none, remounts the shell
   and clears signed URLs and shared reads (`RequireMember`). Photographs
   have a small copy beside them (`<name>.thumb.<ext>`: 400px for members,
   800px for chat), made at upload (`uploadPhoto`, `uploadAttachments`);

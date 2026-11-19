@@ -24,7 +24,11 @@ import { AnnounceProvider } from '@/lib/announce';
 import { useUpdateRequired } from '@/lib/app-update';
 import { nameScreen } from '@/lib/back-trail';
 import { LeaveHomeScreenHandoff } from '@/lib/home-screen-handoff';
-import { keptReadsStale } from '@/lib/kept-reads';
+import {
+  keptReadsStale,
+  TabReadVersionContext,
+  useRequestedTabReadVersion,
+} from '@/lib/kept-reads';
 import { prefetchMap } from '@/lib/map';
 import { noteScreen } from '@/lib/page-speed';
 import { FollowNotification } from '@/lib/push/follow-notification';
@@ -189,6 +193,25 @@ const TABS = [
   ['/me', MePage],
 ] as const;
 
+function KeptTab({
+  path,
+  visible,
+  Screen,
+}: {
+  path: string;
+  visible: boolean;
+  Screen: ComponentType;
+}) {
+  const version = useRequestedTabReadVersion(path);
+  return (
+    <Activity mode={visible ? 'visible' : 'hidden'}>
+      <TabReadVersionContext.Provider value={version}>
+        <Screen />
+      </TabReadVersionContext.Provider>
+    </Activity>
+  );
+}
+
 /**
  * The five tabs stay mounted once opened, hidden while another screen shows
  * (2026-10-22: each switch read everything again behind placeholders). A
@@ -208,9 +231,7 @@ export function KeptTabs() {
     ([path, Screen]) => (
       // No Suspense of its own: a tab's first script then arrives inside the
       // route change's transition, with the last screen still up.
-      <Activity key={path} mode={path === current ? 'visible' : 'hidden'}>
-        <Screen />
-      </Activity>
+      <KeptTab key={path} path={path} visible={path === current} Screen={Screen} />
     ),
   );
 }

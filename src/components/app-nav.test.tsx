@@ -1,9 +1,15 @@
 import { act, fireEvent, render, renderHook, screen } from '@testing-library/react';
+import type { ReactNode } from 'react';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { AppNav, litTab, TAB_SPIN_MIN_MS } from '@/components/app-nav';
 import type * as BadgesModule from '@/lib/badges';
-import { noticeWrites, useKeptRead } from '@/lib/kept-reads';
+import {
+  noticeWrites,
+  TabReadVersionContext,
+  useKeptRead,
+  useRequestedTabReadVersion,
+} from '@/lib/kept-reads';
 import type * as NotificationsModule from '@/lib/notifications';
 
 const unseen = vi.hoisted(() => ({ count: 0, unproven: null as string | null }));
@@ -79,11 +85,28 @@ describe('AppNav', () => {
     expect(screen.getByRole('link', { name: 'Peers' })).toHaveAttribute('href', '/peers');
     expect(screen.getByRole('link', { name: 'Chat' })).toHaveAttribute('href', '/chat');
     // What Peers already shows stays up and is read again behind it.
-    const peersRead = renderHook(() => useKeptRead()).result.current;
-    peersRead.start('peers')();
-    expect(peersRead.fresh('peers')).toBe(true);
-    fireEvent.click(screen.getByRole('link', { name: 'Peers' }));
-    expect(peersRead.fresh('peers')).toBe(false);
+    const scopedRead = (path: string) =>
+      renderHook(useKeptRead, {
+        wrapper: ({ children }: { children: ReactNode }) => {
+          const version = useRequestedTabReadVersion(path);
+          return (
+            <TabReadVersionContext.Provider value={version}>
+              {children}
+            </TabReadVersionContext.Provider>
+          );
+        },
+      }).result;
+    const peers = scopedRead('/peers');
+    const home = scopedRead('/home');
+    peers.current.start('peers')();
+    home.current.start('home')();
+    const link = screen.getByRole('link', { name: 'Peers' });
+    fireEvent.click(link);
+    expect(peers.current.fresh('peers')).toBe(false);
+    expect(home.current.fresh('home')).toBe(true);
+    const refresh = peers.current;
+    fireEvent.click(link);
+    expect(peers.current).toBe(refresh);
     expect(screen.getByRole('link', { name: 'Chat' })).toHaveAttribute('href', '/chat/t/abc');
   });
 });

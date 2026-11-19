@@ -2,7 +2,7 @@ import { useContext, useEffect, useRef, useState } from 'react';
 import { AccountContext } from '@/lib/account-context';
 import { describeError, describeThrown, type Failure } from '@/lib/describe-error';
 import { toInjuryBand } from '@/lib/injury';
-import { useKeptRead } from '@/lib/kept-reads';
+import { useKeptRead, useTabReadVersion } from '@/lib/kept-reads';
 import { columnsOf, readOwnRow } from '@/lib/own-row';
 import { readPages } from '@/lib/read-pages';
 import {
@@ -346,6 +346,8 @@ const LOADING: MembersState = { members: [], loading: true, error: null, signedO
  */
 export function useBrowseMembers(use: DirectoryUse = 'deck'): MembersState {
   const knownUser = useContext(AccountContext)?.userId ?? null;
+  const tabVersion = useTabReadVersion();
+  const readTabVersion = useRef(0);
   const [state, setState] = useState<MembersState>(() => keptFor(knownUser, use) ?? LOADING);
   // Bumped when the kept read is let go or goes stale, so this screen reads again.
   const [round, setRound] = useState(0);
@@ -401,9 +403,10 @@ export function useBrowseMembers(use: DirectoryUse = 'deck'): MembersState {
         const userId = session.user.id;
         const kept = keptFor(userId, use);
         if (kept) settle(kept);
-        if (kept && isFresh(userId)) return;
+        if (kept && isFresh(userId) && readTabVersion.current === tabVersion) return;
         const result = await readDirectory(userId, use, kept !== null);
         if (gone()) return;
+        readTabVersion.current = tabVersion;
         if (result.error === null) {
           settle({ members: result.members, loading: false, error: null, signedOut: false });
         } else if (!kept) {
@@ -425,7 +428,7 @@ export function useBrowseMembers(use: DirectoryUse = 'deck'): MembersState {
     return () => {
       cancelled = true;
     };
-  }, [use, round]);
+  }, [use, round, tabVersion]);
 
   return state;
 }
