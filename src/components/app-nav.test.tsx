@@ -60,17 +60,25 @@ describe('AppNav', () => {
     expect(screen.getByRole('link', { name: 'Chat' })).not.toHaveAttribute('aria-current');
   });
 
-  // The owner, 2026-11-10: a tab is where it was left; the lit tab is its first screen.
-  it('takes a tab back to where it was left', () => {
+  // The owner, 2026-11-10: Chat is where it was left, so a conversation stays
+  // open across tab switches; 2026-11-19: every other tab opens on its first
+  // screen, not the profile or post last looked at.
+  it('takes Chat back to its conversation, and every other tab to its first screen', () => {
+    // A profile looked at in Peers, then a conversation in Chat.
+    render(
+      <MemoryRouter initialEntries={['/peers/ana']}>
+        <AppNav />
+      </MemoryRouter>,
+    ).unmount();
     render(
       <MemoryRouter initialEntries={['/chat/t/abc']}>
         <AppNav />
       </MemoryRouter>,
     );
+    expect(screen.getByRole('link', { name: 'Peers' })).toHaveAttribute('href', '/peers');
     expect(screen.getByRole('link', { name: 'Chat' })).toHaveAttribute('href', '/chat');
     fireEvent.click(screen.getByRole('link', { name: 'Peers' }));
     expect(screen.getByRole('link', { name: 'Chat' })).toHaveAttribute('href', '/chat/t/abc');
-    expect(screen.getByRole('link', { name: 'Peers' })).toHaveAttribute('href', '/peers');
   });
 });
 

@@ -105,17 +105,21 @@ export function AppNav() {
       >
         {TABS.map(({ to, label, Icon }) => {
           const isActive = lit === to;
+          // Chat, from another tab: back in the conversation it was left in,
+          // so switching tabs mid-message does not close it (the owner,
+          // 2026-11-10). Every other tab, and Chat when lit: its first
+          // screen (the owner, 2026-11-19: "When I tap on home it should take
+          // me to home, not the last page I was on").
+          const kept = to === '/chat' && !isActive ? tabPlace(to) : undefined;
           return (
             <Link
               key={to}
-              // Another tab: back where it was left. The lit one: its first
-              // screen, the way out of a conversation or a profile.
-              to={isActive ? to : (tabPlace(to)?.path ?? to)}
+              to={kept?.path ?? to}
               // The way back is that tab's own (lib/back-trail.ts).
               onClick={() => {
                 sayNext('tab');
               }}
-              state={isActive ? undefined : tabPlace(to)?.state}
+              state={kept?.state}
               aria-current={isActive ? 'page' : undefined}
               // The dot is decorative, so without this the tab is called "Chat"
               // and what it is telling somebody is told only in navy. The label
