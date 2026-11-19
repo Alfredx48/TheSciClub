@@ -268,7 +268,10 @@ const ATTEMPT = 'Could not load the posts.';
  * Read once, on arrival. Home does not subscribe to changes; the page's header
  * says why.
  */
-export function useHomeTopics(view: HomeView = DEFAULT_HOME_VIEW): HomeTopicsState {
+export function useHomeTopics(
+  view: HomeView = DEFAULT_HOME_VIEW,
+  initial?: unknown[],
+): HomeTopicsState {
   const [state, setState] = useState<HomeTopicsState>({
     topics: [],
     posts: [],
@@ -277,6 +280,7 @@ export function useHomeTopics(view: HomeView = DEFAULT_HOME_VIEW): HomeTopicsSta
     readAt: null,
   });
   const kept = useKeptRead();
+  const startup = useRef(initial);
   const { show, sort } = view;
   /** The choice the state now holds. */
   const held = useRef<string | null>(null);
@@ -330,7 +334,10 @@ export function useHomeTopics(view: HomeView = DEFAULT_HOME_VIEW): HomeTopicsSta
     async function load() {
       try {
         const supabase = getSupabase();
-        const feed = await readFeed({ show, sort }, controller.signal);
+        const initialFeed = startup.current as FeedRow[] | undefined;
+        startup.current = undefined;
+        const feed =
+          !chosen && initialFeed ? initialFeed : await readFeed({ show, sort }, controller.signal);
         if (aborted()) return;
         if (feed) {
           land(

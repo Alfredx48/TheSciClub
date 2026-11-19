@@ -59,6 +59,7 @@ export function useKeptRead() {
 
 /** Asked of the server that change nothing a tab shows. */
 const QUIET_RPCS = new Set([
+  'home_startup',
   'chat_mark_posts_seen',
   'log_page_speed',
   'note_device',

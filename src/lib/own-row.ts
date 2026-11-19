@@ -1,3 +1,4 @@
+import type { HomeStartup } from '@/lib/home/types';
 import { onKeptReadsStale } from '@/lib/kept-reads';
 import { onDirectoryChanged, onForgetSharedReads } from '@/lib/shared-reads';
 import { getSupabase } from '@/lib/supabase';
@@ -70,7 +71,7 @@ export type OwnRow = Record<string, unknown>;
  * Undefined: the caller reads alone, as before (a column it alone asks for).
  */
 export type SharedRow =
-  | { row: OwnRow | null; error: null }
+  | { row: OwnRow | null; error: null; homeStartup?: HomeStartup }
   | { row: null; error: Error }
   | undefined;
 
@@ -90,9 +91,33 @@ function missingColumn(error: { code?: unknown; message?: unknown }): boolean {
   return error.code === '42703' || /column .* does not exist/i.test(String(error.message));
 }
 
-async function readRow(): Promise<SharedRow> {
+async function readHomeStartup(userId: string): Promise<SharedRow> {
+  try {
+    const { data, error } = await getSupabase().rpc('home_startup');
+    if (error || data?.viewer !== userId) return undefined;
+    const { member, feed, rooms } = data as {
+      member?: OwnRow | null;
+      feed?: unknown;
+      rooms?: unknown;
+    };
+    if (member === null) return { row: null, error: null };
+    if (member?.id !== userId) return undefined;
+    if (member.status === 'active' && Array.isArray(feed) && Array.isArray(rooms)) {
+      return { row: member, error: null, homeStartup: { feed, rooms } };
+    }
+    return { row: member, error: null };
+  } catch {
+    return undefined;
+  }
+}
+
+async function readRow(homeFor?: string): Promise<SharedRow> {
   const supabase = getSupabase();
   try {
+    if (homeFor) {
+      const startup = await readHomeStartup(homeFor);
+      if (startup) return startup;
+    }
     let result = await supabase.from('members').select(OWN_ROW_COLUMNS.join(', ')).maybeSingle();
     if (result.error && missingColumn(result.error)) {
       result = await supabase
@@ -116,7 +141,7 @@ async function readRow(): Promise<SharedRow> {
  */
 export function readOwnRow(
   columns: readonly string[],
-  { since }: { since?: number } = {},
+  { since, homeFor }: { since?: number; homeFor?: string } = {},
 ): Promise<SharedRow> {
   if (!columns.every((c) => (OWN_ROW_COLUMNS as readonly string[]).includes(c))) {
     return Promise.resolve(undefined);
@@ -125,7 +150,7 @@ export function readOwnRow(
   if (kept && now - kept.at < OWN_ROW_FRESH_MS && (since === undefined || kept.at >= since)) {
     return kept.read;
   }
-  const entry = { at: now, read: readRow() };
+  const entry = { at: now, read: readRow(homeFor) };
   kept = entry;
   void entry.read.then((answer) => {
     if ((answer === undefined || answer.error) && kept === entry) kept = null;

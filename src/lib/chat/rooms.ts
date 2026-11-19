@@ -97,7 +97,7 @@ export interface ChatRoomsState {
   reload: () => void;
 }
 
-export function useChatRooms(): ChatRoomsState {
+export function useChatRooms(initial?: unknown[]): ChatRoomsState {
   const [rooms, setRooms] = useState<ChatRoom[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -106,6 +106,7 @@ export function useChatRooms(): ChatRoomsState {
   // keyed on it would do the same job and would leave the effect with a
   // dependency it never reads.
   const inFlight = useRef<AbortController | null>(null);
+  const startup = useRef(initial);
   const kept = useKeptRead();
 
   const load = useCallback(async () => {
@@ -148,7 +149,14 @@ export function useChatRooms(): ChatRoomsState {
 
   useEffect(() => {
     // A kept tab shown again within the minute (lib/kept-reads.ts).
-    if (!kept.fresh('rooms')) void load();
+    if (startup.current) {
+      setRooms((startup.current as ChatRoomRow[]).map(toRoom));
+      setLoading(false);
+      startup.current = undefined;
+      kept.start('rooms')();
+    } else if (!kept.fresh('rooms')) {
+      void load();
+    }
     return () => {
       inFlight.current?.abort();
     };

@@ -110,6 +110,27 @@ it('requests only eligible rooms before limiting Home topics, including for an a
   ]);
 });
 
+it('uses the startup feed without loading the default feed a second time', () => {
+  const { result } = renderHook(() =>
+    useHomeTopics(undefined, [
+      {
+        id: 'startup-topic',
+        room_id: 'bowel',
+        title: 'Startup topic',
+        author_id: null,
+        created_at: '2026-10-10T10:00:00Z',
+        last_post_at: '2026-10-10T10:00:00Z',
+        reply_count: 0,
+        ord: 0,
+        previews: [],
+      },
+    ]),
+  );
+  expect(result.current.topics.map((topic) => topic.id)).toEqual(['startup-topic']);
+  expect(result.current.loading).toBe(false);
+  expect(db.calls).toEqual([]);
+});
+
 it('brings the cards’ names and faces in the same read, ready on the first render', async () => {
   // As Home asks: the authors of whatever topics have arrived.
   const unnamed: string[] = [];

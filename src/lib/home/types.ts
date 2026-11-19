@@ -56,6 +56,12 @@ export interface HomeView {
 
 export const DEFAULT_HOME_VIEW: HomeView = { show: 'all', sort: 'ranking' };
 
+/** The cold Home response, in the same shapes as its independent reads. */
+export interface HomeStartup {
+  feed: unknown[];
+  rooms: unknown[];
+}
+
 /**
  * A topic as Home reads it, straight from `chat_topics`.
  *
