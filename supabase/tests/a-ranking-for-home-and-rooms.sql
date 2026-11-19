@@ -1,29 +1,31 @@
 -- ============================================================================
 -- One order for Home and a room's Top, Home's replies, a capped boost, and
 -- the administrators told at -3 (20261118190000, 20261118195000,
--- 20261118220000, 20261118270000)
+-- 20261118220000, 20261118270000, 20261119120000)
 -- ============================================================================
 -- Boost: Adm boosts Old twice, still 10, and Old's score stays 0 since a
 -- boost is not in a score (20261118195000); a 20-day-old boost on Seen counts
--- 0; taking Old's back leaves 0.
+-- 0; taking Old's back leaves 0. Adm boosts Quiet twice: one boost row, and
+-- Quiet is placed as though it had just been replied to (20261119120000; a
+-- flat 24 hours before, which left it sixth).
 -- The room, best first, the same for Ann and for Cal whatever each has read
 -- or seen (20261118220000): last activity, 4 hours newer a vote (20261118270000;
 -- 2 before, which left Moved level with Seen, fourth).
 --   Moved  6 hours, 2 votes: two hours ahead
+--   Quiet  4 days, boosted now: as now
 --   Mine   Ann's, 10 minutes
 --   Down   1 hour, voted -2: the votes count 0, not less
 --   Glance 90 minutes, seen by Ann on Home: nothing for it
 --   Seen   2 hours, read by Ann: nothing for it
---   Quiet  4 days
 --   Old    5 days
 -- Home, Moved's replies: top is Bob's reply with 2 votes, then the latest
 -- (Bob's newest), not the first Ann has not read; Cal's at -1 never. Old's,
 -- with no votes: the newest, then the other.
 -- Three downvotes on Old's opening post: one report, no reporter, raised by
 -- votes, and a fourth does not make another. Adm reads it as raised_by_votes.
--- Run against the test project on 2026-11-18:
---   "boost: 10 10 0 0 0; order: Moved,Mine,Down,Glance,Seen,Quiet,Old, cal same;
---    moved: top,latest; old: latest,reply; reports: 1 true true"
+-- Run against the test project on 2026-11-19:
+--   "boost: 10 10 0 0 0; order: Moved,Quiet,Mine,Down,Glance,Seen,Old, cal same;
+--    moved: top,latest; old: latest,reply; reports: 1 true true; quiet boosts: 1"
 --
 --   node --env-file=.env.local <runner> supabase/tests/a-ranking-for-home-and-rooms.sql
 --
@@ -64,6 +66,7 @@ declare
   moved text;
   old text;
   reports text;
+  quiet_boosts integer;
 begin
   insert into public.members (id, type, status, display_name, phone, birth_date, level_range, state, is_admin) values
     (adm, 'peer', 'active', 'Adm', '19991119121', '1980-01-01', 'T1–T6', 'CA', true),
@@ -124,6 +127,8 @@ begin
         || (select s.score from public.chat_post_scores(array[p_old]) s) || ' '
         || (select s.boost from public.chat_post_scores(array[p_seen]) s) || ' '
         || public.admin_boost_post(p_old, false);
+  perform public.admin_boost_post(p_quiet);
+  perform public.admin_boost_post(p_quiet);
 
   perform set_config('request.jwt.claims', json_build_object('sub', ann, 'role', 'authenticated')::text, true);
   select string_agg(r.title, ',') into ord from public.chat_topics_ranked('probe-1119-rank') r;
@@ -148,13 +153,14 @@ begin
   perform set_config('role', 'postgres', true);
   insert into public.chat_post_downvotes (post_id, member_id) values (p_old, cal), (p_old, dan), (p_old, ann);
   insert into public.chat_post_downvotes (post_id, member_id) values (p_old, bob);
+  select count(*) into quiet_boosts from public.chat_post_boosts b where b.post_id = p_quiet;
   perform set_config('role', 'authenticated', true);
   perform set_config('request.jwt.claims', json_build_object('sub', adm, 'role', 'authenticated')::text, true);
   select count(*) || ' ' || bool_and(r.reporter_id is null) || ' ' || bool_and(r.raised_by_votes)
     into reports
     from public.admin_chat_reports() r where r.post_id = p_old;
 
-  raise exception 'RESULT boost: %; order: %; moved: %; old: %; reports: %',
-    boost, ord, moved, old, reports;
+  raise exception 'RESULT boost: %; order: %; moved: %; old: %; reports: %; quiet boosts: %',
+    boost, ord, moved, old, reports, quiet_boosts;
 end;
 $$;

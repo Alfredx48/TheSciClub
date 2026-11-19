@@ -14,9 +14,10 @@ import { getSupabase } from '@/lib/supabase';
  * The owner, 2026-11-18 (20261118180000): Reddit's up and down arrows with the score between,
  * instead of Like. An upvote is a like: `chat_post_likes` keeps its rows, names list and
  * notification. A downvote is anonymous (`chat_post_downvotes`, nobody reads another's). A club
- * administrator's long press or right click on the up arrow adds 10 (`admin_boost_post`), which
- * lifts the post in Top and on Home. Since 20261118190000 a boost is 10 at most and lasts 14
- * days; since 20261118195000 it is in no score, so members never see it. `chat_post_scores` says
+ * administrator's long press or right click on the up arrow boosts it (`admin_boost_post`), which
+ * moves the post up in Top and on Home as a new reply would, and again moves it up again
+ * (20261119120000; before, a flat lift for 14 days, once). Since 20261118195000 it is in no
+ * score, so members never see it. `chat_post_scores` says
  * each score and the reader's vote; on a database without it, the score is the likes and nobody
  * has downvoted.
  *
@@ -180,7 +181,7 @@ export async function undownvotePost(
 
 const BOOST_FAILED = { attempt: 'The boost was not saved.', refused: 'Only administrators boost.' };
 
-/** An administrator's +10 for 14 days, or taking it back. The boost after: 10 or 0. */
+/** An administrator's boost, or taking it back. After it: 10 when boosted, 0 when not. */
 export async function boostPost(postId: string, more: boolean): Promise<ChatWriteResult<number>> {
   const { data, error } = (await getSupabase().rpc('admin_boost_post', { post: postId, more })) as {
     data: number | null;
@@ -465,11 +466,8 @@ export function usePostLikes(postIds: readonly string[]): PostLikesState {
   const boost = useCallback(
     (postId: string, more: boolean) => {
       if (!isAdmin || pending.current.has(postId)) return;
-      // One boost at a time (20261118190000): a second long press says so.
-      if (more && (scoresRef.current.get(postId)?.boost ?? 0) >= 10) {
-        announce('Already boosted by 10. A boost lasts 14 days.');
-        return;
-      }
+      // A second boost moves the post up again, as another reply would (20261119120000).
+      const again = more && (scoresRef.current.get(postId)?.boost ?? 0) > 0;
       pending.current.add(postId);
       setFailure(null);
       void boostPost(postId, more)
@@ -487,7 +485,7 @@ export function usePostLikes(postIds: readonly string[]): PostLikesState {
             next.set(postId, { ...was, boost: result.value });
             return next;
           });
-          announce(more ? 'Boosted by 10 for 14 days.' : 'Boost removed.');
+          announce(more ? (again ? 'Boosted again.' : 'Boosted.') : 'Boost removed.');
         })
         .catch((e: unknown) => {
           pending.current.delete(postId);

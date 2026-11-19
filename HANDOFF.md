@@ -785,7 +785,11 @@ All live. Migration headers and the files named say how and why.
   Top; the same for every member): a post's last activity, 4 hours newer for
   each vote on its opening post (net of downvotes, not the author's own, the
   first 12, so at most 48 hours; doubled at the owner's word, 2026-11-18,
-  `20261118270000`), and 24 hours newer while an administrator's boost runs.
+  `20261118270000`). An administrator's boost of the opening post counts as
+  activity at the moment it was made, as a new reply would (the owner,
+  2026-11-19, `20261119120000`; a flat 24 hours for 14 days before): the
+  order takes the later of the two, `last_post_at` is not touched, and
+  members see nothing. Boost again moves it to now; a post has one boost row.
 
 ## Environment
 

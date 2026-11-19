@@ -236,7 +236,7 @@ export function PostLikes({
         ) : null}
       </span>
       {/* An administrator's alone: members never see the boost. */}
-      {boost && !unknown ? <span className="font-semibold text-ink2">Boost +{boost}</span> : null}
+      {boost && !unknown ? <span className="font-semibold text-ink2">Boosted</span> : null}
       {open ? (
         <LikesSheet
           memberIds={likedBy}
@@ -262,7 +262,7 @@ export function LikesSheet({
 }: {
   memberIds: readonly string[];
   linkState?: unknown;
-  /** An administrator's: the boost in the score, and adding or taking back 10. */
+  /** An administrator's: whether the post is boosted (10 or 0), and boosting or taking it back. */
   boost?: number | null | undefined;
   onBoost?: ((more: boolean) => void) | undefined;
   onClose: () => void;
@@ -372,23 +372,22 @@ export function LikesSheet({
         {onBoost ? (
           <div className="flex-none border-line border-t px-[18px] py-3">
             <p className="font-bold text-[0.78125rem] text-grey">
-              For administrators: {boost ? `boosted +${boost}` : 'not boosted'}
+              For administrators: {boost ? 'boosted' : 'not boosted'}
             </p>
             <p className="mt-0.5 text-[0.75rem] text-grey leading-[1.45]">
-              A boost lifts the post in Top and on Home for 14 days, once per post. Members don't
-              see it, and it isn't in the score. A long press or right click on the up arrow boosts
-              too.
+              A boost moves the post up in Top and on Home as a new reply would, and it sinks again
+              as other posts get replies. Members don't see it, and it isn't in the score. A long
+              press or right click on the up arrow boosts too.
             </p>
             <div className="mt-2 flex gap-2">
               <button
                 type="button"
-                disabled={(boost ?? 0) >= 10}
                 onClick={() => {
                   onBoost(true);
                 }}
                 className="min-h-[44px] flex-1 rounded-xl bg-tint px-4 font-bold font-head text-[0.875rem] text-emphasis transition-colors hover:bg-line disabled:opacity-40"
               >
-                Add 10
+                {boost ? 'Boost again' : 'Boost'}
               </button>
               <button
                 type="button"

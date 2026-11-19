@@ -104,21 +104,21 @@ describe('PostLikes', () => {
     expect(screen.queryByText(/Boost/)).toBeNull();
   });
 
-  // The owner, 2026-11-18: an administrator's long press or right click adds 10, and the click
+  // The owner, 2026-11-18: an administrator's long press or right click boosts, and the click
   // that ends the long press is not also an upvote.
   describe('an administrator’s boost', () => {
-    it('adds 10 on a right click, without upvoting', () => {
+    it('boosts on a right click, without upvoting', () => {
       const onBoost = vi.fn();
-      const onToggle = renderLikes({ onBoost, boost: 20 });
+      const onToggle = renderLikes({ onBoost, boost: 10 });
       const up = screen.getByRole('button', { name: "Upvote Nicole's post" });
       fireEvent.contextMenu(up);
       fireEvent.click(up);
       expect(onBoost).toHaveBeenCalledExactlyOnceWith(true);
       expect(onToggle).not.toHaveBeenCalled();
-      expect(screen.getByText('Boost +20')).toBeVisible();
+      expect(screen.getByText('Boosted')).toBeVisible();
     });
 
-    it('adds 10 on a long press, and the click that ends it does not upvote', () => {
+    it('boosts on a long press, and the click that ends it does not upvote', () => {
       vi.useFakeTimers();
       try {
         const onBoost = vi.fn();
@@ -141,14 +141,14 @@ describe('PostLikes', () => {
       }
     });
 
-    it('can take a boost back from the list, for a keyboard, but not add a second', async () => {
+    it('can boost again or take the boost back from the list, for a keyboard', async () => {
       const onBoost = vi.fn();
       renderLikes({ onBoost, boost: 10 });
       await userEvent.click(screen.getByRole('button', { name: /^Score/ }));
-      // A boost is 10 at most (20261118190000).
-      expect(screen.getByRole('button', { name: 'Add 10' })).toBeDisabled();
+      // Again moves the post up again, as another reply would (20261119120000).
+      await userEvent.click(screen.getByRole('button', { name: 'Boost again' }));
       await userEvent.click(screen.getByRole('button', { name: 'Remove boost' }));
-      expect(onBoost.mock.calls).toEqual([[false]]);
+      expect(onBoost.mock.calls).toEqual([[true], [false]]);
     });
   });
 
