@@ -113,9 +113,10 @@ export default function HomePage() {
   const rooms = useChatRooms(startup?.rooms);
   const [sheetOpen, setSheetOpen] = useState(false);
 
+  const cardRooms = rooms.loading || rooms.error ? (topicRead.rooms ?? rooms.rooms) : rooms.rooms;
   const topics = useMemo(
-    () => toHomeTopics(topicRead.topics, topicRead.posts, rooms.rooms),
-    [topicRead.topics, topicRead.posts, rooms.rooms],
+    () => toHomeTopics(topicRead.topics, topicRead.posts, cardRooms),
+    [topicRead.topics, topicRead.posts, cardRooms],
   );
   const authors = useChatAuthors(
     topics.flatMap((topic) => [
@@ -133,7 +134,7 @@ export default function HomePage() {
   const likes = usePostLikes(openingPostIds);
   const views = usePostViews(openingPostIds);
 
-  const settled = !(topicRead.loading || rooms.loading);
+  const settled = !(topicRead.loading || (topicRead.rooms === undefined && rooms.loading));
   const failure = topicRead.error ?? rooms.error;
   const failures = failure ? [failure] : [];
 
@@ -143,9 +144,9 @@ export default function HomePage() {
   );
   const filterContext = useMemo<FeedFilterContext>(
     () => ({
-      openRooms: openRoomsById(rooms.rooms),
+      openRooms: openRoomsById(cardRooms),
     }),
-    [rooms.rooms],
+    [cardRooms],
   );
   const shown = useMemo(
     () => items.filter((item) => matchesFeedFilters(item, filters, filterContext)),
@@ -160,6 +161,7 @@ export default function HomePage() {
   const { pathname } = useLocation();
   const postsDrawn =
     settled && shown.some((item) => item.kind === 'topic' || item.kind === 'photo');
+  const needsRoomList = topicRead.rooms === undefined;
   useEffect(() => {
     if (pathname !== '/home' || !postsDrawn) return;
     const reached = debugScreenStart('/home');
@@ -167,10 +169,16 @@ export default function HomePage() {
     const fresh = topicRead.readAt !== null && topicRead.readAt >= reached;
     return afterPaint(() => {
       if (fresh) {
-        debugMark('/home', 'Fresh posts’ text on screen', POST_REQUESTS);
+        debugMark(
+          '/home',
+          'Fresh posts’ text on screen',
+          needsRoomList
+            ? POST_REQUESTS
+            : POST_REQUESTS.filter((name) => name !== 'table:chat_rooms'),
+        );
       } else debugMark('/home', 'Earlier posts’ text still on screen');
     });
-  }, [pathname, postsDrawn, topicRead.readAt]);
+  }, [pathname, postsDrawn, topicRead.readAt, needsRoomList]);
   const profile = useProfileAsk(memberId);
 
   /** A standing opener's likes, drawn as unknown until they are read. */

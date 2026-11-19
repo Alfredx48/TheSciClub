@@ -181,6 +181,17 @@ it('reads the order, the posts and their authors in one request', async () => {
     reply_count: 0,
     is_question: false,
     ord,
+    room: {
+      id: 'bowel',
+      name: 'Bowel care',
+      description: '',
+      category: 'Body',
+      icon: null,
+      sort_order: 1,
+      opened_at: '2026-10-10T10:00:00Z',
+      show_in_home: true,
+      created_by: null,
+    },
     previews: [],
     author: { id: 'a1', display_name: 'Ana' },
     opening: [],
@@ -216,6 +227,7 @@ it('reads the order, the posts and their authors in one request', async () => {
     ['first', 0],
   ]);
   expect(result.current.read.topics[0]?.previewIds).toEqual([{ id: 'answer', kind: 'latest' }]);
+  expect(result.current.read.rooms).toMatchObject([{ id: 'bowel', name: 'Bowel care' }]);
   expect(result.current.read.posts.map((each) => each.id)).toEqual(['question', 'answer']);
   expect(result.current.authors.get('b2')?.displayName).toBe('Bo');
 });

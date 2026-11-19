@@ -29,7 +29,7 @@ import { getSupabase } from '@/lib/supabase';
  * for a different query.
  */
 
-interface ChatRoomRow {
+export interface ChatRoomRow {
   id: string;
   name: string;
   description: string;
@@ -41,7 +41,7 @@ interface ChatRoomRow {
   created_by: string | null;
 }
 
-function toRoom(row: ChatRoomRow): ChatRoom {
+export function toRoom(row: ChatRoomRow): ChatRoom {
   return {
     id: row.id,
     name: row.name,
