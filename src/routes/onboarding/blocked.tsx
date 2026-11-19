@@ -88,8 +88,8 @@ export function BlockedScreen({
 
         {fromCode && !fromCode.joiningOpen && !fromCode.admits ? null : (
           <p className="mt-4 text-[0.78125rem] text-grey leading-[1.5]">
-            An organization's QR code or link lets you in only until it expires or is turned off.
-            Otherwise someone has to invite your email address.
+            A QR code or its link lets you in only until it expires or is turned off. Otherwise
+            someone has to invite your email address.
           </p>
         )}
       </div>
