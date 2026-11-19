@@ -2,8 +2,9 @@
 -- An org admin's QR code lets their people in, until it expires (20261028960000)
 -- ============================================================================
 -- With joining closed: an account that claimed an organization's live code is
--- invited; one that claimed it after it expired is not; an administrator's
--- code with no organization still lets nobody in. Only its org admins make an
+-- invited; one that claimed it after it expired is not (an administrator's
+-- code with no organization lets people in too since 20261119130000: see
+-- signup-needs-an-invite.sql, section 4a). Only its org admins make an
 -- organization's code, and only administrators name an event.
 --
 --   docker run --rm -i --network host -e PGPASSWORD=postgres postgres:17-alpine \
@@ -83,5 +84,20 @@ reset role;
 \echo '== 5. what the join screen hears (expect Org admin, Probe QR Org, admits t, no email) =='
 select inviter_name, organization_name, admits, contact_email
   from public.qr_code_details('probelive');
+
+\echo ''
+\echo '== 6. an administrator makes one with no organization and no email (expect t, f, <null>), and it lets people in (expect admits t, no email) =='
+-- 20261119130000: it needed an email to show, and let nobody in.
+insert into public.members (id, type, status, display_name, phone, birth_date, level_range, state, city, is_admin)
+values ('aaaaaaaa-f1f1-0000-0000-00000000000b', 'mentor', 'active', 'Club admin', '19990000f02', '1980-01-01', 'T1–T6', 'CA', 'Oakland', true);
+select set_config('request.jwt.claims',
+  '{"sub":"aaaaaaaa-f1f1-0000-0000-00000000000b","role":"authenticated"}', true) is not null as ok;
+set local role authenticated;
+select code is not null as made, made_as_partner, contact_email
+  from public.create_qr_code(null, null, null, now() + interval '24 hours', null);
+reset role;
+select d.admits, d.contact_email
+  from public.qr_codes q, public.qr_code_details(q.code) d
+ where q.admin_id = 'aaaaaaaa-f1f1-0000-0000-00000000000b';
 
 rollback;

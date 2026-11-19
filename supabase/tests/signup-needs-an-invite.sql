@@ -37,6 +37,9 @@
 begin;
 
 -- ------------------------------------------------------------------ set-up --
+-- Joining closed, whatever the database it runs on says now.
+update public.club_joining set open = false;
+
 insert into auth.users (id, instance_id, aud, role, email, email_confirmed_at) values
   ('aaaaaaaa-1041-0000-0000-000000000001', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'inviter@probe.test',  now()),
   ('aaaaaaaa-1041-0000-0000-000000000002', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'claimer@probe.test',  now());
@@ -135,14 +138,20 @@ insert into public.qr_codes (code, admin_id, event_name, made_as_partner, expire
   ('probe-off',     'aaaaaaaa-1041-0000-0000-000000000001', 'probe', true,  null, now()),
   ('probe-credit',  'aaaaaaaa-1041-0000-0000-000000000002', 'probe', false, null, null);
 
-\echo '== 4a. joining closed: expect {} on the first line, 403 on the rest =='
+\echo '== 4a. joining closed: expect {} for the partner''s and the administrator''s live codes, 403 on the rest =='
 select 'partner''s live code'     as case, public.signup_needs_an_invite(pg_temp.scanned('walked-in@probe.test', 'probe-partner')) as answer
+union all select 'administrator''s code', public.signup_needs_an_invite(pg_temp.scanned('walked-in@probe.test', 'probe-credit'))
 union all select 'blocked, live code',  public.signup_needs_an_invite(pg_temp.scanned('elsewhere-blocked@probe.test', 'probe-partner'))
 union all select 'expired code',        public.signup_needs_an_invite(pg_temp.scanned('walked-in@probe.test', 'probe-expired'))
 union all select 'code turned off',     public.signup_needs_an_invite(pg_temp.scanned('walked-in@probe.test', 'probe-off'))
-union all select 'code gives credit',   public.signup_needs_an_invite(pg_temp.scanned('walked-in@probe.test', 'probe-credit'))
 union all select 'unknown code',        public.signup_needs_an_invite(pg_temp.scanned('walked-in@probe.test', 'probe-nonsense'))
 union all select 'nothing at all',      public.signup_needs_an_invite(pg_temp.ev('email', 'walked-in@probe.test'));
+
+\echo '== 4a2. its maker no longer an administrator: expect 403 =='
+savepoint demoted;
+update public.members set is_admin = false where id = 'aaaaaaaa-1041-0000-0000-000000000002';
+select public.signup_needs_an_invite(pg_temp.scanned('walked-in@probe.test', 'probe-credit')) as answer;
+rollback to savepoint demoted;
 
 \echo '== 4b. joining open: expect {} twice, then 403 for the blocked address =='
 update public.club_joining set open = true;

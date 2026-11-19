@@ -1,16 +1,13 @@
 import { Link as LinkIcon, Loader2, X } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Link, Navigate } from 'react-router-dom';
+import { Navigate } from 'react-router-dom';
 import { BackLink } from '@/components/back-link';
 import { OrganizationPicker } from '@/components/organization-picker';
 import { QrCode } from '@/components/qr-code';
 import { useAccount } from '@/lib/account';
-import { loadSignInDetails } from '@/lib/account-email';
 import { useAnnounce } from '@/lib/announce';
-import { looksLikeEmail } from '@/lib/auth-email';
 import { PARTNER_ROLE_NAME, useIAmPartner } from '@/lib/club-partners';
 import { useDialogFocus } from '@/lib/dialog-focus';
-import { fetchJoiningIsOpen } from '@/lib/joining';
 import { useMemberOrganizations } from '@/lib/organization-members';
 import { useMyOrganizations } from '@/lib/organization-representatives';
 import { useOrganizations } from '@/lib/organizations';
@@ -32,8 +29,9 @@ import { cn } from '@/lib/utils';
  * An org admin's code is for their organization: whoever scans it, or opens
  * its link, before it expires can join, as invited by them, even while the
  * club is invite only. An administrator chooses one of their organizations
- * too, or none: a code with none only gives credit, as before, and shows an
- * email to ask while joining is closed. Only administrators name an event.
+ * too, or none. Since 20261119130000 a code with none lets people in too (the
+ * owner, 2026-11-19: their invitees were sent to ask them for an invite); it
+ * only gave credit before. Only administrators name an event.
  *
  * Every code expires after a day unless its maker chooses otherwise, and
  * may carry a note only its maker sees. Every code made is listed below with
@@ -75,12 +73,9 @@ export default function QrCodePage() {
   const [organizationId, setOrganizationId] = useState<string | null>(null);
   const [atEvent, setAtEvent] = useState(false);
   const [eventName, setEventName] = useState('');
-  const [email, setEmail] = useState('');
-  const emailTouched = useRef(false);
   const [expires, setExpires] = useState(true);
   const [hours, setHours] = useState<number>(DEFAULT_EXPIRY_HOURS);
   const [notes, setNotes] = useState('');
-  const [joiningOpen, setJoiningOpen] = useState<boolean | null>(null);
   const [codes, setCodes] = useState<MyQrCode[] | null>(null);
   const [showing, setShowing] = useState<MyQrCode | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
@@ -125,13 +120,6 @@ export default function QrCodePage() {
   useEffect(() => {
     if (!mayMake) return;
     void load();
-    void fetchJoiningIsOpen().then(setJoiningOpen);
-    // The account's address, into an empty box only.
-    void loadSignInDetails().then((result) => {
-      if (result.ok && result.details.email && !emailTouched.current) {
-        setEmail(result.details.email);
-      }
-    });
   }, [mayMake, load]);
 
   if (
@@ -144,11 +132,7 @@ export default function QrCodePage() {
   if (!mayMake) return <Navigate to="/me" replace />;
 
   const event = isAdmin && atEvent ? eventName.trim() : '';
-  // A code with no organization shows an email while joining is closed.
-  const needsEmail = forOrganization === null && !ownCode;
-  // Whoever scans it may join, even while the club is invite only.
-  const letsIn = forOrganization !== null || ownCode;
-  const ready = (!(isAdmin && atEvent) || event !== '') && (!needsEmail || looksLikeEmail(email));
+  const ready = !(isAdmin && atEvent) || event !== '';
   const nameOf = (code: MyQrCode) =>
     code.organizationId
       ? (byId.get(code.organizationId)?.name ?? 'Your organization')
@@ -160,7 +144,7 @@ export default function QrCodePage() {
     return createQrCode({
       organizationId: forOrganization,
       eventName: event || null,
-      contactEmail: needsEmail ? email.trim() : null,
+      contactEmail: null,
       expiresAt: expires ? new Date(Date.now() + hours * 3_600_000) : null,
       notes: notes.trim() || null,
     });
@@ -239,33 +223,13 @@ export default function QrCodePage() {
             Create QR code or invite link
           </h1>
           <p className="mt-1 text-[0.78125rem] text-grey leading-[1.45]">
-            {letsIn
-              ? 'Anyone who scans your code or opens its link before it expires can join the club, as invited by you. You are told when they do.'
-              : 'While anybody can join, people who join from your code are recorded as invited by you, and you are told when they do.'}
+            Anyone who scans your code or opens its link before it expires can join the club, as
+            invited by you. You are told when they do.
           </p>
         </div>
       </header>
 
       <div className="mx-auto w-full max-w-[560px] flex-none px-4 pt-4 pb-8">
-        {joiningOpen === false && !letsIn ? (
-          <div
-            role="status"
-            className="mb-4 rounded-[14px] border border-gold-dp bg-gold-lt p-3.5 text-[0.875rem] text-ink leading-[1.5]"
-          >
-            <p className="font-bold">Joining is invite only right now.</p>
-            <p className="mt-1">
-              A code with no organization won't let anyone in. They'll see your email so they can
-              ask you for an invite.
-            </p>
-            <Link
-              to="/admin?tab=invites"
-              className="mt-2 inline-flex min-h-[44px] items-center font-bold text-emphasis underline"
-            >
-              Let anybody join, in Admin
-            </Link>
-          </div>
-        ) : null}
-
         <form
           className="rounded-[14px] border border-line bg-paper p-3.5"
           onSubmit={(e) => {
@@ -285,7 +249,7 @@ export default function QrCodePage() {
               onChange={setOrganizationId}
               none={
                 isAdmin
-                  ? 'No organization (credit only)'
+                  ? 'No organization'
                   : ownCode
                     ? `Just you, as ${PARTNER_ROLE_NAME.toLowerCase()}`
                     : undefined
@@ -358,31 +322,6 @@ export default function QrCodePage() {
                 </div>
               ) : null}
             </fieldset>
-          ) : null}
-
-          {needsEmail ? (
-            <div className="mt-3.5">
-              <label htmlFor="qr-email" className="block font-bold text-[0.8125rem] text-ink">
-                Email shown while joining is closed
-              </label>
-              <input
-                id="qr-email"
-                type="email"
-                inputMode="email"
-                autoCapitalize="none"
-                autoComplete="email"
-                value={email}
-                onChange={(e) => {
-                  emailTouched.current = true;
-                  setEmail(e.target.value);
-                }}
-                className={FIELD}
-              />
-              <p className="mt-1 text-[0.75rem] text-grey leading-[1.45]">
-                Anybody who scans the code while the club is invite only sees it, so they can ask
-                you for an invite. Your account's address unless you change it.
-              </p>
-            </div>
           ) : null}
 
           <div className="mt-3.5">
@@ -561,7 +500,6 @@ export default function QrCodePage() {
           code={showing}
           title={nameOf(showing)}
           inviterName={account.displayName}
-          joiningOpen={joiningOpen}
           onClose={() => {
             setShowing(null);
           }}
@@ -577,8 +515,7 @@ function statusOf(code: MyQrCode): string {
   if (code.expiresAt) {
     return `${Date.parse(code.expiresAt) > Date.now() ? 'expires' : 'expired'} ${when(code.expiresAt)}`;
   }
-  if (code.organizationId || code.madeAsPartner) return 'no expiry';
-  return `shows ${code.contactEmail ?? 'your email'} while closed`;
+  return 'no expiry';
 }
 
 /**
@@ -589,14 +526,12 @@ function ShowingCode({
   code,
   title: heading,
   inviterName,
-  joiningOpen,
   onClose,
 }: {
   code: MyQrCode;
   /** The organization it is for, or the event. */
   title: string;
   inviterName: string | null;
-  joiningOpen: boolean | null;
   onClose: () => void;
 }) {
   const announce = useAnnounce();
@@ -659,11 +594,6 @@ function ShowingCode({
         <div className="mt-4 w-full max-w-[min(100%,62dvh)]">
           <QrCode text={url} label="QR code that opens the club's join page" />
         </div>
-        {joiningOpen === false && !code.organizationId && !code.madeAsPartner ? (
-          <p className="mt-3 text-center font-bold text-[0.9375rem] text-[#7a4b00]">
-            Joining is invite only right now: this code lets nobody in.
-          </p>
-        ) : null}
         <div className="mt-auto flex w-full flex-col gap-2 pt-5">
           <button
             type="button"

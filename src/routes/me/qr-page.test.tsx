@@ -161,13 +161,7 @@ const asOrgAdmin = () => {
   state.mine = new Set(['ncs']);
 };
 
-async function emailFilledIn() {
-  await waitFor(() => {
-    expect(screen.getByLabelText('Email shown while joining is closed')).toHaveValue(
-      'alfred@example.com',
-    );
-  });
-}
+const pageReady = () => screen.findByRole('button', { name: 'Make the QR code' });
 
 describe('who may make a code', () => {
   it('sends a member who is neither an administrator nor an org admin back to Me', async () => {
@@ -287,38 +281,13 @@ describe("an org admin's code", () => {
 });
 
 describe("an administrator's code", () => {
-  it('fills in the account email, and lets it be changed', async () => {
-    renderPage();
-    const email = screen.getByLabelText('Email shown while joining is closed');
-    await emailFilledIn();
-    await userEvent.clear(email);
-    await userEvent.type(email, 'hello@thesciclub.com');
-    expect(email).toHaveValue('hello@thesciclub.com');
-  });
-
-  it('does not overwrite an address typed before the account email arrives', async () => {
-    let answer: (value: unknown) => void = () => undefined;
-    const late = new Promise((resolve) => {
-      answer = resolve;
-    });
-    const accountEmail = await import('@/lib/account-email');
-    const spy = vi.spyOn(accountEmail, 'loadSignInDetails').mockReturnValue(late as never);
-    renderPage();
-    await userEvent.type(screen.getByLabelText('Email shown while joining is closed'), 'me@x.com');
-    answer({ ok: true, details: { email: 'alfred@example.com' } });
-    await late;
-    expect(screen.getByLabelText('Email shown while joining is closed')).toHaveValue('me@x.com');
-    spy.mockRestore();
-  });
-
   it('makes one with no event by default, expiring in a day', async () => {
     renderPage();
-    await emailFilledIn();
-    await userEvent.click(screen.getByRole('button', { name: 'Make the QR code' }));
+    await userEvent.click(await pageReady());
     expect(state.created[0]).toMatchObject({
       organizationId: null,
       eventName: null,
-      contactEmail: 'alfred@example.com',
+      contactEmail: null,
       notes: null,
     });
     expect(hoursLeft(state.created[0])).toBe(24);
@@ -327,7 +296,7 @@ describe("an administrator's code", () => {
 
   it('wants an event name when At an event is chosen, and shows it', async () => {
     renderPage();
-    await emailFilledIn();
+    await pageReady();
     await userEvent.click(screen.getByRole('radio', { name: 'At an event' }));
     const make = screen.getByRole('button', { name: 'Make the QR code' });
     expect(make).toBeDisabled();
@@ -346,36 +315,33 @@ describe("an administrator's code", () => {
     renderPage();
     const which = await screen.findByLabelText("Who it's for");
     expect(which).toHaveValue('ncs');
-    await userEvent.selectOptions(which, 'No organization (credit only)');
-    await emailFilledIn();
+    await userEvent.selectOptions(which, 'No organization');
     await userEvent.click(screen.getByRole('button', { name: 'Make the QR code' }));
     expect(state.created[0]?.organizationId).toBeNull();
   });
 
   it('says why the database refused it', async () => {
-    state.createError = 'Enter an email address people can write to.';
+    state.createError = 'Keep the note to 300 characters.';
     renderPage();
-    await emailFilledIn();
-    await userEvent.click(screen.getByRole('button', { name: 'Make the QR code' }));
-    expect(await screen.findByRole('alert')).toHaveTextContent('Enter an email address');
+    await userEvent.click(await pageReady());
+    expect(await screen.findByRole('alert')).toHaveTextContent('Keep the note');
     expect(screen.queryByRole('dialog')).toBeNull();
   });
 });
 
+// The owner, 2026-11-19: people who scanned their code were sent to ask them
+// for an invite. An administrator's code lets them in as any other does, and
+// asks for no email to show (20261119130000).
 describe('while joining is invite only', () => {
-  it('warns that a code with no organization lets nobody in, and points to the switch', async () => {
+  it("says an administrator's code lets people in, and asks for no email", async () => {
     state.joiningOpen = false;
-    renderPage();
-    expect(await screen.findByText('Joining is invite only right now.')).toBeInTheDocument();
-    expect(screen.getByText(/They'll see your email so they can ask you/)).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('link', { name: 'Let anybody join, in Admin' }));
-    expect(await screen.findByRole('heading', { name: 'Admin' })).toBeInTheDocument();
-  });
-
-  it('says nothing of the kind while anybody can join', async () => {
     renderPage();
     await screen.findByText('You have not made a code yet.');
     expect(screen.queryByText('Joining is invite only right now.')).toBeNull();
+    expect(screen.queryByLabelText('Email shown while joining is closed')).toBeNull();
+    expect(
+      screen.getByText(/before it expires can join the club, as invited by you/),
+    ).toBeInTheDocument();
   });
 });
 

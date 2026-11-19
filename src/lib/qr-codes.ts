@@ -5,10 +5,11 @@ import { getSupabase } from '@/lib/supabase';
 /**
  * An administrator's QR code, for conventions (20261014020000).
  *
- * The code opens /join?from=<code>. It gives credit, never entry: while
- * anybody can join, whoever joins from it is recorded as invited by that
- * administrator, with the code's event; while joining is closed, the join
- * screen says to ask them, with the email the code carries.
+ * The code opens /join?from=<code>. Whoever joins from it is recorded as
+ * invited by that administrator, with the code's event, and since
+ * 20261119130000 it lets them in while joining is closed too (it only gave
+ * credit before, and the join screen said to ask them, with the email the
+ * code carries; codes made then still carry one, never shown now).
  *
  * Like an invite link's token (invite-token.ts), the code has to outlive the
  * page: a confirmation email or Google's round trip comes before there is an
@@ -193,7 +194,7 @@ export function isLive(code: MyQrCode, now: Date = new Date()): boolean {
 }
 
 export interface NewQrCode {
-  /** An org admin's organization: the code lets people in. Null: an administrator's, credit only. */
+  /** An org admin's organization, or null for an administrator's or a partner's own code. */
   organizationId: string | null;
   /** Administrators only. */
   eventName: string | null;
