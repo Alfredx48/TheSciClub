@@ -1,14 +1,15 @@
 -- ============================================================================
 -- One order for Home and a room's Top, Home's replies, a capped boost, and
 -- the administrators told at -3 (20261118190000, 20261118195000,
--- 20261118220000)
+-- 20261118220000, 20261118270000)
 -- ============================================================================
 -- Boost: Adm boosts Old twice, still 10, and Old's score stays 0 since a
 -- boost is not in a score (20261118195000); a 20-day-old boost on Seen counts
 -- 0; taking Old's back leaves 0.
 -- The room, best first, the same for Ann and for Cal whatever each has read
--- or seen (20261118220000): last activity, 2 hours newer a vote.
---   Moved  3 hours, 2 votes: an hour ahead
+-- or seen (20261118220000): last activity, 4 hours newer a vote (20261118270000;
+-- 2 before, which left Moved level with Seen, fourth).
+--   Moved  6 hours, 2 votes: two hours ahead
 --   Mine   Ann's, 10 minutes
 --   Down   1 hour, voted -2: the votes count 0, not less
 --   Glance 90 minutes, seen by Ann on Home: nothing for it
@@ -91,9 +92,9 @@ begin
     (r_misc,   t_down,   cal, 'A reply', now() - interval '1 hour'),
     (r_top,    t_moved,  bob, 'Top',    now() - interval '70 hours'),
     (r_ann,    t_moved,  ann, 'Ann',    now() - interval '60 hours'),
-    (r_neg,    t_moved,  cal, 'Neg',    now() - interval '5 hours'),
-    (r_dan,    t_moved,  dan, 'Dan',    now() - interval '4 hours'),
-    (r_new,    t_moved,  bob, 'New',    now() - interval '3 hours'),
+    (r_neg,    t_moved,  cal, 'Neg',    now() - interval '8 hours'),
+    (r_dan,    t_moved,  dan, 'Dan',    now() - interval '7 hours'),
+    (r_new,    t_moved,  bob, 'New',    now() - interval '6 hours'),
     (r_old1,   t_old,    cal, 'Old 1',  now() - interval '6 days'),
     (r_old2,   t_old,    dan, 'Old 2',  now() - interval '5 days'),
     (gen_random_uuid(), t_glance, cal, 'A reply', now() - interval '1 hour'),
@@ -101,7 +102,7 @@ begin
     (gen_random_uuid(), t_mine,   cal, 'A reply', now() - interval '10 minutes');
   update public.chat_topics set last_post_at = now() - case id
       when t_quiet then interval '4 days' when t_down then interval '1 hour'
-      when t_moved then interval '3 hours' when t_old then interval '5 days'
+      when t_moved then interval '6 hours' when t_old then interval '5 days'
       when t_glance then interval '90 minutes' when t_mine then interval '10 minutes'
       else interval '2 hours' end
    where room_id = 'probe-1119-rank';

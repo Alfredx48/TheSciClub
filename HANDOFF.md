@@ -751,6 +751,11 @@ All live. Migration headers and the files named say how and why.
   drawn from in one answer, read as the member; a database without it gets
   the two requests as before. Votes, views and reactions are still three
   small reads after it, and do not hold up the text.
+- **The default order** (`private.chat_topic_rank`, for Home and a room's
+  Top; the same for every member): a post's last activity, 4 hours newer for
+  each vote on its opening post (net of downvotes, not the author's own, the
+  first 12, so at most 48 hours; doubled at the owner's word, 2026-11-18,
+  `20261118270000`), and 24 hours newer while an administrator's boost runs.
 
 ## Environment
 
