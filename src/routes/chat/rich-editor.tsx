@@ -11,11 +11,12 @@ import {
 } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import { X } from 'lucide-react';
-import { createContext, type Ref, useContext, useEffect, useImperativeHandle, useRef } from 'react';
+import { type Ref, useContext, useEffect, useImperativeHandle, useRef } from 'react';
 import { useSmallCopies } from '@/lib/chat/attachments';
 import { docToMarkdown, markdownToDoc } from '@/lib/markdown-doc';
 import type { MentionScope } from '@/lib/mentions';
 import { pastedImages } from '@/lib/paste-photos';
+import { LocalPhotos } from '@/routes/chat/local-photos';
 import { type MentionField, useMentionSuggestions } from '@/routes/chat/mention-suggestions';
 
 /**
@@ -51,9 +52,6 @@ export interface RichEditorHandle {
   /** Photographs at the caret, by the names `onPhotos` gave them. */
   insertPhotos: (paths: string[]) => void;
 }
-
-/** A photograph not uploaded yet: its object URL, by its "local:" name. */
-export const LocalPhotos = createContext<(path: string) => string | undefined>(() => undefined);
 
 export function RichEditor({
   value,

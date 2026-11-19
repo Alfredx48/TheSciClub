@@ -4,7 +4,7 @@ import { markdownToHtml, splitPhotos } from '@/lib/markdown';
 import { useMentionedMembers } from '@/lib/mentions';
 import { useOrganizations } from '@/lib/organizations';
 import { AttachmentGrid } from '@/routes/chat/attachment-grid';
-import { LocalPhotos } from '@/routes/chat/rich-editor';
+import { LocalPhotos } from '@/routes/chat/local-photos';
 import { sanitizeHtml } from '@/routes/events/rich-text';
 
 /** A post's words, as Post and the reply box's Preview draw them. */

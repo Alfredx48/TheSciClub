@@ -32,14 +32,10 @@ import {
   excerpt,
   focusAfterEdit,
 } from '@/routes/chat/composer';
+import { LocalPhotos } from '@/routes/chat/local-photos';
 import { useMentionSuggestions } from '@/routes/chat/mention-suggestions';
 import { POST_TEXT, PostBody } from '@/routes/chat/post-body';
-import {
-  type Format,
-  LocalPhotos,
-  RichEditor,
-  type RichEditorHandle,
-} from '@/routes/chat/rich-editor';
+import { type Format, RichEditor, type RichEditorHandle } from '@/routes/chat/rich-editor';
 import { insertLink, prefixLines, wrap } from '@/routes/events/description-editor';
 import { readLink } from '@/routes/events/event-draft';
 
