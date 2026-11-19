@@ -87,16 +87,16 @@ export function MessageResults({
   );
 }
 
-/** A turning ring and Finding messages…, while a search is out. */
+/** A turning ring and Finding messages…, while a search is out; bigger on a phone (the owner, 2026-11-19). */
 function Finding({ className }: { className: string }) {
   return (
     <p
       role="status"
-      className={`flex items-center justify-center gap-2 text-[0.875rem] text-grey ${className}`}
+      className={`flex items-center justify-center gap-2.5 font-semibold text-[1.0625rem] text-ink2 md:gap-2 md:font-normal md:text-[0.875rem] md:text-grey ${className}`}
     >
       <span
         aria-hidden="true"
-        className="h-4 w-4 flex-none rounded-full border-2 border-line border-t-emphasis border-r-emphasis motion-safe:animate-spin"
+        className="h-5 w-5 flex-none rounded-full border-[2.5px] md:h-4 md:w-4 md:border-2 border-line border-t-emphasis border-r-emphasis motion-safe:animate-spin"
       />
       Finding messages…
     </p>
