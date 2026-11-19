@@ -13,6 +13,11 @@ name: iOS simulator checks
 
 on:
   workflow_dispatch:
+    inputs:
+      app_ref:
+        description: 'The app commit or branch to build (the night's commit); main when empty'
+        required: false
+        default: main
   push:
     branches: [ios-sim-checks-2026-11-08]
 
@@ -35,7 +40,17 @@ jobs:
     timeout-minutes: 60
 
     steps:
+      # The app as it is at app_ref (2026-11-18: this branch's own app had fallen 223 commits behind main),
+      # and this branch's robot (.github/ios-sim) over it.
       - uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.app_ref || 'main' }}
+
+      - name: This branch's robot over the app
+        run: |
+          git fetch --depth=1 origin ios-sim-checks-2026-11-08
+          git checkout FETCH_HEAD -- .github/ios-sim
+          echo "app at $(git rev-parse --short HEAD)"
 
       - name: Pick Xcode
         run: |

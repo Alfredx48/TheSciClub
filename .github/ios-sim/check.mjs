@@ -203,7 +203,8 @@ try {
       // Back to the tab: tap the tab itself, or close what opened first.
       let home = await visible(byLabel('XCUIElementTypeLink', `${tab}(,.*)?`));
       if (!home) {
-        const back = await visible(byLabel('XCUIElementTypeButton', '(Back|Close.*|Done)'));
+        // A sheet closes with Back, Close or Done, or with its "Show 12 posts" (Home's and Peers' filters).
+        const back = await visible(byLabel('XCUIElementTypeButton', '(Back|Close.*|Done|Show [0-9]+.*)'));
         if (back) await back.click().catch(() => {});
         home = await waitFor(() => visible(byLabel('XCUIElementTypeLink', `${tab}(,.*)?`)), 8000);
       }
