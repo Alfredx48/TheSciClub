@@ -58,7 +58,7 @@ export function TopicCard({
   const opening = topic.opening;
   // Read here is read: a view, as opening the topic is (home-views.ts).
   const seenRef = useSeenOnHome(topic.opening?.id);
-  const { organizations } = useOrganizations();
+  const { organizations } = useOrganizations(topic.title.includes('@'));
   const mentioned = splitMentions(topic.title, organizations).some((part) => part.kind !== 'text');
 
   return (

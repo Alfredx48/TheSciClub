@@ -210,7 +210,7 @@ function readOrganizations(): Promise<OrganizationsRead> {
   return read;
 }
 
-export function useOrganizations(): OrganizationsState {
+export function useOrganizations(enabled = true): OrganizationsState {
   const [state, setState] = useState<Omit<OrganizationsState, 'reload'>>(() =>
     shared
       ? { ...shared.read, loading: false }
@@ -223,6 +223,7 @@ export function useOrganizations(): OrganizationsState {
   }, []);
 
   useEffect(() => {
+    if (!enabled) return;
     if (revision === 0 && shared && Date.now() - shared.at < FRESH_FOR_MS) {
       // Another screen's read can land between this screen's render, which
       // found nothing and drew loading, and this effect: take what it found.
@@ -238,7 +239,7 @@ export function useOrganizations(): OrganizationsState {
     return () => {
       live = false;
     };
-  }, [revision]);
+  }, [enabled, revision]);
 
   return { ...state, reload };
 }

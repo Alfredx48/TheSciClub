@@ -38,7 +38,7 @@ export function clubPath(href: string): string | null {
  */
 export function LinkedText({ text }: { text: string }) {
   const members = useMentionedMembers(text);
-  const { organizations } = useOrganizations();
+  const { organizations } = useOrganizations(text.includes('@'));
   return (
     <>
       {findLinks(text).map((piece, index) =>

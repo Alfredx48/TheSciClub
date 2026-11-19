@@ -53,7 +53,7 @@ export function PhotoCard({
   const name = byline(topic.authorId, author);
   // Read here is read: a view, as opening the topic is (home-views.ts).
   const seenRef = useSeenOnHome(topic.opening?.id);
-  const { organizations } = useOrganizations();
+  const { organizations } = useOrganizations(topic.title.includes('@'));
 
   return (
     <article ref={seenRef} className="relative rounded-[17px] border border-line bg-paper p-3.5">
