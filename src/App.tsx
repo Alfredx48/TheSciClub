@@ -143,22 +143,10 @@ function whenIdle(task: () => void): () => void {
   };
 }
 
-// Then the map (the owner, 2026-10-25), in an idle moment of its own once the
-// tabs are in, so it never competes with them; prefetchMap says when it skips.
 function prefetchTabs(): () => void {
-  let cancelled = false;
-  let cancelNext: (() => void) | undefined;
-  const cancelFirst = whenIdle(() => {
-    const tabs = [loadPeers, loadChat, loadEvents, loadMe].map((load) => load());
-    void Promise.allSettled(tabs).then(() => {
-      if (!cancelled) cancelNext = whenIdle(prefetchMap);
-    });
+  return whenIdle(() => {
+    void Promise.allSettled([loadPeers(), loadChat(), loadEvents(), loadMe()]);
   });
-  return () => {
-    cancelled = true;
-    cancelFirst();
-    cancelNext?.();
-  };
 }
 
 const TABS = [
@@ -204,6 +192,12 @@ export function KeptTabs() {
  */
 function AppShell() {
   useEffect(prefetchTabs, []);
+  const { pathname } = useLocation();
+  const offersMap = /^\/(peers|events)\/?$/.test(pathname);
+  useEffect(() => {
+    if (offersMap) return whenIdle(prefetchMap);
+  }, [offersMap]);
+
   // Phone-width by default, because that is the design and the PWA target.
   // Widened beyond that rather than left as a 480px ribbon on a big screen —
   // the deck grids into the extra width.

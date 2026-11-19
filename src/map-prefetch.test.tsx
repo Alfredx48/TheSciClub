@@ -1,16 +1,10 @@
 import { render, screen } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import userEvent from '@testing-library/user-event';
+import { Link, MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-/**
- * The map is warmed at app open, after the other tabs, and only for a member
- * (the owner, 2026-10-25). prefetchMap's own test covers Data Saver and 2G.
- */
-
-const tabs = vi.hoisted(() => ({ loaded: [] as string[], whenMapWarmed: [] as string[] }));
-const prefetchMap = vi.fn(() => {
-  tabs.whenMapWarmed = [...tabs.loaded].sort();
-});
+const tabs = vi.hoisted(() => ({ loaded: [] as string[] }));
+const prefetchMap = vi.fn();
 vi.mock('@/lib/map', () => ({ prefetchMap }));
 
 const account = vi.hoisted((): { status: string; userId: string | null } => ({
@@ -31,7 +25,15 @@ vi.mock('@/lib/members', async (importOriginal) => ({
   useOwnMember: () => ({ member: null, invitedBy: null, loading: false, error: null }),
 }));
 vi.mock('@/components/app-nav', () => ({ AppNav: () => null }));
-vi.mock('@/routes/home/page', () => ({ default: () => <h1>Home</h1> }));
+vi.mock('@/routes/home/page', () => ({
+  default: () => (
+    <>
+      <h1>Home</h1>
+      <Link to="/peers">Peers</Link>
+      <Link to="/events">Events</Link>
+    </>
+  ),
+}));
 vi.mock('@/routes/onboarding/page', () => ({ default: () => <h1>Join</h1> }));
 vi.mock('@/routes/peers/page', () => {
   tabs.loaded.push('peers');
@@ -52,8 +54,7 @@ vi.mock('@/routes/me/page', () => {
 
 const { default: App } = await import('@/App');
 
-// Idle at once, so the test sees the order and not the clock. Left for the
-// whole file: unmounting after a test still cancels through these.
+// Run idle work on the next tick.
 vi.stubGlobal('requestIdleCallback', (task: () => void) => window.setTimeout(task, 0));
 vi.stubGlobal('cancelIdleCallback', (id: number) => {
   window.clearTimeout(id);
@@ -64,7 +65,7 @@ beforeEach(() => {
 });
 
 describe('warming the map', () => {
-  it('starts for a member once the four tabs are in', async () => {
+  it.each(['Peers', 'Events'])('warms on %s after staying off Home', async (tab) => {
     account.status = 'member';
     account.userId = 'u1';
     render(
@@ -74,16 +75,21 @@ describe('warming the map', () => {
     );
     expect(await screen.findByRole('heading', { name: 'Home' })).toBeInTheDocument();
     await vi.waitFor(() => {
+      expect([...tabs.loaded].sort()).toEqual(['chat', 'events', 'me', 'peers']);
+    });
+    await new Promise((done) => setTimeout(done, 50));
+    expect(prefetchMap).not.toHaveBeenCalled();
+    await userEvent.click(screen.getByRole('link', { name: tab }));
+    await vi.waitFor(() => {
       expect(prefetchMap).toHaveBeenCalledTimes(1);
     });
-    expect(tabs.whenMapWarmed).toEqual(['chat', 'events', 'me', 'peers']);
   });
 
   it('never starts for somebody signed out', async () => {
     account.status = 'signed-out';
     account.userId = null;
     render(
-      <MemoryRouter initialEntries={['/home']}>
+      <MemoryRouter initialEntries={['/peers']}>
         <App />
       </MemoryRouter>,
     );

@@ -763,6 +763,7 @@ All live. Migration headers and the files named say how and why.
   omit query details, and debug mode keeps no push subscription filters.
 - **Home startup**: the join screen has its own script. Direct visits to
   `/join` keep the prerendered welcome visible until that script is ready.
+  The map warms when Peers or Events opens.
 - **Test PWA Home startup**: a cold `/home` reads membership, default posts
   and room labels with `home_startup`. It uses the caller's permissions
   and returns posts and rooms only to active members. Apply the migration
