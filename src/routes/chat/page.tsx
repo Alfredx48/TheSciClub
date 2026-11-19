@@ -1,5 +1,5 @@
-import { Search, SquarePen, X } from 'lucide-react';
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { Search, SquarePen } from 'lucide-react';
+import { useCallback, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { LoadingCards } from '@/components/loading-cards';
 import { SegmentPills } from '@/components/segment-pills';
@@ -18,9 +18,8 @@ import {
 } from '@/lib/chat/types';
 import { matchesSearch } from '@/lib/search';
 import { useCoalesced } from '@/lib/use-coalesced';
-import { matchesChatSearch, SEARCH_FROM, splitShown } from '@/routes/chat/conversation-filters';
+import { matchesChatSearch, splitShown } from '@/routes/chat/conversation-filters';
 import { MessageResults } from '@/routes/chat/message-results';
-import { QuickAsk } from '@/routes/chat/quick-ask';
 import { RoomCard, RoomCategoryLabel } from '@/routes/chat/room-card';
 import { ThreadRow } from '@/routes/chat/thread-row';
 
@@ -46,9 +45,8 @@ import { ThreadRow } from '@/routes/chat/thread-row';
  * ---------------------------------------------------------------------------
  * Searching your chats
  * ---------------------------------------------------------------------------
- * Past ten conversations the ask box gives way to a search (the owner,
- * 2026-11-05); with fewer, the magnifier beside New message opens it in the
- * ask box's place. It finds conversations and rooms by name, and what was said
+ * The search box sits at the top however few chats there are (the owner,
+ * 2026-11-19; before, it replaced the ask box only past ten). It finds conversations and rooms by name, and what was said
  * in the member's direct and group chats (the owner, 2026-11-19), each opening
  * on that message. Past the three latest of each kind, a conversation waits
  * behind More direct chats or More group chats unless it is unread.
@@ -133,14 +131,10 @@ export default function ChatPage() {
     threads.flatMap((thread) => [thread.otherMemberId, thread.lastAuthorId]),
   );
 
-  // More than ten and the ask box gives way to a search of them (the owner,
-  // 2026-11-05). Asking is still on Home.
+  // The search box is always there (the owner, 2026-11-19), however few
+  // chats; asking is on Home.
   const [search, setSearch] = useState('');
-  const [searchOpen, setSearchOpen] = useState(false);
-  const searchBox = useRef<HTMLInputElement>(null);
-  const searchable = listed.length > SEARCH_FROM;
-  const searchShown = searchable || searchOpen;
-  const searching = searchShown && search.trim() !== '';
+  const searching = search.trim() !== '';
   const found = useMessageSearch(searching && segment !== 'rooms' ? search : '');
   const threadsById = useMemo(() => new Map(threads.map((t) => [t.id, t])), [threads]);
   const conversations = listed.filter(
@@ -188,29 +182,6 @@ export default function ChatPage() {
             Chat
           </h1>
           <span className="flex items-center gap-2">
-            {searchable ? null : (
-              <button
-                type="button"
-                aria-label={searchOpen ? 'Close search' : 'Search chats and messages'}
-                aria-expanded={searchOpen}
-                onClick={() => {
-                  if (searchOpen) {
-                    setSearchOpen(false);
-                    setSearch('');
-                    return;
-                  }
-                  setSearchOpen(true);
-                  requestAnimationFrame(() => searchBox.current?.focus());
-                }}
-                className="flex h-[44px] w-[44px] items-center justify-center rounded-full border border-line text-ink transition-colors hover:bg-tint"
-              >
-                {searchOpen ? (
-                  <X aria-hidden="true" className="h-[18px] w-[18px]" />
-                ) : (
-                  <Search aria-hidden="true" className="h-[18px] w-[18px]" />
-                )}
-              </button>
-            )}
             {/* Writing to one person, from here (2026-10-10). Before, only a
               profile's Message button started a conversation. */}
             <Link
@@ -232,30 +203,23 @@ export default function ChatPage() {
 
       <div className="flex-1 overflow-y-auto px-4 pt-3.5 pb-[18px] md:px-6">
         <div className="mx-auto w-full max-w-[720px]">
-          {/* Asking from Chat too, the same box as Home's (the owner,
-              2026-10-10): General unless another room is picked. */}
-          {searchShown ? (
-            <label className="relative mb-3.5 block">
-              <span className="sr-only">Search your chats</span>
-              <Search
-                aria-hidden="true"
-                className="pointer-events-none absolute top-1/2 left-3.5 h-4 w-4 -translate-y-1/2 text-grey"
-              />
-              <input
-                ref={searchBox}
-                type="search"
-                autoComplete="off"
-                value={search}
-                onChange={(e) => {
-                  setSearch(e.target.value);
-                }}
-                placeholder="Search chats and messages"
-                className="min-h-[46px] w-full rounded-[13px] border-[1.6px] border-line bg-paper py-2 pr-3 pl-10 text-[0.9375rem] text-ink outline-none focus:border-emphasis"
-              />
-            </label>
-          ) : (
-            <QuickAsk rooms={rooms} className="mb-3.5" />
-          )}
+          <label className="relative mb-3.5 block">
+            <span className="sr-only">Search your chats</span>
+            <Search
+              aria-hidden="true"
+              className="pointer-events-none absolute top-1/2 left-3.5 h-4 w-4 -translate-y-1/2 text-grey"
+            />
+            <input
+              type="search"
+              autoComplete="off"
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value);
+              }}
+              placeholder="Search chats and messages"
+              className="min-h-[46px] w-full rounded-[13px] border-[1.6px] border-line bg-paper py-2 pr-3 pl-10 text-[0.9375rem] text-ink outline-none focus:border-emphasis"
+            />
+          </label>
           {showConversations ? (
             <Conversations
               segment={segment}

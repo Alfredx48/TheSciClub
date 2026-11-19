@@ -161,14 +161,6 @@ beforeEach(() => {
 });
 
 describe('the chat screen', () => {
-  // The mock's header has a search box. Search is not in this build, and a
-  // field that takes words and does nothing with them is the one control
-  // somebody will try first.
-  it('offers no search box', () => {
-    renderPage();
-    expect(screen.queryByRole('searchbox')).toBeNull();
-  });
-
   // Display is on Me only (the owner, 2026-10-22).
   it('has no Display button in its header', () => {
     renderPage();
@@ -506,11 +498,6 @@ describe('starting something from Chat', () => {
     renderPage();
     expect(screen.getByRole('link', { name: 'New message' })).toHaveAttribute('href', '/chat/new');
   });
-
-  it('has the ask box, as Home does', () => {
-    renderPage();
-    expect(screen.getByRole('textbox', { name: 'Ask or post to the club' })).toBeInTheDocument();
-  });
 });
 
 // The owner, 2026-11-05: "I have too many chats open."
@@ -547,20 +534,13 @@ describe('a long list of chats', () => {
     expect(screen.getByText('Four ride')).toBeInTheDocument();
   });
 
-  it('keeps the ask box for ten or fewer', () => {
-    db.threads = Array.from({ length: 10 }, (_, i) => thread({ id: `t${String(i)}` }));
-    renderPage();
-    expect(screen.getByRole('textbox', { name: 'Ask or post to the club' })).toBeInTheDocument();
-    expect(screen.queryByRole('searchbox', { name: 'Search your chats' })).toBeNull();
-  });
-
-  it('searches them by name instead past ten, hidden ones too, and what was said', async () => {
+  it('searches them by name, hidden ones too, and what was said, however few', async () => {
     db.authors = new Map([
       ['jan', author({ id: 'jan' })],
       ['kim', author({ id: 'kim', displayName: 'Kim Park', username: 'kimp' })],
     ]);
     db.threads = [
-      ...Array.from({ length: 10 }, (_, i) => thread({ id: `t${String(i)}` })),
+      ...Array.from({ length: 3 }, (_, i) => thread({ id: `t${String(i)}` })),
       thread({ id: 'old', otherMemberId: 'kim', lastAt: OLD, lastMessageAt: OLD }),
     ];
     db.hits = [

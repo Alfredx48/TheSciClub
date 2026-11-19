@@ -13,9 +13,6 @@ import { matchesSearch } from '@/lib/search';
  */
 export const SHOWN_EACH = 3;
 
-/** More than this many and the ask box gives way to a search of them. */
-export const SEARCH_FROM = 10;
-
 /** `threads` newest first, as chat_my_threads returns them. */
 export function splitShown(threads: ChatThread[]): {
   shown: ChatThread[];
