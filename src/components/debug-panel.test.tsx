@@ -117,7 +117,7 @@ describe('debug mode', () => {
 
   it('keeps push endpoint filters out of debug mode and query details out of copied reports', async () => {
     aVisit();
-    const request = timedFetch(async () => new Response());
+    const request = timedFetch(() => Promise.resolve(new Response()));
     await request('https://test.example/rest/v1/push_subscriptions?endpoint=eq.example-device');
     expect(visit().requests.at(-1)).toMatchObject({
       endpoint: 'table:push_subscriptions',

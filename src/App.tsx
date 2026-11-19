@@ -27,6 +27,7 @@ import DeleteAccountPage from '@/routes/legal/delete-account';
 import PrivacyPage from '@/routes/legal/privacy';
 import TermsPage from '@/routes/legal/terms';
 import NotFoundPage from '@/routes/not-found/page';
+import type OnboardingScreen from '@/routes/onboarding/page';
 
 /*
  * Every screen but the doors is fetched when it is first opened, not with the
@@ -78,7 +79,7 @@ const ProfileNextPage = lazy(() => import('@/routes/profile/next'));
 const RequestInvitePage = lazy(() => import('@/routes/request-invite/page'));
 const ResetPasswordPage = lazy(() => import('@/routes/reset-password/page'));
 
-let loadedOnboarding: typeof import('@/routes/onboarding/page').default | undefined;
+let loadedOnboarding: typeof OnboardingScreen | undefined;
 
 export async function loadOnboarding() {
   const module = await import('@/routes/onboarding/page');
