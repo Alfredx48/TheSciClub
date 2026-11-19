@@ -9,6 +9,7 @@ import { useBadgeRealtime } from '@/lib/badges';
 import { useUnreadThreads } from '@/lib/chat/unread';
 import { useUnprovenEmail } from '@/lib/email-proof';
 import { useIconBadge } from '@/lib/icon-badge';
+import { keptReadsStale } from '@/lib/kept-reads';
 import { useUnseenNotifications } from '@/lib/notifications';
 import { rememberTabPlace, tabPlace } from '@/lib/tab-places';
 import { cn } from '@/lib/utils';
@@ -115,9 +116,13 @@ export function AppNav() {
             <Link
               key={to}
               to={kept?.path ?? to}
-              // The way back is that tab's own (lib/back-trail.ts).
+              // The way back is that tab's own (lib/back-trail.ts). And what
+              // the tab shows is read again behind what it already has, every
+              // tap (the owner, 2026-11-19: "load what is cached, but also
+              // refresh it"), not only after a minute (lib/kept-reads.ts).
               onClick={() => {
                 sayNext('tab');
+                keptReadsStale();
               }}
               state={kept?.state}
               aria-current={isActive ? 'page' : undefined}

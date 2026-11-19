@@ -5,7 +5,8 @@ import { onForgetSharedReads } from '@/lib/shared-reads';
  * A kept tab (App.tsx KeptTabs) shown again reads again only when its last
  * read is this old, or something it shows may have changed since: this
  * device wrote, or another screen was open (a topic, an event, a form).
- * A switch straight from one tab to another within the minute asks nothing.
+ * A tab tapped in the bar always reads again (app-nav.tsx, the owner,
+ * 2026-11-19); this minute is for a tab shown any other way, as by Back.
  */
 export const KEPT_FRESH_MS = 60_000;
 

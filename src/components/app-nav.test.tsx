@@ -1,8 +1,9 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, renderHook, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { AppNav, litTab } from '@/components/app-nav';
 import type * as BadgesModule from '@/lib/badges';
+import { useKeptRead } from '@/lib/kept-reads';
 import type * as NotificationsModule from '@/lib/notifications';
 
 const unseen = vi.hoisted(() => ({ count: 0, unproven: null as string | null }));
@@ -77,7 +78,12 @@ describe('AppNav', () => {
     );
     expect(screen.getByRole('link', { name: 'Peers' })).toHaveAttribute('href', '/peers');
     expect(screen.getByRole('link', { name: 'Chat' })).toHaveAttribute('href', '/chat');
+    // What Peers already shows stays up and is read again behind it.
+    const peersRead = renderHook(() => useKeptRead()).result.current;
+    peersRead.start('peers')();
+    expect(peersRead.fresh('peers')).toBe(true);
     fireEvent.click(screen.getByRole('link', { name: 'Peers' }));
+    expect(peersRead.fresh('peers')).toBe(false);
     expect(screen.getByRole('link', { name: 'Chat' })).toHaveAttribute('href', '/chat/t/abc');
   });
 });
