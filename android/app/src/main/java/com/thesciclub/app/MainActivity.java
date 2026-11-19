@@ -28,6 +28,7 @@ public class MainActivity extends BridgeActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        registerPlugin(AndroidNotifications.class);
         super.onCreate(savedInstanceState);
         // No usable WebView: Capacitor has already shown its own notice.
         if (bridge == null || bridge.getWebView() == null) return;

@@ -1,3 +1,4 @@
+import type * as CapacitorCore from '@capacitor/core';
 import { Capacitor } from '@capacitor/core';
 import { renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -61,6 +62,17 @@ const ios = vi.hoisted(
     slowCheck: 0,
   }),
 );
+
+vi.mock('@capacitor/core', async (importOriginal) => {
+  const core = await importOriginal<typeof CapacitorCore>();
+  return {
+    ...core,
+    registerPlugin: (name: string) =>
+      name === 'AndroidNotifications'
+        ? { areEnabled: () => Promise.resolve({ enabled: true }) }
+        : core.registerPlugin(name),
+  };
+});
 
 vi.mock('@capawesome/capacitor-badge', () => ({
   Badge: {
@@ -340,7 +352,7 @@ describe('turning on and off', () => {
     vi.restoreAllMocks();
   });
 
-  describe('in the Android app, which has no sender yet', () => {
+  describe('in the Android app', () => {
     beforeEach(() => {
       vi.spyOn(Capacitor, 'isNativePlatform').mockReturnValue(true);
       vi.spyOn(Capacitor, 'getPlatform').mockReturnValue('android');
@@ -372,6 +384,14 @@ describe('turning on and off', () => {
       await showOnAppIcon(3);
       await forgetThisDevice();
       expect(ios.badges).toEqual([]);
+    });
+
+    it('does not register for FCM on launch just because the OS allows notifications', async () => {
+      vi.stubEnv('VITE_ANDROID_PUSH', 'true');
+      ios.permission = 'granted';
+      expect(await appOpeningFacts()).toMatchObject({ enabled: true, permission: 'granted' });
+      expect(await restoreDeviceNotifications('me')).toBe('off');
+      expect(calls.log).toEqual([]);
     });
   });
 

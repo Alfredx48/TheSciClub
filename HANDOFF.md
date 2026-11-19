@@ -78,8 +78,8 @@ citing a HANDOFF section mean), `932a809` (product decisions). Comments citing
     nonce, so Supabase's "Skip nonce checks" stays off.
   - **Home Screen app**: a signed-in iPhone tab hands the app a single-use
     code by cookie (`lib/home-screen-handoff.ts`).
-- **Store app** (Capacitor 8, `com.thesciclub.app`, iPhone only; Android
-  second): the web build bundled, never loaded from the site.
+- **Store app** (Capacitor 8, `com.thesciclub.app`, iPhone live, Android
+  release setup below): the web build bundled, never loaded from the site.
   `pnpm native:sync` builds `dist-native` (`vite build --mode native`: no
   service worker, its own CSP `<meta>` from `native-csp.ts`) and copies it
   into `ios/` and `android/`; `pnpm native:assets` remakes icons and splash
@@ -89,13 +89,14 @@ citing a HANDOFF section mean), `932a809` (product decisions). Comments citing
   see Release to TestFlight). `isNative()`
   (`lib/standalone.ts`) keeps out of the app everything browser-only:
   worker and reload, web push, install nudge and steps, the Home Screen
-  hand-off, passkeys. Notifications on an iPhone come through APNs instead
-  (`lib/push/app-push.ts`; Open, Native push). Location on an iPhone goes
+  hand-off, passkeys. Notifications use APNs on iPhone and FCM on Android
+  (`lib/push/app-push.ts`). Location on an iPhone goes
   through `@capacitor/geolocation` (`lib/device-location.ts`), as WKWebView's
-  own asked twice; Android keeps the web view's, coarse only. Apple and
-  Google sign in natively (`lib/native-sign-in.ts`,
+  own asked twice; Android keeps the web view's, coarse only. Google signs
+  in natively on both platforms. Apple uses its native sheet on iPhone and
+  the browser on Android (`lib/native-sign-in.ts`,
   `@capgo/capacitor-social-login` with Facebook's
-  SDK left out: `scripts/check-native-build.mjs`), iPhone only. Links made
+  SDK left out: `scripts/check-native-build.mjs`). Links made
   for others use `siteOrigin()`; the rest of the shell (splash, status bar,
   back, outside links, links that open the app, iPhone Text Size) is
   `lib/native-shell.ts`. Universal Links: `public/.well-known/
@@ -384,15 +385,29 @@ citing a HANDOFF section mean), `932a809` (product decisions). Comments citing
   itself (`lib/icon-badge.ts`, `@capawesome/capacitor-badge` 8.0.4, only once
   notifications are allowed), and signing out clears it. The number is how
   many kinds the bell has not shown (see Open, Reactions and the icon).
-- **Store app, still to build**: Android (Google needs a client
-  made with the Play signing SHA-1, Apple there is a web flow, and App
-  Links need `public/.well-known/assetlinks.json` with the Play signing
-  SHA-256; push needs a Firebase project, its `google-services.json`, an
-  `fcm:<token>` endpoint and an FCM sender in `push-notify`'s `deliver`, and
-  `isAppPush()` widened; `android/` is not synced with the push plugin yet);
-  the demo reviewers run live (`scripts/demo-reviewers.mjs
-  --live`). Never run on a device: Text Size, the CSP under WebKit,
-  Nominatim with the app's User-Agent, native sign-in, Universal Links.
+- **Store app, still to build**: Android credentials and device verification.
+  `pnpm android:release` builds and prints `android/app/build/outputs/bundle/release/app-release.aab`.
+  Configure `sciClubUploadStore` (absolute path), `sciClubUploadAlias`,
+  `sciClubUploadStorePassword` and `sciClubUploadKeyPassword` in
+  `~/.gradle/gradle.properties`, or use `SCICLUB_UPLOAD_STORE`,
+  `SCICLUB_UPLOAD_ALIAS`, `SCICLUB_UPLOAD_STORE_PASSWORD` and
+  `SCICLUB_UPLOAD_KEY_PASSWORD`. The owner approves creation of the upload key.
+  Google Auth Platform needs Android OAuth clients for the upload SHA-1 and
+  later Play's SHA-1, both for `com.thesciclub.app`. Set
+  `VITE_GOOGLE_ANDROID_WEB_CLIENT_ID` to their project's Web client ID.
+  For Apple, allowlist `com.thesciclub.app://auth/apple?attempt=*` in Supabase, confirm
+  the project's HTTPS auth callback on the Apple Services ID and enable
+  manual identity linking. Build with `VITE_ANDROID_APPLE_SIGN_IN=true`.
+  Firebase needs an Android app for `com.thesciclub.app`, its
+  `android/app/google-services.json`, and an HTTP v1 sender service account.
+  Put the sender JSON in the test project's `FCM_SERVICE_ACCOUNT_JSON` secret.
+  Apply `20261119000000` and deploy `push-notify` to test before building with
+  `VITE_ANDROID_PUSH=true`. Use test Supabase build settings for device tests.
+  Replace the placeholder in `public/.well-known/assetlinks.json` with Play's
+  app-signing SHA-256 when supplied. Android 15+ matches the iPhone link rules.
+  Android 14 and earlier keep `/join`, `/me` and email confirmation links in
+  the browser. Android 7–11 link to exact paths only.
+  The demo reviewers run live (`scripts/demo-reviewers.mjs --live`).
 - **Home Screen pairing, to retire** once members have the store app (owner's
   call, not before): `/app-sign-in`, `lib/google-in-browser.ts`,
   `lib/home-screen-handoff.ts`, the `home-screen-handoff` function and

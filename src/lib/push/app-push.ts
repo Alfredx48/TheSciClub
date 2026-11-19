@@ -1,12 +1,10 @@
-import type { PluginListenerHandle } from '@capacitor/core';
+import { type PluginListenerHandle, registerPlugin } from '@capacitor/core';
 import { PushNotifications } from '@capacitor/push-notifications';
 import { Badge } from '@capawesome/capacitor-badge';
+import { isAndroidApp } from '@/lib/standalone';
 
 /**
- * The store app's side of notifications on an iPhone: the system's permission,
- * the APNs device token and the number on the icon. notifications.ts decides
- * what to do with them; this only asks iOS. Loaded only in the app, so the
- * website never downloads the plugins.
+ * Native push permission, APNs or FCM tokens, and the app icon's count.
  *
  * The token goes to the club as `apns:<environment>:<token>`
  * (20261023030000). TestFlight and App Store builds get production tokens; a
@@ -15,6 +13,11 @@ import { Badge } from '@capawesome/capacitor-badge';
  */
 
 export type AppPermission = 'granted' | 'denied' | 'default';
+
+const AndroidNotifications = registerPlugin<{
+  areEnabled(): Promise<{ enabled: boolean }>;
+  openSettings(): Promise<void>;
+}>('AndroidNotifications');
 
 /** The plugin's answer in the web's words: `prompt` is not asked yet. */
 export function toPermission(receive: string): AppPermission {
@@ -32,13 +35,35 @@ export function appEndpoint(token: string): string {
   return `apns:${apnsEnvironment()}:${token.toLowerCase()}`;
 }
 
+const INSTALLATION_KEY = 'club:android-push-installation';
+
+export function androidPushInstallation(create = false): string | null {
+  const saved = localStorage.getItem(INSTALLATION_KEY);
+  if (saved || !create) return saved;
+  const installation = crypto.randomUUID();
+  localStorage.setItem(INSTALLATION_KEY, installation);
+  return installation;
+}
+
 export async function appPermission(): Promise<AppPermission> {
-  return toPermission((await PushNotifications.checkPermissions()).receive);
+  const permission = toPermission((await PushNotifications.checkPermissions()).receive);
+  if (
+    permission === 'granted' &&
+    isAndroidApp() &&
+    !(await AndroidNotifications.areEnabled()).enabled
+  )
+    return 'denied';
+  return permission;
 }
 
 /** The system's prompt; iOS shows it once, and after that answers by itself. */
 export async function askAppPermission(): Promise<AppPermission> {
-  return toPermission((await PushNotifications.requestPermissions()).receive);
+  const permission = toPermission((await PushNotifications.requestPermissions()).receive);
+  return permission === 'granted' && isAndroidApp() ? appPermission() : permission;
+}
+
+export function openAndroidNotificationSettings(): Promise<void> {
+  return AndroidNotifications.openSettings();
 }
 
 const TOKEN_WAIT_MS = 15_000;
@@ -59,7 +84,7 @@ export function appToken(): Promise<string> {
       else resolve(value);
     };
     const timer = setTimeout(() => {
-      finish(new Error('Apple did not answer with a device token'));
+      finish(new Error('The notification service did not answer with a device token'));
     }, TOKEN_WAIT_MS);
     handles.push(
       PushNotifications.addListener('registration', ({ value }) => {
@@ -70,15 +95,36 @@ export function appToken(): Promise<string> {
       }),
     );
     Promise.all(handles)
+      .then(async () => {
+        if (!isAndroidApp()) return;
+        await PushNotifications.createChannel({
+          id: 'club-notifications',
+          name: 'The SCI Club',
+          importance: 4,
+          visibility: 0,
+        }).catch((error: unknown) => {
+          // Android 7 delivers notifications without channels.
+          if ((error as { code?: unknown } | null)?.code !== 'UNAVAILABLE') throw error;
+        });
+      })
       .then(() => PushNotifications.register())
       .catch((e: unknown) => {
         finish(e instanceof Error ? e : new Error(String(e)));
       });
-  }).catch((e: unknown) => {
-    token = null;
-    throw e;
-  });
+  })
+    .then((value) => {
+      if (isAndroidApp()) token = null;
+      return value;
+    })
+    .catch((e: unknown) => {
+      token = null;
+      throw e;
+    });
   return token;
+}
+
+export async function clearAndroidNotifications(): Promise<void> {
+  await PushNotifications.removeAllDeliveredNotifications();
 }
 
 let badge: Promise<void> = Promise.resolve();

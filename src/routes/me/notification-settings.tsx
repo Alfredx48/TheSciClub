@@ -8,6 +8,7 @@ import {
   useDeviceNotifications,
   useNotificationKinds,
 } from '@/lib/push/notifications';
+import { isAndroidApp } from '@/lib/standalone';
 import { cn } from '@/lib/utils';
 import { NotificationVolume } from '@/routes/me/notification-volume';
 import { PauseNotifications } from '@/routes/me/pause-notifications';
@@ -213,11 +214,24 @@ export function NotificationSettings({
       <div className="rounded-[17px] border border-line bg-paper p-3.5">
         {state ? (
           <p aria-live="polite" className="text-[0.875rem] text-ink2 leading-[1.45]">
-            {state === 'refused' && isAppPush() ? APP_REFUSED : SENTENCES[state]}
+            {state === 'refused' && isAppPush() && !isAndroidApp() ? APP_REFUSED : SENTENCES[state]}
           </p>
         ) : null}
 
-        {state === 'refused' && isAppPush() ? (
+        {state === 'refused' && isAppPush() && isAndroidApp() ? (
+          <button
+            type="button"
+            onClick={() => {
+              void import('@/lib/push/app-push')
+                .then((app) => app.openAndroidNotificationSettings())
+                .catch(() => undefined);
+            }}
+            className="mt-3 flex min-h-[44px] w-full items-center justify-center rounded-[11px] border-[1.6px] border-emphasis font-bold font-head text-[0.875rem] text-emphasis transition-colors hover:bg-tint"
+          >
+            Open Settings
+          </button>
+        ) : null}
+        {state === 'refused' && isAppPush() && !isAndroidApp() ? (
           // iOS opens the club's own page in Settings (Capacitor hands the
           // address to the system).
           <a

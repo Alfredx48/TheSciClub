@@ -28,6 +28,7 @@ import { fromWithName, signedPhotoUrl } from '../_shared/event-invite-email.ts';
 import { apnsDevice, apnsGone, apnsKeys, sendApns } from './apns.ts';
 import { compose, type Owed, type PushMessage } from './compose.ts';
 import { EVENTS } from './events.ts';
+import { fcmDevice, fcmSender } from './fcm.ts';
 import { type DueInvite, memberInviteEmail } from './invite-email.ts';
 import { type DueEmail, reminderEmail } from './reminder-email.ts';
 import { sendPush } from './webpush.ts';
@@ -47,6 +48,18 @@ const VAPID = {
 // somebody's inbox.
 const SUBJECT = Deno.env.get('VAPID_SUBJECT') ?? 'https://thesciclub.netlify.app';
 const APNS = apnsKeys((name) => Deno.env.get(name));
+const FCM = configuredFcm();
+
+function configuredFcm(): ReturnType<typeof fcmSender> | null {
+  const secret = Deno.env.get('FCM_SERVICE_ACCOUNT_JSON');
+  if (!secret) return null;
+  try {
+    return fcmSender(secret);
+  } catch {
+    console.error('push-notify: invalid FCM service account configuration');
+    return null;
+  }
+}
 // The day-before email (20261028980000): Resend, as send-invite, from the
 // same address. Without them the daily run sends pushes only.
 /** How long a message's push waits before asking who is still owed it. */
@@ -67,6 +80,7 @@ type Delivery = 'sent' | 'gone' | 'failed' | 'skipped';
 function service(endpoint: string): string {
   const app = apnsDevice(endpoint);
   if (app) return `apns ${app.environment}`;
+  if (fcmDevice(endpoint)) return 'fcm';
   try {
     return new URL(endpoint).host;
   } catch {
@@ -86,6 +100,19 @@ async function deliver(row: Owed, message: PushMessage): Promise<Delivery> {
       return 'failed';
     }
     return 'sent';
+  }
+  const android = fcmDevice(row.endpoint);
+  if (android) {
+    if (!FCM) return 'skipped';
+    try {
+      const result = await FCM(android, message);
+      if (result.unregistered) return 'gone';
+      if (result.status === 200) return 'sent';
+      console.error('push-notify: FCM said', result.status);
+    } catch {
+      console.error('push-notify: FCM request failed');
+    }
+    return 'failed';
   }
   if (!row.endpoint.startsWith('https://') || !row.p256dh || !row.auth) return 'failed';
   const status = await sendPush(

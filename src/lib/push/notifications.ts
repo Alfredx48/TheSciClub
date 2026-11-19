@@ -1,7 +1,7 @@
 import { Capacitor } from '@capacitor/core';
 import { useCallback, useEffect, useState } from 'react';
 import { describeError, describeThrown } from '@/lib/describe-error';
-import { isNative, isStandalone } from '@/lib/standalone';
+import { isAndroidApp, isNative, isStandalone } from '@/lib/standalone';
 import { getSupabase } from '@/lib/supabase';
 
 /**
@@ -18,8 +18,7 @@ import { getSupabase } from '@/lib/supabase';
  * iOS ignores a permission request not directly from a tap, and any await first can lose the
  * gesture: `turnOn` calls `Notification.requestPermission()` before anything else. Do not move it.
  *
- * The iPhone store app uses an APNs token instead (app-push.ts, `push_subscribe_app`): same row and
- * states, never "install". Android's app has no sender yet, so shows no row.
+ * Store apps use APNs or FCM instead (app-push.ts).
  */
 
 export type NotificationState = 'install' | 'unsupported' | 'off' | 'on' | 'refused';
@@ -64,9 +63,12 @@ function sameBytes(a: ArrayBuffer | null, b: Uint8Array): boolean {
   return view.every((byte, i) => byte === b[i]);
 }
 
-/** The store app on an iPhone, which notifies through Apple, not a service worker. */
+/** The store app uses native notifications. */
 export function isAppPush(): boolean {
-  return isNative() && Capacitor.getPlatform() === 'ios';
+  return (
+    (isNative() && Capacitor.getPlatform() === 'ios') ||
+    (isAndroidApp() && import.meta.env.VITE_ANDROID_PUSH === 'true')
+  );
 }
 
 /** The club can notify here: the iPhone app, or a website with the VAPID key. */
@@ -81,7 +83,7 @@ const loadApp = () => import('@/lib/push/app-push');
  * while closed; src/lib/icon-badge.ts while open. 0 clears it. Never fails.
  */
 export function showOnAppIcon(count: number): Promise<void> {
-  if (isAppPush()) {
+  if (isAppPush() && !isAndroidApp()) {
     return loadApp()
       .then((app) => app.setIconBadge(count))
       .catch(() => undefined);
@@ -242,12 +244,47 @@ async function appDeviceEndpoint(): Promise<string | null> {
 }
 
 async function readAppState(userId: string): Promise<NotificationState> {
-  const { appPermission } = await loadApp();
-  const permission = await appPermission();
+  const app = await loadApp();
+  const permission = await app.appPermission();
+  if (isAndroidApp()) {
+    const installation = app.androidPushInstallation();
+    const subscribed =
+      permission === 'granted' &&
+      installation !== null &&
+      (await holdsAndroidInstallation(userId, installation));
+    if (subscribed) rememberPreference(userId, true);
+    return notificationState({ canPush: true, standalone: true, permission, subscribed });
+  }
   const endpoint = permission === 'granted' ? await appDeviceEndpoint() : null;
   const subscribed = endpoint !== null && (await heldBy(userId, endpoint));
   if (subscribed) rememberPreference(userId, true);
   return notificationState({ canPush: true, standalone: true, permission, subscribed });
+}
+
+async function holdsAndroidInstallation(userId: string, installation: string): Promise<boolean> {
+  const { data, error } = await getSupabase()
+    .from('push_subscriptions')
+    .select('endpoint')
+    .eq('member_id', userId)
+    .eq('fcm_installation', installation)
+    .maybeSingle();
+  if (error) throw error;
+  return data !== null;
+}
+
+async function removeAndroidInstallation(userId: string): Promise<void> {
+  const app = await loadApp();
+  const installation = app.androidPushInstallation();
+  const clear = app.clearAndroidNotifications().catch(() => undefined);
+  if (installation) {
+    const { error } = await getSupabase()
+      .from('push_subscriptions')
+      .delete()
+      .eq('member_id', userId)
+      .eq('fcm_installation', installation);
+    if (error) throw error;
+  }
+  await clear;
 }
 
 export async function readDeviceState(userId: string): Promise<NotificationState> {
@@ -379,10 +416,13 @@ async function subscribeApp(userId: string): Promise<Outcome> {
   try {
     token = await app.appToken();
   } catch (e) {
-    console.error(e);
+    const service = isAndroidApp()
+      ? 'This phone could not reach Google’s notification service.'
+      : 'This iPhone could not reach Apple’s notification service.';
+    if (!isAndroidApp()) console.error(e);
     return {
       ok: false,
-      error: `${NOT_TURNED_ON} This iPhone could not reach Apple’s notification service. Try again in a minute.`,
+      error: `${NOT_TURNED_ON} ${service} Try again in a minute.`,
     };
   }
 
@@ -391,11 +431,18 @@ async function subscribeApp(userId: string): Promise<Outcome> {
   if (sessionError) throw sessionError;
   if (data.session?.user.id !== userId) return { ok: false, error: NOT_TURNED_ON };
 
-  const { error } = await getSupabase().rpc('push_subscribe_app', {
-    app_token: token,
-    app_environment: app.apnsEnvironment(),
-    app_user_agent: navigator.userAgent,
-  });
+  const supabase = getSupabase();
+  const { error } = isAndroidApp()
+    ? await supabase.rpc('push_subscribe_fcm', {
+        app_token: token,
+        app_installation: app.androidPushInstallation(true),
+        app_user_agent: navigator.userAgent,
+      })
+    : await supabase.rpc('push_subscribe_app', {
+        app_token: token,
+        app_environment: app.apnsEnvironment(),
+        app_user_agent: navigator.userAgent,
+      });
   if (error) return { ok: false, error: describeError(error, NOT_TURNED_ON) };
   rememberPreference(userId, true);
   return { ok: true, state: 'on' };
@@ -406,6 +453,15 @@ export function turnOffNotifications(userId: string): Promise<Outcome> {
 }
 
 async function disableApp(userId: string): Promise<Outcome> {
+  if (isAndroidApp()) {
+    try {
+      await removeAndroidInstallation(userId);
+      rememberPreference(userId, false);
+      return { ok: true, state: 'off' };
+    } catch (error) {
+      return { ok: false, error: describeThrown(error, 'Notifications are still on.') };
+    }
+  }
   let endpoint: string | null;
   try {
     endpoint = await appDeviceEndpoint();
@@ -496,7 +552,8 @@ export function restoreDeviceNotifications(userId: string): Promise<Notification
  */
 async function restoreApp(userId: string, requestedRevision: number): Promise<NotificationState> {
   const state = await readAppState(userId);
-  if (state !== 'off' || rememberedPreference(userId) !== 'on') return state;
+  if (state !== 'off' && !(isAndroidApp() && state === 'on')) return state;
+  if (rememberedPreference(userId) !== 'on') return state;
   if ((await (await loadApp()).appPermission()) !== 'granted') return state;
   if (requestedRevision !== revision) return state;
   const outcome = await subscribeApp(userId);
@@ -518,6 +575,10 @@ export async function forgetThisDevice(): Promise<void> {
     if (sessionError) throw sessionError;
     const userId = data.session?.user.id;
     if (!userId) return;
+    if (isAndroidApp()) {
+      await removeAndroidInstallation(userId);
+      return;
+    }
     let endpoint: string | null;
     if (isAppPush()) {
       // Whatever the permission: switched off in Settings still leaves a row, and iOS gives
