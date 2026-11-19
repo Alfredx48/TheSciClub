@@ -784,7 +784,7 @@ describe('a topic', () => {
     db.posts = [post({ id: '1', authorId: 'me', body: 'Travelling with a bowel programme' })];
     renderTopic();
     await userEvent.click(screen.getByRole('button', { name: 'Edit your post' }));
-    const box = screen.getByLabelText('Edit your post');
+    const box = await screen.findByLabelText('Edit your post');
     expect(box).toHaveValue('Travelling with a bowel programme');
     await userEvent.clear(box);
     await userEvent.type(box, 'Flying with a bowel programme');
@@ -802,7 +802,7 @@ describe('a topic', () => {
     ];
     renderTopic();
     await userEvent.click(screen.getByRole('button', { name: 'Edit your post' }));
-    const box = screen.getByLabelText('Edit your post');
+    const box = await screen.findByLabelText('Edit your post');
     expect(box).toHaveValue('My first words.');
     expect(screen.getByText(/you can add words or photographs but not change/)).toBeInTheDocument();
     await userEvent.clear(box);
@@ -892,9 +892,9 @@ describe('a topic', () => {
     it('puts the words in the reply composer, and Send saves them', async () => {
       db.posts = [post({ id: '2', authorId: 'me', body: 'First draft.' })];
       renderTopic();
-      await userEvent.type(screen.getByLabelText('Reply to this post'), 'Half a reply');
+      await userEvent.type(await screen.findByLabelText('Reply to this post'), 'Half a reply');
       await userEvent.click(screen.getByRole('button', { name: 'Edit your post' }));
-      const box = screen.getByLabelText('Edit your post');
+      const box = await screen.findByLabelText('Edit your post');
       expect(box).toHaveValue('First draft.');
       expect(box).toHaveFocus();
       expect(screen.getByText('Editing post')).toBeInTheDocument();
@@ -915,7 +915,7 @@ describe('a topic', () => {
       db.posts = [post({ id: '2', authorId: 'me', body: 'First draft.' })];
       renderTopic();
       await userEvent.click(screen.getByRole('button', { name: 'Edit your post' }));
-      const box = screen.getByLabelText('Edit your post');
+      const box = await screen.findByLabelText('Edit your post');
       await userEvent.type(box, ' More.');
       await userEvent.click(screen.getByRole('button', { name: 'Save changes' }));
       expect(await screen.findByRole('alert')).toHaveTextContent(/You can only edit your own post/);
@@ -925,21 +925,21 @@ describe('a topic', () => {
     it('is cancelled by the button and by Escape, with nothing saved', async () => {
       db.posts = [post({ id: '2', authorId: 'me', body: 'First draft.' })];
       renderTopic();
-      await userEvent.type(screen.getByLabelText('Reply to this post'), 'Half a reply');
+      await userEvent.type(await screen.findByLabelText('Reply to this post'), 'Half a reply');
       await userEvent.click(screen.getByRole('button', { name: 'Edit your post' }));
       await userEvent.click(screen.getByRole('button', { name: 'Cancel editing' }));
-      expect(screen.getByLabelText('Reply to this post')).toHaveValue('Half a reply');
+      expect(await screen.findByLabelText('Reply to this post')).toHaveValue('Half a reply');
       expect(screen.getByText('First draft.')).toBeInTheDocument();
       await userEvent.click(screen.getByRole('button', { name: 'Edit your post' }));
-      await userEvent.type(screen.getByLabelText('Edit your post'), ' gone{Escape}');
-      expect(screen.getByLabelText('Reply to this post')).toHaveValue('Half a reply');
+      await userEvent.type(await screen.findByLabelText('Edit your post'), ' gone{Escape}');
+      expect(await screen.findByLabelText('Reply to this post')).toHaveValue('Half a reply');
       expect(db.edited).toEqual([]);
     });
 
     it('ends when the post is removed', async () => {
       db.posts = [post({ id: '2', authorId: 'me', body: 'First draft.' })];
       renderTopic();
-      await userEvent.type(screen.getByLabelText('Reply to this post'), 'Half a reply');
+      await userEvent.type(await screen.findByLabelText('Reply to this post'), 'Half a reply');
       await userEvent.click(screen.getByRole('button', { name: 'Edit your post' }));
       // What the next read brings, drawn on the re-render Remove causes.
       db.posts = [
@@ -950,7 +950,7 @@ describe('a topic', () => {
       await waitFor(() => {
         expect(screen.queryByText('Editing post')).toBeNull();
       });
-      expect(screen.getByLabelText('Reply to this post')).toHaveValue('Half a reply');
+      expect(await screen.findByLabelText('Reply to this post')).toHaveValue('Half a reply');
     });
 
     it('says Edited, with the time, under an edited post', () => {
@@ -1017,7 +1017,7 @@ describe('a topic', () => {
       db.posts = [post({ id: '2', authorId: 'me', body: 'First draft.' })];
       renderTopic();
       await userEvent.click(screen.getByRole('button', { name: 'Edit your post' }));
-      await userEvent.type(screen.getByLabelText('Edit your post'), ' More.');
+      await userEvent.type(await screen.findByLabelText('Edit your post'), ' More.');
       await userEvent.click(screen.getByRole('button', { name: 'Save changes' }));
       await waitFor(() => {
         expect(db.editsReloads).toBe(1);
@@ -1063,8 +1063,8 @@ describe('a topic', () => {
     it('files the reply under the post, and says so over the composer until it is sent', async () => {
       renderTopic();
       await userEvent.click(screen.getByRole('button', { name: "Reply to Nicole's post" }));
-      expect(screen.getByText(/Replying to/)).toHaveTextContent('Replying to Nicole');
-      const box = screen.getByLabelText('Reply to this post');
+      expect(await screen.findByText(/Replying to/)).toHaveTextContent('Replying to Nicole');
+      const box = await screen.findByLabelText('Reply to this post');
       expect(box).toHaveFocus();
       await userEvent.type(box, 'Under the question.');
       await userEvent.click(screen.getByRole('button', { name: 'Post this reply' }));
@@ -1080,8 +1080,8 @@ describe('a topic', () => {
     it('files a reply to a reply under that specific reply', async () => {
       renderTopic();
       await userEvent.click(screen.getByRole('button', { name: "Reply to Jake's post" }));
-      expect(screen.getByText(/Replying to/)).toHaveTextContent('Replying to Jake');
-      await userEvent.type(screen.getByLabelText('Reply to this post'), 'Under this reply.');
+      expect(await screen.findByText(/Replying to/)).toHaveTextContent('Replying to Jake');
+      await userEvent.type(await screen.findByLabelText('Reply to this post'), 'Under this reply.');
       await userEvent.click(screen.getByRole('button', { name: 'Post this reply' }));
       await waitFor(() => {
         expect(db.sent).toEqual([['Under this reply.', 'r1']]);
@@ -1093,7 +1093,7 @@ describe('a topic', () => {
       await userEvent.click(screen.getByRole('button', { name: "Reply to Nicole's post" }));
       await userEvent.click(screen.getByRole('button', { name: 'Stop replying' }));
       expect(screen.queryByText(/Replying to/)).toBeNull();
-      await userEvent.type(screen.getByLabelText('Reply to this post'), 'On its own.');
+      await userEvent.type(await screen.findByLabelText('Reply to this post'), 'On its own.');
       await userEvent.click(screen.getByRole('button', { name: 'Post this reply' }));
       await waitFor(() => {
         expect(db.sent).toEqual([['On its own.', null]]);
@@ -1260,7 +1260,7 @@ describe('a topic', () => {
   // will pause, and a send bound to Enter would publish the first sentence.
   it('breaks a line on Enter rather than posting', async () => {
     renderTopic();
-    const box = screen.getByLabelText('Reply to this post');
+    const box = await screen.findByLabelText('Reply to this post');
     await userEvent.type(box, 'First line{Enter}second line');
     expect(db.sent).toEqual([]);
     expect(box).toHaveValue('First line\nsecond line');
@@ -1268,7 +1268,10 @@ describe('a topic', () => {
 
   it('posts what was typed when the button is pressed', async () => {
     renderTopic();
-    await userEvent.type(screen.getByLabelText('Reply to this post'), 'That worked for me too.');
+    await userEvent.type(
+      await screen.findByLabelText('Reply to this post'),
+      'That worked for me too.',
+    );
     await userEvent.click(screen.getByRole('button', { name: 'Post this reply' }));
     await waitFor(() => {
       expect(db.sent).toEqual([['That worked for me too.', null]]);
@@ -1280,7 +1283,7 @@ describe('a topic', () => {
   it('keeps the draft when the post is refused, and says what happened', async () => {
     db.sendFails = 'new row violates row-level security policy';
     renderTopic();
-    const box = screen.getByLabelText('Reply to this post');
+    const box = await screen.findByLabelText('Reply to this post');
     await userEvent.type(box, 'Four paragraphs of this.');
     await userEvent.click(screen.getByRole('button', { name: 'Post this reply' }));
     await waitFor(() => {
@@ -1291,9 +1294,9 @@ describe('a topic', () => {
 
   // Since 20260930000000 any member writes in an open room: the composer is
   // there for somebody who has joined nothing, and there is no Join.
-  it('offers the composer to somebody who has joined nothing, and no Join', () => {
+  it('offers the composer to somebody who has joined nothing, and no Join', async () => {
     renderTopic();
-    expect(screen.getByLabelText('Reply to this post')).toBeInTheDocument();
+    expect(await screen.findByLabelText('Reply to this post')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /^Join/ })).toBeNull();
   });
 
