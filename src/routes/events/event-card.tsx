@@ -1,4 +1,5 @@
 import { ExternalLink } from 'lucide-react';
+import { isNative } from '@/lib/standalone';
 import { cn } from '@/lib/utils';
 import { EventCover } from '@/routes/events/event-cover';
 import { isOnline } from '@/routes/events/filters';
@@ -162,6 +163,7 @@ export function EventCard({
   const whenLine = timeRange(event.startTime, event.endTime, event.timezone, event.allDay);
   const whereLine = placeLine(event);
   const registerHref = safeHref(event.registrationUrl);
+  const separateRegistration = registerHref !== null && !isNative();
   // In a message, the card's sentence or else the start of the description,
   // cut short; elsewhere the sentence only, as before.
   const summary = inMessage
@@ -362,7 +364,7 @@ export function EventCard({
         {/* As on the event's page (the owner, 2026-10-27): with a sign-up of
             the host's own, Register stands for Going, marks them going and
             opens it. Once going, Going ✓ takes it back. */}
-        {registerHref && !going ? (
+        {registerHref && !going && !separateRegistration ? (
           <a
             href={registerHref}
             target="_blank"
@@ -385,9 +387,28 @@ export function EventCard({
             aria-pressed={going}
             className={cn(RSVP_BUTTON, going ? RSVP_CHOSEN : RSVP_OPEN)}
           >
-            {going ? 'Going ✓' : rsvpReachesHost(event, organization) ? 'RSVP' : 'Going'}
+            {separateRegistration
+              ? going
+                ? 'Going in club ✓'
+                : 'Going in club'
+              : going
+                ? 'Going ✓'
+                : rsvpReachesHost(event, organization)
+                  ? 'RSVP'
+                  : 'Going'}
           </button>
         )}
+        {separateRegistration ? (
+          <a
+            href={registerHref}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={cn(RSVP_BUTTON, RSVP_OPEN, 'gap-1.5')}
+          >
+            Register with host
+            <ExternalLink className="h-[14px] w-[14px] flex-none" aria-hidden="true" />
+          </a>
+        ) : null}
       </div>
       {/* Beside the card's own button, never inside it. */}
       {mapHref ? <ViewOnMap title={event.title} to={mapHref} className="mt-2.5" /> : null}

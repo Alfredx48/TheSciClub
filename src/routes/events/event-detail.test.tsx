@@ -364,7 +364,7 @@ describe('EventDetailPage', () => {
 
     // The owner, 2026-10-27: Register stands for Going when the host has a
     // sign-up of its own, and the host's page is the details' last line.
-    it('offers Register instead of Going, which marks them going and opens the sign-up', async () => {
+    it('keeps host registration separate from Going in the club', async () => {
       state.events = [
         makeEvent({
           id: 'rugby',
@@ -379,11 +379,12 @@ describe('EventDetailPage', () => {
         'https://norcalsci.org/events/rugby',
       );
       expect(screen.queryByRole('button', { name: 'RSVP' })).not.toBeInTheDocument();
-      const register = screen.getByRole('link', { name: 'Register' });
+      const register = screen.getByRole('link', { name: /^Register with / });
       expect(register).toHaveAttribute('href', 'https://norcalsci.org/register/rugby');
       expect(register).toHaveAttribute('target', '_blank');
-      expect(register).toHaveAccessibleDescription(/own sign-up and marks you as going here/);
       await userEvent.click(register);
+      expect(state.setRsvp).not.toHaveBeenCalled();
+      await userEvent.click(screen.getByRole('button', { name: 'Going in club' }));
       expect(state.setRsvp).toHaveBeenCalledWith('rugby', 'me', 'going');
     });
 
@@ -438,7 +439,7 @@ describe('EventDetailPage', () => {
       ];
       state.rsvps = new Map([['rugby', 'going']]);
       renderDetail();
-      await userEvent.click(screen.getByRole('button', { name: 'Going ✓' }));
+      await userEvent.click(screen.getByRole('button', { name: 'Going in club ✓' }));
       expect(state.setRsvp).toHaveBeenCalledWith('rugby', 'me', null);
       await waitFor(() => {
         expect(state.reloadAttendees).toHaveBeenCalled();
@@ -457,7 +458,7 @@ describe('EventDetailPage', () => {
       ];
       state.rsvps = new Map([['rugby', 'going']]);
       renderDetail();
-      expect(screen.getByRole('button', { name: 'Going ✓' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Going in club ✓' })).toBeInTheDocument();
       expect(screen.getByRole('link', { name: /^Register with / })).toHaveAttribute(
         'href',
         'https://norcalsci.org/register/rugby',

@@ -91,20 +91,22 @@ describe('EventCard', () => {
   describe('with a sign-up of the host’s own', () => {
     const event = makeEvent({ registrationUrl: 'https://norcalsci.org/register/swim' });
 
-    it('offers Register for Going, which marks them going and opens the sign-up', async () => {
+    it('opens registration without recording a club RSVP', async () => {
       const props = renderCard({ event, status: null });
       expect(screen.queryByRole('button', { name: 'RSVP' })).not.toBeInTheDocument();
       const register = screen.getByRole('link', { name: /^Register/ });
       expect(register).toHaveAttribute('href', 'https://norcalsci.org/register/swim');
       expect(register).toHaveAttribute('target', '_blank');
       await userEvent.click(register);
+      expect(props.onRsvp).not.toHaveBeenCalled();
+      await userEvent.click(screen.getByRole('button', { name: 'Going in club' }));
       expect(props.onRsvp).toHaveBeenCalledWith('going');
     });
 
-    it('keeps Going ✓ once going, to take it back', async () => {
+    it('keeps host registration available after marking Going in the club', async () => {
       const props = renderCard({ event, status: 'going' });
-      expect(screen.queryByRole('link', { name: /^Register/ })).not.toBeInTheDocument();
-      await userEvent.click(screen.getByRole('button', { name: 'Going ✓' }));
+      expect(screen.getByRole('link', { name: /^Register/ })).toBeInTheDocument();
+      await userEvent.click(screen.getByRole('button', { name: 'Going in club ✓' }));
       expect(props.onRsvp).toHaveBeenCalledWith(null);
     });
 

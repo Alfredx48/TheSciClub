@@ -21,6 +21,7 @@ import {
 import { useMyOrganizations } from '@/lib/organization-representatives';
 import { useOrganizations } from '@/lib/organizations';
 import { useSession } from '@/lib/session';
+import { isNative } from '@/lib/standalone';
 import { cn } from '@/lib/utils';
 import { PostBody } from '@/routes/chat/post-body';
 import { AttendeeList } from '@/routes/events/attendee-list';
@@ -203,6 +204,7 @@ export default function EventDetailPage() {
   // what scheme it has. The description's links already pass through safeHref;
   // these two are links on the same page from the same source.
   const registerHref = safeHref(event.registrationUrl);
+  const separateRegistration = registerHref !== null && !isNative();
   const pageHref = safeHref(event.url);
   // A call to join, not a page about the event: it goes up with the time, and
   // is not offered once the event is over. The event's link, or failing that
@@ -410,7 +412,7 @@ export default function EventDetailPage() {
                 {/* With a sign-up of the host's own, Register stands for Going
                 (the owner, 2026-10-27): it marks them going here and opens
                 the host's page, in one press. Taking it back is Going ✓. */}
-                {registerHref && !going ? (
+                {registerHref && !going && !separateRegistration ? (
                   <a
                     href={registerHref}
                     target="_blank"
@@ -441,7 +443,15 @@ export default function EventDetailPage() {
                           : 'bg-action text-white hover:bg-action-hi',
                     )}
                   >
-                    {going ? 'Going ✓' : reachesHost ? 'RSVP' : 'Going'}
+                    {separateRegistration
+                      ? going
+                        ? 'Going in club ✓'
+                        : 'Going in club'
+                      : going
+                        ? 'Going ✓'
+                        : reachesHost
+                          ? 'RSVP'
+                          : 'Going'}
                   </button>
                 )}
                 <button
@@ -484,9 +494,11 @@ export default function EventDetailPage() {
                   id={registerNote}
                   className="col-span-2 text-[0.78125rem] text-ink2 leading-[1.45]"
                 >
-                  {going ? (
+                  {going || separateRegistration ? (
                     <>
-                      {'Not signed up with them yet? '}
+                      {separateRegistration
+                        ? 'Going in club does not register you. '
+                        : 'Not signed up with them yet? '}
                       <a
                         href={registerHref}
                         target="_blank"
