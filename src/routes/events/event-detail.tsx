@@ -48,7 +48,11 @@ import { PrivacyChip, privacyLabel } from '@/routes/events/privacy-chip';
 import { RepeatsLine } from '@/routes/events/repeats-line';
 import { EventDescription, safeHref } from '@/routes/events/rich-text';
 import { SAVED_FROM_LINK, useRsvpFromLink } from '@/routes/events/rsvp-from-link';
-import { CancelledEvent, useScheduleUpdates } from '@/routes/events/schedule-updates';
+import {
+  CancelledEvent,
+  previousSchedule,
+  useScheduleUpdates,
+} from '@/routes/events/schedule-updates';
 import { ShareEventButton } from '@/routes/events/share-event';
 import { ReviewsSection } from '@/routes/reviews/reviews-section';
 import type { EventAttendee, RsvpStatus } from '@/types/domain';
@@ -367,6 +371,16 @@ export default function EventDetailPage() {
                 </a>
               ) : null}
             </section>
+          ) : null}
+          {scheduleUpdate?.new_start ? (
+            <aside className="mt-3 rounded-xl bg-tint px-3.5 py-2.5 text-[0.875rem] text-ink">
+              <p className="font-bold">The schedule changed</p>
+              <p>Previously {previousSchedule(scheduleUpdate)}.</p>
+              <p>
+                The event details show the new schedule. Update your personal calendar if you added
+                this date.
+              </p>
+            </aside>
           ) : null}
           {account.status === 'member' ? <EventFiles eventId={event.id} /> : null}
 

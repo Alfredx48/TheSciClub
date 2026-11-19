@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { isNative } from '@/lib/standalone';
 import { getSupabase } from '@/lib/supabase';
 import { longWhen, timeRange } from '@/routes/events/format';
@@ -53,5 +54,44 @@ export function CancelledEvent({ update }: { update: ScheduleUpdate }) {
       </p>
       <p className="mt-1">Remove this date from your personal calendar if you added it.</p>
     </div>
+  );
+}
+
+export function EventScheduleUpdates({ memberId }: { memberId: string | null }) {
+  const updates = useScheduleUpdates(memberId);
+  if (!updates.length) return null;
+
+  return (
+    <details className="mb-3 rounded-xl border border-line bg-paper px-3.5 py-2.5">
+      <summary className="cursor-pointer font-bold text-ink">
+        Event schedule updates ({updates.length})
+      </summary>
+      <ul className="mt-2 space-y-2 text-[0.875rem] text-ink2">
+        {updates.map((update) => (
+          <li key={update.event_id}>
+            <p className="font-semibold text-ink">{update.title}</p>
+            <p>
+              {update.new_start ? 'Schedule changed. Previously' : 'Canceled'} ·{' '}
+              {previousSchedule(update)}
+            </p>
+            {update.new_start ? (
+              <Link
+                to={`/events/${update.event_id}`}
+                className="font-semibold text-emphasis underline"
+              >
+                See the new schedule
+              </Link>
+            ) : (
+              <Link
+                to={`/events/${update.event_id}`}
+                className="font-semibold text-emphasis underline"
+              >
+                View cancellation
+              </Link>
+            )}
+          </li>
+        ))}
+      </ul>
+    </details>
   );
 }

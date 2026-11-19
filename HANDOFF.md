@@ -206,6 +206,12 @@ citing a HANDOFF section mean), `932a809` (product decisions). Comments citing
     Zoho, whose original is never verified). A From at thesciclub.com (any
     subdomain) or Zoho is never a sender. Anybody else: ignored, no reply.
     The invitation's other guests are never kept.
+  - **Website RSVP updates**: host registration and Going in club are separate.
+    Members who said Going or Interested see schedule changes for club-managed
+    events in Events and on the event link for 30 days, including cancellations.
+    Personal calendars receive a copy the member updates. Migrations
+    `20261119010000` and `20261119020000`; local rollback probe
+    `event-schedule-updates.sql`. Hosted test deployment pending.
   - **Place and link**: meeting links go to the link, the place keeps the
     address, a US address gives city and state (`place.ts`, `20261023000000`).
   - **Changes**: an update replaces the event, so a new id and no RSVPs. The

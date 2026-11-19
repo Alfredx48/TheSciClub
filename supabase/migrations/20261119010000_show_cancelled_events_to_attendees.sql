@@ -24,7 +24,7 @@ begin
   insert into private.event_schedule_updates (
     member_id, event_id, title, previous_start, previous_end, previous_timezone, previous_all_day
   )
-  select r.member_id, old.id, old.title, old.start_time, old.end_time, old.timezone, old.all_day
+  select r.member_id, old.id, old.title, old.start_time, old.end_time, coalesce(old.timezone, 'America/Los_Angeles'), old.all_day
   from public.event_rsvps r
   where r.event_id = old.id and r.status in ('going', 'interested')
   on conflict (member_id, event_id) do update

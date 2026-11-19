@@ -39,6 +39,7 @@ import {
   OrganizationList,
   useDirectory,
 } from '@/routes/events/organization-list';
+import { EventScheduleUpdates } from '@/routes/events/schedule-updates';
 import { SeriesFooter } from '@/routes/events/series-card';
 import { groupBySeries } from '@/routes/events/series-groups';
 import { type MapProblem, MapProblemNote, MapView } from '@/routes/map/map-view';
@@ -590,6 +591,7 @@ export default function EventsPage() {
         className="flex-1 overflow-y-auto px-4 pt-3.5 pb-[88px] md:px-6 md:pb-6"
       >
         <div className="mx-auto w-full max-w-[var(--events-measure)]">
+          {segment !== 'orgs' ? <EventScheduleUpdates memberId={memberId} /> : null}
           {view === 'map' && mapProblem ? <MapProblemNote problem={mapProblem} /> : null}
           {writeError ? (
             <p className="mb-2.5 rounded-xl bg-danger-lt px-3.5 py-2.5 text-[0.7875rem] text-danger-ink">

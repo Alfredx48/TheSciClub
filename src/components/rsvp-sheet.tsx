@@ -250,6 +250,11 @@ export function RsvpSheet({
           <h3 className="mt-4 font-extrabold font-head text-[0.71875rem] text-grey uppercase tracking-[0.13em]">
             Add to your calendar
           </h3>
+          {!isNative() ? (
+            <p className="mt-1 text-[0.8125rem] text-ink2">
+              This saves a copy. If the date changes or is canceled, update your calendar yourself.
+            </p>
+          ) : null}
           <div className="mt-2 flex flex-wrap gap-2">
             <a
               href={googleCalendarUrl(event)}
