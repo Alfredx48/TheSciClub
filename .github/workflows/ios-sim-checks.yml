@@ -15,7 +15,7 @@ on:
   workflow_dispatch:
     inputs:
       app_ref:
-        description: 'The app commit or branch to build (the night's commit); main when empty'
+        description: "The app commit or branch to build (the night's commit); main when empty"
         required: false
         default: main
   push:
