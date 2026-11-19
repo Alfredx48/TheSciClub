@@ -12,7 +12,7 @@ import { LinkedText } from '@/components/linked-text';
 import { AvatarLink, FormerMemberAvatar, MemberAvatar } from '@/components/member-avatar';
 import { useAccount } from '@/lib/account';
 import { useMyBlocks } from '@/lib/blocks';
-import { attachmentFolder, deleteAttachments, uploadAttachments } from '@/lib/chat/attachments';
+import { attachmentFolder, deleteAttachments } from '@/lib/chat/attachments';
 import { useAuthorPlaces } from '@/lib/chat/author-places';
 import { useChatAuthors } from '@/lib/chat/authors';
 import { useEdits } from '@/lib/chat/edits';
@@ -43,13 +43,14 @@ import { useMinute } from '@/lib/chat/use-minute';
 import { usePostViews } from '@/lib/chat/views';
 import { describeThrown } from '@/lib/describe-error';
 import { useHoldScroll } from '@/lib/hold-scroll';
+import { photoPaths } from '@/lib/markdown';
 import { backFromTopic } from '@/routes/chat/back';
 import { ChatBreadcrumb } from '@/routes/chat/breadcrumb';
-import { Composer } from '@/routes/chat/composer';
 import { ListingPrice } from '@/routes/chat/listing-price';
 import { MoveTopic } from '@/routes/chat/move-topic';
 import { MuteButton } from '@/routes/chat/mute-button';
 import { Post } from '@/routes/chat/post';
+import { PostComposer } from '@/routes/chat/post-composer';
 import { ReactionBar } from '@/routes/chat/reaction-bar';
 import { ReportSheet } from '@/routes/chat/report-sheet';
 import { SaveTopicButton } from '@/routes/chat/save-button';
@@ -72,8 +73,12 @@ import { BlockMemberSheet } from '@/routes/peers/block-sheet';
  * Deleting a topic: administrators only, behind a confirm; reports keep their copy
  * (20260927040000); photographs go through the storage API afterwards.
  *
- * Edit (2026-09-29) puts the reader's own post in the composer (composer.tsx), the opening post
- * as Markdown. One at a time, by id, so a removal over the wire ends it.
+ * Edit (2026-09-29) puts the reader's own post in the reply box (post-composer.tsx). One at a
+ * time, by id, so a removal over the wire ends it.
+ *
+ * The question, its details and the reply box scroll with the replies, the box at the very end
+ * (the owner, 2026-11-19: the title and details "take up a lot of real estate and are fixed on
+ * the screen"). Reply and Edit bring the box into view.
  *
  * Likes (likes.ts) are not live; read again whenever the posts are.
  *
@@ -243,36 +248,43 @@ export default function TopicPage() {
       });
   }
 
-  // The title is the words; photographs added go on its post.
+  // The title is the words; photographs added go on its post, after them.
   async function saveTitleEdit(
     postId: string,
-    title: string,
-    files: File[],
+    body: string,
+    added: string[],
   ): Promise<string | null> {
     if (!topicId) return 'This topic is not there any more.';
+    const photos = new Set(photoPaths(body));
+    const title = body
+      .split('\n')
+      .filter((line) => !photoPaths(line).some((path) => photos.has(path)))
+      .join(' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+    if (!title) return 'A question needs its words.';
     if (title !== topicTitle) {
       const result = await editTopicTitle(topicId, title);
       if (!result.ok) return result.error;
     }
-    if (files.length > 0) return saveEdit(postId, title, files);
+    if (added.length > 0) {
+      const words = [title, ...[...photos].map((path) => `![Photo](${path})`)].join('\n\n');
+      return saveEdit(postId, words, added, null);
+    }
     reload();
     edits.reload();
     return null;
   }
 
-  async function saveEdit(postId: string, body: string, files: File[]): Promise<string | null> {
-    // Photographs added go up first, under the room, as a new post's do.
-    let added: string[] = [];
-    if (files.length > 0 && room) {
-      const up = await uploadAttachments(files, attachmentFolder('room', room.id));
-      if (!up.ok) return up.error;
-      added = up.value;
-    }
-    const result = await editPost(postId, body, added);
-    if (!result.ok) {
-      if (added.length > 0) void deleteAttachments(added);
-      return result.error;
-    }
+  // Photographs added are already up, under the room (post-composer.tsx).
+  async function saveEdit(
+    postId: string,
+    body: string,
+    added: string[],
+    kept: string[] | null,
+  ): Promise<string | null> {
+    const result = await editPost(postId, body, added, kept);
+    if (!result.ok) return result.error;
     reload();
     edits.reload();
     return null;
@@ -493,237 +505,229 @@ export default function TopicPage() {
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
-      <header className="flex-none border-line border-b bg-paper px-[18px] pt-3 pb-3">
-        <div className="mx-auto w-full max-w-[720px]">
-          <ChatBreadcrumb state={location.state as unknown} room={room} />
-          <h1
-            ref={heading}
-            tabIndex={-1}
-            className="mt-1 font-extrabold font-head text-[1.125rem] text-ink leading-[1.3] outline-none [overflow-wrap:anywhere]"
-          >
-            {/* A question's @people and @Organizations open their pages (the owner, 2026-11-17). */}
-            <LinkedText text={topic.title} />
-          </h1>
-          {room?.id === PRICED_ROOM ? (
-            <ListingPrice
-              topicId={topic.id}
-              isSeller={topic.authorId !== null && topic.authorId === account.userId}
-            />
-          ) : null}
-          {/* Who started it, with their picture and a link to their profile
+      <div ref={scroller} className="relative flex-1 overflow-y-auto pb-[18px]">
+        <header className="border-line border-b bg-paper px-[18px] pt-3 pb-3">
+          <div className="mx-auto w-full max-w-[720px]">
+            <ChatBreadcrumb state={location.state as unknown} room={room} />
+            <h1
+              ref={heading}
+              tabIndex={-1}
+              className="mt-1 font-extrabold font-head text-[1.125rem] text-ink leading-[1.3] outline-none [overflow-wrap:anywhere]"
+            >
+              {/* A question's @people and @Organizations open their pages (the owner, 2026-11-17). */}
+              <LinkedText text={topic.title} />
+            </h1>
+            {room?.id === PRICED_ROOM ? (
+              <ListingPrice
+                topicId={topic.id}
+                isSeller={topic.authorId !== null && topic.authorId === account.userId}
+              />
+            ) : null}
+            {/* Who started it, with their picture and a link to their profile
               (owner, 2026-10-10). A question hides its opening post — the
               title is the question — and with it the post's own picture and
               linked name, so this line was the only trace of the asker. The
               name links as a post's does: only to a profile Peers will show. */}
-          <p className="mt-1.5 flex items-center gap-2 text-[0.78125rem] text-grey leading-[1.45]">
-            <AvatarLink memberId={starter?.id} hasProfile={starter?.hasProfile}>
-              {starter ? (
-                <MemberAvatar
-                  id={starter.id}
-                  displayName={starter.displayName}
-                  photoPath={starter.photoPath}
-                  photoAlt={starter.photoAlt}
-                  className="h-[1.75rem] w-[1.75rem] rounded-[9px] text-[0.6875rem]"
-                />
-              ) : (
-                <FormerMemberAvatar className="h-[1.75rem] w-[1.75rem] rounded-[9px] text-[0.6875rem]" />
-              )}
-            </AvatarLink>
-            <span className="min-w-0">
-              {counts ? `${counts} · started by ` : 'Started by '}
-              {starter ? (
-                starter.hasProfile ? (
-                  <Link
-                    to={`/peers/${starter.id}`}
-                    className="font-semibold text-ink2 underline-offset-2 hover:underline"
-                  >
-                    {starter.displayName}
-                  </Link>
+            <p className="mt-1.5 flex items-center gap-2 text-[0.78125rem] text-grey leading-[1.45]">
+              <AvatarLink memberId={starter?.id} hasProfile={starter?.hasProfile}>
+                {starter ? (
+                  <MemberAvatar
+                    id={starter.id}
+                    displayName={starter.displayName}
+                    photoPath={starter.photoPath}
+                    photoAlt={starter.photoAlt}
+                    className="h-[1.75rem] w-[1.75rem] rounded-[9px] text-[0.6875rem]"
+                  />
                 ) : (
-                  starter.displayName
-                )
-              ) : topic.authorId ? (
-                '…'
-              ) : (
-                'a deleted member'
-              )}{' '}
-              {/* How long ago for a week, then the date (the owner,
+                  <FormerMemberAvatar className="h-[1.75rem] w-[1.75rem] rounded-[9px] text-[0.6875rem]" />
+                )}
+              </AvatarLink>
+              <span className="min-w-0">
+                {counts ? `${counts} · started by ` : 'Started by '}
+                {starter ? (
+                  starter.hasProfile ? (
+                    <Link
+                      to={`/peers/${starter.id}`}
+                      className="font-semibold text-ink2 underline-offset-2 hover:underline"
+                    >
+                      {starter.displayName}
+                    </Link>
+                  ) : (
+                    starter.displayName
+                  )
+                ) : topic.authorId ? (
+                  '…'
+                ) : (
+                  'a deleted member'
+                )}{' '}
+                {/* How long ago for a week, then the date (the owner,
                   2026-11-18); the whole of it on a hover. */}
-              <time dateTime={topic.createdAt} title={chatTimeLong(topic.createdAt)}>
-                {chatTimeOn(topic.createdAt)}
-              </time>
-            </span>
-          </p>
-          {/* An administrator seeding a room reaches this screen with a
+                <time dateTime={topic.createdAt} title={chatTimeLong(topic.createdAt)}>
+                  {chatTimeOn(topic.createdAt)}
+                </time>
+              </span>
+            </p>
+            {/* An administrator seeding a room reaches this screen with a
               working composer and no other sign that nobody can read what
               they are writing. The room page says the same thing; forgetting
               it one screen deeper is how somebody wonders why there is no
               answer. */}
-          {closed ? (
-            <p className="mt-2 rounded-[11px] bg-tint px-3 py-2 text-[0.78125rem] text-ink2 leading-[1.45]">
-              This room is closed. No member can see this post yet.
-            </p>
-          ) : null}
-          {/* One row, evenly spaced and the same height: Save, Mute, Move, Delete.
+            {closed ? (
+              <p className="mt-2 rounded-[11px] bg-tint px-3 py-2 text-[0.78125rem] text-ink2 leading-[1.45]">
+                This room is closed. No member can see this post yet.
+              </p>
+            ) : null}
+            {/* One row, evenly spaced and the same height: Save, Mute, Move, Delete.
               Each used to carry its own margin, so they sat at different
               heights and two of them touched. */}
-          <div className="flex flex-wrap items-start gap-2 empty:hidden [&:not(:empty)]:mt-2.5">
-            {/* Private to the reader (20261020030000). */}
-            {account.userId && !saves.error ? (
-              <SaveTopicButton
-                saved={saves.saved.has(saveKey(topic.id, null))}
-                disabled={saves.loading}
-                onToggle={() => {
-                  saves.toggle(topic.id, null);
-                }}
-                failure={
-                  saves.failure?.key === saveKey(topic.id, null) ? saves.failure.message : null
-                }
-              />
-            ) : null}
-            {/* Only the member who started a topic is notified of its
+            <div className="flex flex-wrap items-start gap-2 empty:hidden [&:not(:empty)]:mt-2.5">
+              {/* Private to the reader (20261020030000). */}
+              {account.userId && !saves.error ? (
+                <SaveTopicButton
+                  saved={saves.saved.has(saveKey(topic.id, null))}
+                  disabled={saves.loading}
+                  onToggle={() => {
+                    saves.toggle(topic.id, null);
+                  }}
+                  failure={
+                    saves.failure?.key === saveKey(topic.id, null) ? saves.failure.message : null
+                  }
+                />
+              ) : null}
+              {/* Only the member who started a topic is notified of its
                 replies, so only they are offered a way to stop that. */}
-            {topic.authorId !== null && topic.authorId === account.userId ? (
-              <MuteButton target={{ kind: 'topic', id: topic.id }} what="replies to this topic" />
-            ) : null}
-            {/* Filing it where it belongs, after it was asked: an
+              {topic.authorId !== null && topic.authorId === account.userId ? (
+                <MuteButton target={{ kind: 'topic', id: topic.id }} what="replies to this topic" />
+              ) : null}
+              {/* Filing it where it belongs, after it was asked: an
                 administrator, or whoever started it (20261010010000). */}
-            {roomId &&
-            (account.isAdmin || (topic.authorId !== null && topic.authorId === account.userId)) ? (
-              <MoveTopic
-                topicId={topic.id}
-                roomId={roomId}
-                rooms={rooms}
-                isAdmin={account.isAdmin}
-                onMoved={(to) => {
-                  void navigate(`/chat/rooms/${to}/topics/${topic.id}`, {
-                    replace: true,
-                    state: location.state as unknown,
-                  });
-                }}
-              />
-            ) : null}
-            {account.isAdmin ? (
-              <button
-                type="button"
-                onClick={() => {
-                  removeTopic();
-                }}
-                disabled={deleting}
-                data-target="small"
-                // A transparent border, so it is exactly Mute's height.
-                className="rounded-full border border-transparent bg-destructive/10 px-[0.85em] py-[0.45em] font-bold font-head text-[0.75rem] text-destructive leading-[1.3] transition-colors hover:bg-destructive/20 disabled:opacity-50"
-              >
-                {deleting ? 'Deleting…' : 'Delete post'}
-              </button>
+              {roomId &&
+              (account.isAdmin ||
+                (topic.authorId !== null && topic.authorId === account.userId)) ? (
+                <MoveTopic
+                  topicId={topic.id}
+                  roomId={roomId}
+                  rooms={rooms}
+                  isAdmin={account.isAdmin}
+                  onMoved={(to) => {
+                    void navigate(`/chat/rooms/${to}/topics/${topic.id}`, {
+                      replace: true,
+                      state: location.state as unknown,
+                    });
+                  }}
+                />
+              ) : null}
+              {account.isAdmin ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    removeTopic();
+                  }}
+                  disabled={deleting}
+                  data-target="small"
+                  // A transparent border, so it is exactly Mute's height.
+                  className="rounded-full border border-transparent bg-destructive/10 px-[0.85em] py-[0.45em] font-bold font-head text-[0.75rem] text-destructive leading-[1.3] transition-colors hover:bg-destructive/20 disabled:opacity-50"
+                >
+                  {deleting ? 'Deleting…' : 'Delete post'}
+                </button>
+              ) : null}
+            </div>
+            {deleteFailure ? (
+              <p role="alert" className="mt-2 text-[0.8125rem] text-destructive leading-[1.45]">
+                {deleteFailure}
+              </p>
             ) : null}
           </div>
-          {deleteFailure ? (
-            <p role="alert" className="mt-2 text-[0.8125rem] text-destructive leading-[1.45]">
-              {deleteFailure}
-            </p>
-          ) : null}
-        </div>
-      </header>
+        </header>
 
-      <div ref={scroller} className="flex-1 overflow-y-auto px-4 pt-3 pb-[18px] md:px-6">
-        <div className="mx-auto w-full max-w-[720px]" ref={list}>
-          {removalFailure ? (
-            <p
-              role="alert"
-              className="mb-2.5 rounded-[11px] border border-destructive/30 bg-destructive/5 px-3 py-2.5 text-[0.8125rem] text-destructive leading-[1.45]"
-            >
-              {removalFailure}
-            </p>
-          ) : null}
-          {threads.map((thread, index) => renderThread(thread, 0, index))}
-          {/* The question's row alone reads as unfinished; say what it is
+        <div className="px-4 pt-3 md:px-6">
+          <div className="mx-auto w-full max-w-[720px]" ref={list}>
+            {removalFailure ? (
+              <p
+                role="alert"
+                className="mb-2.5 rounded-[11px] border border-destructive/30 bg-destructive/5 px-3 py-2.5 text-[0.8125rem] text-destructive leading-[1.45]"
+              >
+                {removalFailure}
+              </p>
+            ) : null}
+            {threads.map((thread, index) => renderThread(thread, 0, index))}
+            {/* The question's row alone reads as unfinished; say what it is
               waiting for. */}
-          {openingStands && threads.length === 1 && (threads[0]?.replies.length ?? 0) === 0 ? (
-            <p className="py-6 text-center text-[0.875rem] text-grey">
-              No answers yet. Yours can be the first.
-            </p>
-          ) : null}
+            {openingStands && threads.length === 1 && (threads[0]?.replies.length ?? 0) === 0 ? (
+              <p className="py-6 text-center text-[0.875rem] text-grey">
+                No answers yet. Yours can be the first.
+              </p>
+            ) : null}
+          </div>
+          <div className="mx-auto w-full max-w-[720px]">
+            {canPost ? (
+              <PostComposer
+                // A new topic is a new box, with that topic's draft.
+                key={topicId}
+                draftKey={topicId ? `topic:${topicId}` : undefined}
+                placeholder="Reply to this post"
+                maxLength={POST_MAX}
+                sendLabel="Post this reply"
+                folder={attachmentFolder('room', room.id)}
+                mentionScope={mentionScope}
+                editing={
+                  edited
+                    ? {
+                        id: edited.id,
+                        initial: edited.body,
+                        noun: 'post',
+                        photos: edited.attachments.length,
+                        attachments: edited.attachments,
+                        plain: titleOnly(edited),
+                        appendOnly: answered(edited),
+                        anchor: `post-${edited.id}`,
+                        onSave: (body, added, kept) =>
+                          titleOnly(edited)
+                            ? saveTitleEdit(edited.id, body, added)
+                            : saveEdit(edited.id, body, added, kept),
+                        onClose: () => {
+                          setEditingId(null);
+                        },
+                      }
+                    : null
+                }
+                replyingTo={
+                  replyingTo
+                    ? {
+                        id: replyingTo.id,
+                        name: nameOf(replyingTo),
+                        onCancel: () => {
+                          setReplyingTo(null);
+                        },
+                      }
+                    : null
+                }
+                onSend={async (body, paths) => {
+                  if (!account.userId) return 'You are signed out.';
+                  // The photographs are up already, under the room's folder,
+                  // which is what the read policy checks; a refused row takes
+                  // them back out (post-composer.tsx).
+                  const result = await sendPost(
+                    topic.id,
+                    account.userId,
+                    body,
+                    paths,
+                    replyingTo?.id ?? null,
+                  );
+                  if (!result.ok) return result.error;
+                  setReplyingTo(null);
+                  reload();
+                  return null;
+                }}
+              />
+            ) : (
+              <p className="mt-4 rounded-[14px] border border-line bg-paper px-3.5 py-3 text-center text-[0.78125rem] text-grey leading-[1.45]">
+                This room is closed. No member can see it yet.
+              </p>
+            )}
+          </div>
         </div>
       </div>
-
-      {canPost ? (
-        <Composer
-          // A new topic is a new box, with that topic's draft.
-          key={topicId}
-          draftKey={topicId ? `topic:${topicId}` : undefined}
-          placeholder="Reply to this post"
-          maxLength={POST_MAX}
-          sendLabel="Post this reply"
-          // Enter breaks a line. Only the button sends — see the header.
-          sendOnEnter={false}
-          mentions
-          mentionScope={mentionScope}
-          editing={
-            edited
-              ? {
-                  id: edited.id,
-                  initial: edited.body,
-                  noun: 'post',
-                  photos: edited.attachments.length,
-                  addPhotos: true,
-                  appendOnly: answered(edited),
-                  anchor: `post-${edited.id}`,
-                  onSave: (body, files) =>
-                    titleOnly(edited)
-                      ? saveTitleEdit(edited.id, body, files)
-                      : saveEdit(edited.id, body, files),
-                  onClose: () => {
-                    setEditingId(null);
-                  },
-                }
-              : null
-          }
-          replyingTo={
-            replyingTo
-              ? {
-                  id: replyingTo.id,
-                  name: nameOf(replyingTo),
-                  onCancel: () => {
-                    setReplyingTo(null);
-                  },
-                }
-              : null
-          }
-          onSend={async (body, files) => {
-            if (!account.userId) return 'You are signed out.';
-            // Files first, under the room's folder, which is what the read
-            // policy checks; then the row that names them. A refused row
-            // takes its files back out — see attachments.ts.
-            let paths: string[] = [];
-            if (files.length > 0) {
-              const up = await uploadAttachments(files, attachmentFolder('room', room.id));
-              if (!up.ok) return up.error;
-              paths = up.value;
-            }
-            const result = await sendPost(
-              topic.id,
-              account.userId,
-              body,
-              paths,
-              replyingTo?.id ?? null,
-            );
-            if (!result.ok) {
-              void deleteAttachments(paths);
-              return result.error;
-            }
-            setReplyingTo(null);
-            reload();
-            return null;
-          }}
-        />
-      ) : (
-        <div className="flex-none border-line border-t bg-paper px-3.5 py-3">
-          <p className="mx-auto w-full max-w-[720px] text-center text-[0.78125rem] text-grey leading-[1.45]">
-            This room is closed. No member can see it yet.
-          </p>
-        </div>
-      )}
 
       {blocking ? (
         <BlockMemberSheet

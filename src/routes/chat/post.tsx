@@ -8,13 +8,14 @@ import type { PostVote } from '@/lib/chat/likes';
 import { chatTime } from '@/lib/chat/time';
 import type { ChatAuthor, ChatEdit, ChatPost } from '@/lib/chat/types';
 import { useMinute } from '@/lib/chat/use-minute';
+import { photoPaths } from '@/lib/markdown';
 import { cn } from '@/lib/utils';
 import { AttachmentGrid } from '@/routes/chat/attachment-grid';
 import { ClubLinkCard } from '@/routes/chat/club-link-card';
 import { EarlierVersions } from '@/routes/chat/earlier-versions';
 import { PostLikes } from '@/routes/chat/like-button';
 import { LinkPreviewCard } from '@/routes/chat/link-preview-card';
-import { PostBody } from '@/routes/chat/post-body';
+import { POST_TEXT, PostBody } from '@/routes/chat/post-body';
 import type { ReactionBarProps } from '@/routes/chat/reaction-bar';
 import { ReportControl } from '@/routes/chat/report-control';
 import { ViewCount } from '@/routes/chat/view-count';
@@ -149,6 +150,10 @@ export function Post({
   const name = author ? author.displayName : 'a deleted member';
   // The club's own event or topic draws its own card (club-link-card.tsx).
   const clubLink = post.removedAt ? null : firstClubLink(post.body);
+  // Photographs its words show in place; the grid has the rest.
+  const shownBody = !!post.body && !hideBody && !repeatsTitle;
+  const placed = shownBody ? new Set(photoPaths(post.body)) : new Set<string>();
+  const below = post.attachments.filter((path) => !placed.has(path));
   const whose = canEdit ? 'your' : `${name}'s`;
   const control =
     'font-semibold text-[0.75rem] text-grey underline decoration-line underline-offset-2';
@@ -307,13 +312,17 @@ export function Post({
         // a small Markdown (lib/markdown.ts), shown through the same allowlist
         // as an event's description. Plain text reads as it did: its line
         // breaks and its addresses as links. An @name links to its member.
+        // A photograph put in the words is drawn there (the owner,
+        // 2026-11-19); the rest below them, as before.
         <PostBody
           text={post.body}
-          className="mt-2 text-[0.875rem] text-ink leading-[1.5] [overflow-wrap:anywhere] [&>*+*]:mt-2 [&_a]:font-semibold [&_a]:underline [&_a]:underline-offset-2 [&_h3]:font-extrabold [&_h3]:font-head [&_h3]:text-[0.96875rem] [&_li]:ml-5 [&_ol]:list-decimal [&_ul]:list-disc"
+          photos={post.attachments}
+          from={author?.displayName ?? 'a deleted member'}
+          className={POST_TEXT}
         />
       ) : null}
-      {post.attachments.length > 0 ? (
-        <AttachmentGrid paths={post.attachments} from={author?.displayName ?? 'a deleted member'} />
+      {below.length > 0 ? (
+        <AttachmentGrid paths={below} from={author?.displayName ?? 'a deleted member'} />
       ) : null}
       {clubLink ? (
         <ClubLinkCard link={clubLink} />

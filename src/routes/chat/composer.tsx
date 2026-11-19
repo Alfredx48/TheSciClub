@@ -84,14 +84,14 @@ export interface ComposerReplyingTo {
 }
 
 /** Back to the edited item's •••, or the box when it has none. */
-function focusAfterEdit(anchor: string, fallback: HTMLElement | null) {
+export function focusAfterEdit(anchor: string, fallback: HTMLElement | null) {
   const actions = document
     .getElementById(anchor)
     ?.querySelector<HTMLElement>('[data-item-actions]');
   (actions ?? fallback)?.focus();
 }
 
-function excerpt(text: string): string {
+export function excerpt(text: string): string {
   const line = text.replace(/\s+/g, ' ').trim();
   return line.length > 90 ? `${line.slice(0, 90)}…` : line;
 }

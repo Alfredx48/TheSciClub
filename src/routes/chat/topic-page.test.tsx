@@ -1,6 +1,6 @@
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import type { PropsWithChildren } from 'react';
+import { type PropsWithChildren, useImperativeHandle, useRef } from 'react';
 import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type * as Blocks from '@/lib/blocks';
@@ -12,6 +12,7 @@ import type * as ChatRooms from '@/lib/chat/rooms';
 import type * as Saves from '@/lib/chat/saves';
 import type * as Topics from '@/lib/chat/topics';
 import type { ChatAuthor, ChatEdit, ChatPost, ChatRoom, ChatTopic } from '@/lib/chat/types';
+import type * as RichEditorModule from '@/routes/chat/rich-editor';
 import TopicPage from '@/routes/chat/topic-page';
 
 const db = vi.hoisted(() => ({
@@ -47,6 +48,43 @@ const db = vi.hoisted(() => ({
 }));
 
 // Saves are private reads and writes; the hook is tested in saves.test.ts.
+// jsdom cannot type into TipTap's contenteditable: the reply box's rich
+// editor stands in as a text box with the same label, value and keys, so
+// these tests keep to what the page does with the words.
+vi.mock('@/routes/chat/rich-editor', async (importOriginal) => ({
+  ...(await importOriginal<typeof RichEditorModule>()),
+  RichEditor: ({
+    value,
+    onChange,
+    label,
+    readOnly,
+    onKeyDown,
+    ref,
+  }: Parameters<typeof RichEditorModule.RichEditor>[0]) => {
+    const box = useRef<HTMLTextAreaElement | null>(null);
+    useImperativeHandle(ref, () => ({
+      focus: () => box.current?.focus(),
+      format: () => undefined,
+      link: () => undefined,
+      insertPhotos: () => undefined,
+    }));
+    return (
+      <textarea
+        ref={box}
+        aria-label={label}
+        value={value}
+        readOnly={readOnly}
+        onChange={(event) => {
+          onChange(event.target.value);
+        }}
+        onKeyDown={(event) => {
+          onKeyDown?.(event.nativeEvent);
+        }}
+      />
+    );
+  },
+}));
+
 vi.mock('@/lib/chat/saves', async (importOriginal) => ({
   ...(await importOriginal<typeof Saves>()),
   useTopicSaves: () => ({

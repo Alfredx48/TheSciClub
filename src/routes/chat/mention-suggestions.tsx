@@ -40,9 +40,22 @@ export interface MentionSuggestions {
     onBlur: () => void;
   };
   /** Called first from the textarea's own onKeyDown; true when it used the key. */
-  onKeyDown: (event: KeyboardEvent<HTMLTextAreaElement>) => boolean;
+  onKeyDown: (event: KeyboardEvent<HTMLElement> | globalThis.KeyboardEvent) => boolean;
   /** The list, drawn where the caller puts it, and its status line. */
   list: ReactNode;
+}
+
+/**
+ * A box that is not a textarea: the post editor (rich-editor.tsx), which says
+ * the words of the line being typed up to the caret, and puts the picked name
+ * in place of the "@" typed there.
+ */
+export interface MentionField {
+  /** The current line's words and the caret in them; null with a selection. */
+  read: () => { text: string; caret: number } | null;
+  focused: () => boolean;
+  /** Put `@words ` in place of what `query` covers, up to `caret`. */
+  put: (query: MentionQuery, caret: number, words: string) => void;
 }
 
 type Offer =
@@ -55,6 +68,7 @@ function sameQuery(a: MentionQuery | null, b: MentionQuery | null): boolean {
 
 export function useMentionSuggestions({
   box,
+  field,
   value,
   onChange,
   above = false,
@@ -62,7 +76,9 @@ export function useMentionSuggestions({
   among,
   first,
 }: {
-  box: RefObject<HTMLTextAreaElement | null>;
+  box?: RefObject<HTMLTextAreaElement | null>;
+  /** In place of `box`, for the post editor. */
+  field?: MentionField;
   value: string;
   /** The words with the @name put in. */
   onChange: (value: string) => void;
@@ -84,12 +100,17 @@ export function useMentionSuggestions({
   const caretTo = useRef<number | null>(null);
   const listRef = useRef<HTMLDivElement | null>(null);
 
+  const read = (): { text: string; caret: number } | null => {
+    if (field) return field.read();
+    const element = box?.current;
+    return element && element.selectionStart === element.selectionEnd
+      ? { text: element.value, caret: element.selectionStart }
+      : null;
+  };
+
   const look = () => {
-    const element = enabled ? box.current : null;
-    const next =
-      element && element.selectionStart === element.selectionEnd
-        ? mentionAt(element.value, element.selectionStart)
-        : null;
+    const at = enabled ? read() : null;
+    const next = at ? mentionAt(at.text, at.caret) : null;
     if (sameQuery(query, next)) return;
     setQuery(next);
     setActive(-1);
@@ -99,12 +120,12 @@ export function useMentionSuggestions({
   // The words change: typed, or swapped for a post being edited.
   // biome-ignore lint/correctness/useExhaustiveDependencies: `value` is the trigger to look again.
   useEffect(() => {
-    if (document.activeElement === box.current) look();
+    if (field ? field.focused() : document.activeElement === box?.current) look();
   }, [value]);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: `value` is the picked name, drawn.
   useLayoutEffect(() => {
-    const element = box.current;
+    const element = box?.current;
     const caret = caretTo.current;
     if (!element || caret === null) return;
     caretTo.current = null;
@@ -155,20 +176,25 @@ export function useMentionSuggestions({
   }, [active, listId]);
 
   const pick = (offer: Offer) => {
-    const element = box.current;
-    if (!element || !query) return;
+    const at = read();
+    if (!at || !query) return;
     const words = offer.kind === 'member' ? offer.member.username : offer.organization.name.trim();
-    const next = insertMention(element.value, element.selectionStart, query, words);
-    caretTo.current = next.caret;
     setQuery(null);
     setActive(-1);
     setClosedAt(null);
     setAdded(words);
+    if (field) {
+      field.put(query, at.caret, words);
+      return;
+    }
+    const next = insertMention(at.text, at.caret, query, words);
+    caretTo.current = next.caret;
     onChange(next.value);
   };
 
-  const onKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>): boolean => {
-    if (!open || !query || event.nativeEvent.isComposing) return false;
+  const onKeyDown = (event: KeyboardEvent<HTMLElement> | globalThis.KeyboardEvent): boolean => {
+    const composing = 'nativeEvent' in event ? event.nativeEvent.isComposing : event.isComposing;
+    if (!open || !query || composing) return false;
     const last = offered.length - 1;
     if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
       event.preventDefault();

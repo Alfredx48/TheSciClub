@@ -685,16 +685,28 @@ export async function editPost(
   postId: string,
   body: string,
   added: string[] = [],
+  /**
+   * The photographs it keeps, when some are taken out (20261119150000);
+   * null keeps them all.
+   */
+  kept: string[] | null = null,
 ): Promise<ChatWriteResult<null>> {
-  // With photographs added (20261029000000), else words alone, as before.
+  // Photographs taken out, else added (20261029000000), else words alone, as before.
   const { error } =
-    added.length > 0
-      ? await getSupabase().rpc('chat_edit_post_photographs', {
+    kept !== null
+      ? await getSupabase().rpc('chat_edit_post_photographs_kept', {
           post: postId,
           new_body: body,
+          kept,
           added,
         })
-      : await getSupabase().rpc('chat_edit_post', { post: postId, new_body: body });
+      : added.length > 0
+        ? await getSupabase().rpc('chat_edit_post_photographs', {
+            post: postId,
+            new_body: body,
+            added,
+          })
+        : await getSupabase().rpc('chat_edit_post', { post: postId, new_body: body });
   if (error) {
     return {
       ok: false,
