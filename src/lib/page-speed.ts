@@ -198,9 +198,11 @@ export function timedFetch(base: typeof fetch = (...args) => fetch(...args)): ty
     const endpoint = endpointOf(url);
     if (!endpoint || endpoint === `rpc:${LOG_RPC}`) return base(input, init);
     const started = performance.now();
-    // An administrator's debug mode sees each one too (debug-log.ts), with
-    // what a table was asked: that stays on their device.
-    const detail = endpoint.startsWith('table:') ? whatWasAsked(url) : '';
+    // Push subscription filters can carry delivery endpoints.
+    const detail =
+      endpoint.startsWith('table:') && endpoint !== 'table:push_subscriptions'
+        ? whatWasAsked(url)
+        : '';
     try {
       const response = await base(input, init);
       const ms = performance.now() - started;

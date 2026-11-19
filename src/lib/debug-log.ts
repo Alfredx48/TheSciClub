@@ -328,14 +328,14 @@ export function debugMs(ms: number): string {
   return ms < 1000 ? `${Math.round(ms)} ms` : `${(ms / 1000).toFixed(2)} s`;
 }
 
-/** The screen's requests as text, in the order they started, to paste somewhere. */
+/** The screen's requests as text for sharing, without table query details. */
 export function debugReport(screen: DebugScreen): string {
   const summary = summarize(screen);
   const rows = [...screen.requests]
     .sort((a, b) => a.at - b.at)
     .map(
       (request) =>
-        `+${Math.round(request.at).toString().padStart(5)} ms  ${Math.round(request.ms).toString().padStart(5)} ms  ${request.ok ? '  ' : '✕ '}${request.endpoint}${request.bytes === null ? '' : `  ${request.bytes} bytes`}${request.detail ? `\n${' '.repeat(22)}${request.detail}` : ''}`,
+        `+${Math.round(request.at).toString().padStart(5)} ms  ${Math.round(request.ms).toString().padStart(5)} ms  ${request.ok ? '  ' : '✕ '}${request.endpoint}${request.bytes === null ? '' : `  ${request.bytes} bytes`}`,
     );
   const later = summary.count - summary.loadingCount;
   return [

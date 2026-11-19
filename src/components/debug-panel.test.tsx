@@ -5,6 +5,7 @@ import { DebugPanel } from '@/components/debug-panel';
 import {
   debugChain,
   debugMark,
+  debugReport,
   debugRequest,
   debugScreen,
   debugState,
@@ -12,6 +13,7 @@ import {
   resetDebugLog,
   summarize,
 } from '@/lib/debug-log';
+import { timedFetch } from '@/lib/page-speed';
 
 const account = vi.hoisted(() => ({ isAdmin: true }));
 vi.mock('@/lib/account', () => ({ useAccount: () => ({ isAdmin: account.isAdmin }) }));
@@ -84,14 +86,21 @@ describe('debug mode', () => {
   // what are the constituent parts".
   it('says when a screen’s posts were on the glass, in parts that add up to it', () => {
     aVisit();
+    debugRequest('table:members', '', 1010, 25, true, null);
     vi.spyOn(performance, 'now').mockReturnValue(2010);
-    debugMark('/home', 'Fresh posts on screen', ['rpc:home_topics_ranked', 'table:chat_topics']);
+    debugMark('/home', 'Fresh posts on screen', [
+      'table:members',
+      'rpc:home_topics_ranked',
+      'table:chat_topics',
+    ]);
     const [mark] = visit().marks;
     if (!mark) throw new Error('no mark');
     expect(mark).toMatchObject({ label: 'Fresh posts on screen', ms: 1010 });
     const parts = markParts(visit(), mark);
     expect(parts).toEqual([
-      { label: 'before the first request', ms: 40 },
+      { label: 'before the first request', ms: 10 },
+      { label: 'table:members', ms: 25 },
+      { label: 'between requests', ms: 5 },
       { label: 'rpc:home_topics_ranked', ms: 600 },
       { label: 'between requests', ms: 10 },
       { label: 'table:chat_topics', ms: 300 },
@@ -104,6 +113,21 @@ describe('debug mode', () => {
     resetDebugLog(false);
     aVisit();
     expect(debugState().screens).toEqual([]);
+  });
+
+  it('keeps push endpoint filters out of debug mode and query details out of copied reports', async () => {
+    aVisit();
+    const request = timedFetch(async () => new Response());
+    await request('https://test.example/rest/v1/push_subscriptions?endpoint=eq.example-device');
+    expect(visit().requests.at(-1)).toMatchObject({
+      endpoint: 'table:push_subscriptions',
+      detail: '',
+    });
+    const report = debugReport(visit());
+    expect(report).toContain('table:push_subscriptions');
+    expect(report).toContain('table:chat_topics');
+    expect(report).not.toContain('example-device');
+    expect(report).not.toContain('select=');
   });
 
   // An administrator's tool: nobody else is shown it, whatever their browser holds.

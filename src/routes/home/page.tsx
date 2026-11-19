@@ -68,6 +68,7 @@ const NO_PEOPLE: never[] = [];
  * list was waiting on when its posts were drawn (lib/debug-log.ts).
  */
 const POST_REQUESTS = [
+  'table:members',
   'rpc:home_feed',
   'rpc:home_topics_ranked',
   'rpc:home_topics_shown',
