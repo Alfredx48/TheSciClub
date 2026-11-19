@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type * as Attachments from '@/lib/chat/attachments';
+import type * as MessageSearch from '@/lib/chat/message-search';
 import type * as ChatRooms from '@/lib/chat/rooms';
 import type * as Threads from '@/lib/chat/threads';
 import type { ChatAuthor, ChatRoom, ChatThread, RoomStats } from '@/lib/chat/types';
@@ -32,6 +33,16 @@ const db = vi.hoisted(() => ({
   authors: new Map<string, ChatAuthor>(),
   /** Signed URLs for group pictures, by path. */
   urls: new Map<string, string>(),
+  /** What a message search finds, for any words. */
+  hits: [] as MessageSearch.MessageHit[],
+}));
+
+// Stubbed for the same reason as realtime below: unmocked, it reads production.
+vi.mock('@/lib/chat/message-search', async (importOriginal) => ({
+  ...(await importOriginal<typeof MessageSearch>()),
+  useMessageSearch: (query: string) => {
+    return { hits: query ? db.hits : [], searching: false, error: null };
+  },
 }));
 
 // Signing is a storage call under the reader's token; stubbed, as the grid's
@@ -146,6 +157,7 @@ beforeEach(() => {
   db.threadsError = null;
   db.authors = new Map([['jan', author({ id: 'jan' })]]);
   db.subscribed = [];
+  db.hits = [];
 });
 
 describe('the chat screen', () => {
@@ -542,7 +554,7 @@ describe('a long list of chats', () => {
     expect(screen.queryByRole('searchbox', { name: 'Search your chats' })).toBeNull();
   });
 
-  it('searches them by name instead past ten, hidden ones too', async () => {
+  it('searches them by name instead past ten, hidden ones too, and what was said', async () => {
     db.authors = new Map([
       ['jan', author({ id: 'jan' })],
       ['kim', author({ id: 'kim', displayName: 'Kim Park', username: 'kimp' })],
@@ -551,12 +563,21 @@ describe('a long list of chats', () => {
       ...Array.from({ length: 10 }, (_, i) => thread({ id: `t${String(i)}` })),
       thread({ id: 'old', otherMemberId: 'kim', lastAt: OLD, lastMessageAt: OLD }),
     ];
+    db.hits = [
+      { id: 'm1', threadId: 'old', authorId: 'kim', body: 'Bring the kimp chair', createdAt: OLD },
+    ];
     renderPage();
     expect(screen.queryByRole('textbox', { name: 'Ask or post to the club' })).toBeNull();
     await userEvent.type(screen.getByRole('searchbox', { name: 'Search your chats' }), 'kimp');
-    expect(screen.getByText('Kim Park')).toBeInTheDocument();
+    expect(
+      within(screen.getByRole('region', { name: 'Direct chats' })).getByText('Kim Park'),
+    ).toBeInTheDocument();
     expect(screen.queryByText('Jan')).toBeNull();
     expect(screen.queryByRole('button', { name: /More direct chats/ })).toBeNull();
+    // The words said, under the conversation's name, opening on that message.
+    const said = within(screen.getByRole('region', { name: 'Messages' })).getByRole('link');
+    expect(said).toHaveAttribute('href', '/chat/t/old?message=m1');
+    expect(said).toHaveTextContent('Kim Park');
     await userEvent.clear(screen.getByRole('searchbox', { name: 'Search your chats' }));
     await userEvent.type(screen.getByRole('searchbox', { name: 'Search your chats' }), 'nobody');
     expect(screen.getByText('No chat by that name.')).toBeInTheDocument();

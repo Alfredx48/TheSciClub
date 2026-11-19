@@ -1,3 +1,4 @@
+import { Search, X } from 'lucide-react';
 import {
   Fragment,
   useCallback,
@@ -44,6 +45,7 @@ import { NoticeLine } from '@/routes/chat/notice-line';
 import { ReactionBar } from '@/routes/chat/reaction-bar';
 import { ReportSheet } from '@/routes/chat/report-sheet';
 import { SWIPE_MAX, useSwipeDates } from '@/routes/chat/swipe-dates';
+import { ThreadSearch } from '@/routes/chat/thread-search';
 import { TypingDots, typingSentence } from '@/routes/chat/typing-dots';
 import { BlockMemberSheet } from '@/routes/peers/block-sheet';
 
@@ -239,6 +241,8 @@ function ThreadScreen({ threadId }: { threadId: string | undefined }) {
   // Open at the bottom, once, on the first load with anything in it; or on the message a
   // notification was about (?message=), centred and lit once. Again on each new ?message=.
   const [searchParams] = useSearchParams();
+  // Finding words said here (the owner, 2026-11-19): a hit sets ?message=.
+  const [searchOpen, setSearchOpen] = useState(false);
   const wantedMessage = searchParams.get('message');
   const { key: navigationKey } = useLocation();
   const wantedNavigation = wantedMessage ? `${wantedMessage}:${navigationKey}` : null;
@@ -536,6 +540,21 @@ function ThreadScreen({ threadId }: { threadId: string | undefined }) {
                 Profile
               </Link>
             ) : null}
+            <button
+              type="button"
+              aria-label={searchOpen ? 'Close search' : 'Search this conversation'}
+              aria-expanded={searchOpen}
+              onClick={() => {
+                setSearchOpen((was) => !was);
+              }}
+              className="flex h-[44px] w-[44px] flex-none items-center justify-center rounded-full text-ink transition-colors hover:bg-tint"
+            >
+              {searchOpen ? (
+                <X aria-hidden="true" className="h-[18px] w-[18px]" />
+              ) : (
+                <Search aria-hidden="true" className="h-[18px] w-[18px]" />
+              )}
+            </button>
             {/* Every member of a conversation is notified of it, so every
                 member chooses how much: All, Only mentions (a group), or Off
                 (20261113150000). Draws nothing while notifications are off. */}
@@ -547,6 +566,16 @@ function ThreadScreen({ threadId }: { threadId: string | undefined }) {
           </div>
         </div>
       </header>
+
+      {searchOpen ? (
+        <ThreadSearch
+          threadId={thread.id}
+          viewerId={account.userId}
+          onClose={() => {
+            setSearchOpen(false);
+          }}
+        />
+      ) : null}
 
       {stale ? (
         <p
