@@ -76,9 +76,16 @@ try {
     30000,
   );
   if (!already) throw new Error('no "I already have an account" on the welcome screen');
-  await already.click();
-  await sleep(1500);
-  let email = await waitFor(() => visible(ofType('XCUIElementTypeTextField')), 4000);
+  // Up to three taps: on Nov 18 a first tap left the welcome screen up (it may come while the screen still arrives).
+  let email = null;
+  for (let tap = 1; tap <= 3 && !email; tap++) {
+    const button = await visible(byLabel('XCUIElementTypeButton', '.*already have an account.*'));
+    if (!button) break;
+    await button.click();
+    await sleep(1500);
+    email = await waitFor(() => visible(ofType('XCUIElementTypeTextField')), 4000);
+    if (!email && tap > 1) report.notes.push(`"I already have an account" needed tap ${tap}`);
+  }
   if (!email) {
     const toggle = await visible(
       byLabel('XCUIElementTypeButton', '.*(sign in|join) with email.*|.*use email and password.*'),
