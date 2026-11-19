@@ -175,6 +175,11 @@ describe('what counts as a write', () => {
     expect(isWrite('GET', at('/rest/v1/chat_rooms'))).toBe(false);
     expect(isWrite('HEAD', at('/rest/v1/chat_rooms'))).toBe(false);
     expect(isWrite('POST', at('/rest/v1/rpc/chat_my_threads'))).toBe(false);
+    expect(isWrite('POST', at('/rest/v1/rpc/chat_post_scores'))).toBe(false);
+    expect(isWrite('POST', at('/rest/v1/rpc/home_feed'))).toBe(false);
+    expect(isWrite('POST', at('/rest/v1/rpc/home_topics_ranked'))).toBe(false);
+    expect(isWrite('POST', at('/rest/v1/rpc/home_topics_shown'))).toBe(false);
+    expect(isWrite('POST', at('/rest/v1/rpc/admin_boost_post'))).toBe(true);
     expect(isWrite('POST', at('/rest/v1/rpc/my_badge_counts'))).toBe(false);
     expect(isWrite('POST', at('/rest/v1/rpc/map_events'))).toBe(false);
     expect(isWrite('POST', at('/rest/v1/rpc/chat_mark_posts_seen'))).toBe(false);
