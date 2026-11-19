@@ -1,4 +1,13 @@
-import { type ComponentType, Activity, lazy, Suspense, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import {
+  Activity,
+  type ComponentType,
+  lazy,
+  Suspense,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from 'react';
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { AppNav } from '@/components/app-nav';
 import { AskAfterSending } from '@/components/ask-after-sending';
