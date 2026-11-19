@@ -242,16 +242,27 @@ export default function QrCodePage() {
         >
           {/* An org admin may leave their organization out too (20261119140000). */}
           {offered.length > 0 || (isAdmin && everyOrganization.length > 0) ? (
-            <OrganizationPicker
-              id="qr-organization"
-              label="Who it's for"
-              yours={offered}
-              others={isAdmin ? everyOrganization : []}
-              value={forOrganization ?? NO_ORGANIZATION}
-              onChange={setOrganizationId}
-              none={ownCode ? `Just you, as ${PARTNER_ROLE_NAME.toLowerCase()}` : 'No organization'}
-              className={FIELD}
-            />
+            <>
+              <OrganizationPicker
+                id="qr-organization"
+                label="Who it's for"
+                yours={offered}
+                others={isAdmin ? everyOrganization : []}
+                value={forOrganization ?? NO_ORGANIZATION}
+                onChange={setOrganizationId}
+                none={
+                  ownCode ? `Just you, as ${PARTNER_ROLE_NAME.toLowerCase()}` : 'No organization'
+                }
+                className={FIELD}
+              />
+              {/* The owner, 2026-11-19: "if an invite code is tied to a user, we
+                  do not need to associate that new member with an organization". */}
+              {forOrganization === null ? (
+                <p className="mt-1 text-[0.75rem] text-grey leading-[1.45]">
+                  They join the club only, not an organization.
+                </p>
+              ) : null}
+            </>
           ) : forOrganization ? (
             <p className="text-[0.875rem] text-ink">
               For <b>{byId.get(forOrganization)?.name}</b>
@@ -368,7 +379,7 @@ export default function QrCodePage() {
               value={notes}
               maxLength={300}
               rows={2}
-              placeholder="Who it's for, or where you shared it"
+              placeholder="Who you gave it to, or where you shared it"
               onChange={(e) => {
                 setNotes(e.target.value);
               }}
