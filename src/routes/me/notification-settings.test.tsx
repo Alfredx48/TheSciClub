@@ -132,14 +132,15 @@ describe('NotificationSettings', () => {
     hook.state = 'off';
     hook.busy = true;
     render(<NotificationSettings userId="u1" />);
-    expect(screen.getByRole('button')).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'One moment…' })).toBeDisabled();
   });
 
-  describe('the kinds, once on', () => {
-    it('are not offered while notifications are off', () => {
+  describe('the notification kinds', () => {
+    it('can be edited even when alerts are off on this browser', async () => {
       hook.state = 'off';
       render(<NotificationSettings userId="u1" />);
-      expect(screen.queryByRole('button', { name: /Being added to a group/ })).toBeNull();
+      await userEvent.click(screen.getByRole('button', { name: /Choose which notifications/ }));
+      expect(screen.getByRole('button', { name: /Being added to a group/ })).toBeInTheDocument();
     });
 
     // Folded away: the list filled a phone screen (the owner, 2026-10-07).

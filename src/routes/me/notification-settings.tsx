@@ -8,7 +8,7 @@ import {
   useDeviceNotifications,
   useNotificationKinds,
 } from '@/lib/push/notifications';
-import { isAndroidApp } from '@/lib/standalone';
+import { isAndroidApp, isNative } from '@/lib/standalone';
 import { cn } from '@/lib/utils';
 import { NotificationVolume } from '@/routes/me/notification-volume';
 import { PauseNotifications } from '@/routes/me/pause-notifications';
@@ -45,8 +45,7 @@ const APP_REFUSED =
   'This iPhone has said no to the club’s notifications, and it will not ask again. To change it, open Settings, then Notifications, and turn on Allow Notifications.';
 
 /**
- * Which kinds, once notifications are on. Its own component so the hook runs
- * only then: a member with notifications off has nothing to tune.
+ * Notification kinds are preferences for the whole account.
  *
  * Each row is one button whose name is the kind and whose pressed state is
  * whether it is on — "Being added to a group, toggle button, pressed" — so the
@@ -105,9 +104,9 @@ function NotificationKinds({
         <fieldset id="notification-kinds" className="pt-1">
           <legend className="sr-only">Also notify me about</legend>
           <p className="text-[0.75rem] text-grey leading-[1.45]">
-            Messages and replies to your posts always notify. A busy conversation notifies you at
-            most every 2 minutes, saying how many are new, and not while you have it open. Mute a
-            conversation, topic or room where it is.
+            These choices apply across your devices. Messages and replies to your posts always
+            notify. A busy conversation notifies you at most every 2 minutes, saying how many are
+            new, and not while you have it open. Mute a conversation, topic or room where it is.
           </p>
           {muted ? (
             <ul className="mt-2">
@@ -201,6 +200,7 @@ export function NotificationSettings({
 }) {
   const { state, busy, error, turnOn, turnOff } = useDeviceNotifications(userId);
   if (state === null && error === null) return null;
+  const showKinds = state === 'on' || (state === 'off' && !isNative() && !isAppPush());
 
   return (
     <section aria-labelledby="notification-settings-heading" className="mt-6">
@@ -265,7 +265,7 @@ export function NotificationSettings({
         {userId ? (
           <PauseNotifications key={state} userId={userId} deviceOn={state === 'on'} />
         ) : null}
-        {state === 'on' ? (
+        {showKinds ? (
           <NotificationKinds userId={userId} isMentor={isMentor} isAdmin={isAdmin} />
         ) : null}
         {/* By email, whether or not this device notifies (20261028980000). */}
