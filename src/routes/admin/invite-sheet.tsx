@@ -4,6 +4,7 @@ import {
   inviteListField,
   inviteListLabel,
   linesFor,
+  MentorField,
   MessageField,
   PeopleListField,
   type SendLine,
@@ -14,6 +15,7 @@ import { useAccount } from '@/lib/account';
 import { describeThrown } from '@/lib/describe-error';
 import { type ReadSheet, SHEET_LIMIT } from '@/lib/invite-sheet';
 import { useMemberOrganizations } from '@/lib/organization-members';
+import { setInvitesMentor } from '@/lib/organization-mentors';
 import {
   fetchInvitingOrganizations,
   type InvitingOrganization,
@@ -44,7 +46,9 @@ const SAYS = {
  * and let the admin customize"). Short and warm, since the email already says
  * what the club is, and nothing about anybody's health.
  */
-export function suggestedMessage(organization: string | null): string {
+export function suggestedMessage(organization: string | null, mentors = false): string {
+  if (organization && mentors)
+    return `I'd love for you to join ${organization} in The SCI Club as a mentor. Signing up only takes a couple of minutes. See you inside!`;
   return organization
     ? `I'd love for you to join ${organization} in The SCI Club. Signing up only takes a couple of minutes. See you inside!`
     : "I'd love for you to join me in The SCI Club. Signing up only takes a couple of minutes. See you inside!";
@@ -61,6 +65,8 @@ export function InviteSheet({ onCreated }: { onCreated: () => void }) {
   const [round, setRound] = useState(0);
   const [organizationId, setOrganizationId] = useState<string | null>(null);
   const [edited, setEdited] = useState<string | null>(null);
+  // Mentors of the organization chosen, when they join (the owner, 2026-11-19).
+  const [asMentor, setAsMentor] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lines, setLines] = useState<SendLine[] | null>(null);
   const [sending, setSending] = useState(false);
@@ -75,7 +81,7 @@ export function InviteSheet({ onCreated }: { onCreated: () => void }) {
   // One organization of theirs is the one they mean; with several, they pick.
   const chosen = organizationId ?? (organizations.length === 1 ? (organizations[0]?.id ?? '') : '');
   const organizationName = organizations.find((o) => o.id === chosen)?.name ?? null;
-  const suggested = suggestedMessage(organizationName);
+  const suggested = suggestedMessage(organizationName, asMentor);
   const message = edited ?? suggested;
   const people = read?.people ?? [];
   const tooMany = people.length > SHEET_LIMIT;
@@ -97,9 +103,10 @@ export function InviteSheet({ onCreated }: { onCreated: () => void }) {
   async function send() {
     if (people.length === 0 || tooMany) return;
     const count = people.length;
+    const mentors = asMentor && organizationName !== null;
     if (
       !window.confirm(
-        `Send ${count} invite email${count === 1 ? '' : 's'} from you${organizationName ? `, with ${organizationName}` : ''}?`,
+        `Send ${count} invite email${count === 1 ? '' : 's'} from you${organizationName ? `, with ${organizationName}` : ''}${mentors ? ', as mentors' : ''}?`,
       )
     )
       return;
@@ -114,6 +121,21 @@ export function InviteSheet({ onCreated }: { onCreated: () => void }) {
       if (!added.ok) {
         setError(added.error);
         return;
+      }
+      // Marked before any email goes: an unmarked invite makes a member, not
+      // a mentor (20261119200000). All of them or none.
+      if (mentors) {
+        const ids = added.entries.flatMap((entry) =>
+          entry.outcome === 'added' && entry.inviteId ? [entry.inviteId] : [],
+        );
+        const marked = await setInvitesMentor(ids, true);
+        if (!marked.ok) {
+          onCreated();
+          setError(
+            `They are on the list, but not as mentors (${marked.error}), so no email has gone. Withdraw them from the list below and try again.`,
+          );
+          return;
+        }
       }
       const start = linesFor(added.entries, SAYS);
       setLines(start);
@@ -138,6 +160,7 @@ export function InviteSheet({ onCreated }: { onCreated: () => void }) {
           setRead(null);
           setRound((r) => r + 1);
           setEdited(null);
+          setAsMentor(false);
           setError(null);
         }}
       />
@@ -166,6 +189,16 @@ export function InviteSheet({ onCreated }: { onCreated: () => void }) {
           </option>
         ))}
       </select>
+
+      {organizationName ? (
+        <MentorField
+          id="sheet"
+          many
+          organization={organizationName}
+          checked={asMentor}
+          onChange={setAsMentor}
+        />
+      ) : null}
 
       <MessageField id="sheet" suggested={suggested} edited={edited} onEdit={setEdited} />
       <EmailPreview email={preview} />

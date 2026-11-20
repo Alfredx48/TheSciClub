@@ -341,3 +341,59 @@ export function SendResults({
 
 export const inviteListField = field;
 export const inviteListLabel = label;
+
+/**
+ * "Invite as a mentor" (the owner, 2026-11-19: "let them specify that these
+ * users will be mentors. If they join, they should automatically be mentors
+ * for the org the admin selected"). Shown only with an organization chosen
+ * that the inviter may make mentors for; the database checks again
+ * (set_invites_mentor, 20261119200000).
+ *
+ * A native checkbox inside its label, as QuestionSwitch is: the whole row is
+ * the target, and a screen reader hears one control with its explanation.
+ */
+export function MentorField({
+  id,
+  organization,
+  many = false,
+  checked,
+  onChange,
+}: {
+  id: string;
+  organization: string;
+  /** A list of people, not one. */
+  many?: boolean;
+  checked: boolean;
+  onChange: (next: boolean) => void;
+}) {
+  return (
+    <label
+      htmlFor={`${id}-mentor`}
+      className="mt-3 flex min-h-[44px] cursor-pointer items-start gap-3 rounded-[11px] border-[1.6px] border-line bg-paper px-3 py-2.5 has-[:checked]:border-emphasis has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-emphasis has-[:focus-visible]:outline-offset-2"
+    >
+      <input
+        id={`${id}-mentor`}
+        type="checkbox"
+        checked={checked}
+        onChange={(event) => {
+          onChange(event.target.checked);
+        }}
+        aria-describedby={`${id}-mentor-hint`}
+        className="mt-[0.2em] h-[1.15em] w-[1.15em] flex-none accent-emphasis outline-none"
+      />
+      <span className="min-w-0 flex-1">
+        <span className="block font-bold text-[0.875rem] text-ink">
+          {many ? 'Invite them as mentors' : 'Invite as a mentor'}
+        </span>
+        <span
+          id={`${id}-mentor-hint`}
+          className="mt-0.5 block text-[0.78125rem] text-ink2 leading-[1.45]"
+        >
+          {many
+            ? `When they join, they become mentors for ${organization}.`
+            : `When they join, they become a mentor for ${organization}.`}
+        </span>
+      </span>
+    </label>
+  );
+}

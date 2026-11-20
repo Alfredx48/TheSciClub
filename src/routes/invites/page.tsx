@@ -2,6 +2,7 @@ import { Mail } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { BackLink } from '@/components/back-link';
+import { MentorField } from '@/components/invite-list';
 import { useAccount } from '@/lib/account';
 import { looksLikeEmail } from '@/lib/auth-email';
 import { describeThrown } from '@/lib/describe-error';
@@ -91,6 +92,18 @@ export default function InvitesPage() {
   const assigned =
     (isAdmin || mine.ids.size > 0) && myOrganizations.length === 1 ? myOrganizations[0] : undefined;
   const choosesOrganization = !assigned && myOrganizations.length > 0;
+  // The organization the invite is for, once known, and whether they may make
+  // its mentors (the owner, 2026-11-19; 20261119200000).
+  const inviteOrganization =
+    assigned ??
+    (organizationId !== '' && organizationId !== NO_ORGANIZATION
+      ? byId.get(organizationId)
+      : undefined);
+  const mentorOrganization =
+    inviteOrganization && (isAdmin || mine.ids.has(inviteOrganization.id))
+      ? inviteOrganization
+      : undefined;
+  const [asMentor, setAsMentor] = useState(false);
   // A club administrator answering a request picks who the invite is for, from
   // the organizations they belong to (the owner, 2026-11-01).
   const [invitingFor, setInvitingFor] = useState<Record<string, string>>({});
@@ -179,6 +192,7 @@ export default function InvitesPage() {
   function add() {
     if (!userId) return;
     const address = email.trim();
+    const mentorFor = asMentor && mentorOrganization ? mentorOrganization.name : null;
     act('new', async () => {
       const result = await createMyInvite({
         email: address,
@@ -186,6 +200,7 @@ export default function InvitesPage() {
         ...(name.trim() ? { name } : {}),
         ...(message.trim() ? { message } : {}),
         ...(permissions.unlimited ? { unlimited: true } : {}),
+        ...(mentorFor ? { asMentor: true } : {}),
         ...(assigned
           ? { organizationId: assigned.id }
           : organizationId === NO_ORGANIZATION
@@ -198,11 +213,15 @@ export default function InvitesPage() {
       if (result.ok) {
         setEmail('');
         setName('');
+        setAsMentor(false);
         setNote('');
         setMessage('');
         setOrganizationId('');
         // On the list, but the email did not go: say so, and the row has Resend.
-        setNotice(result.sendError ?? `The link is on its way to ${address}.`);
+        setNotice(
+          result.sendError ??
+            `The link is on its way to ${address}${mentorFor ? `, as a mentor for ${mentorFor}` : ''}.`,
+        );
       }
       return result;
     });
@@ -398,6 +417,15 @@ export default function InvitesPage() {
               </div>
             ) : null}
 
+            {mentorOrganization ? (
+              <MentorField
+                id="mentor-invite"
+                organization={mentorOrganization.name}
+                checked={asMentor}
+                onChange={setAsMentor}
+              />
+            ) : null}
+
             <div className="mt-3">
               <label
                 htmlFor="mentor-invite-email"
@@ -569,6 +597,7 @@ export default function InvitesPage() {
                         ? ' · link sent'
                         : ' · link not sent yet'
                       : ''}
+                    {invite.asMentor ? ' · as a mentor' : ''}
                     {invite.email === null ? ' · phone invite (old)' : ''}
                     {invite.note ? ` · ${invite.note}` : ''}
                   </span>

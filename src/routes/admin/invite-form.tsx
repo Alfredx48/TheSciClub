@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { MentorField } from '@/components/invite-list';
 import { useAccount } from '@/lib/account';
 import { looksLikeEmail } from '@/lib/auth-email';
 import { describeThrown } from '@/lib/describe-error';
@@ -40,6 +41,8 @@ export function InviteForm({ onCreated }: { onCreated: () => void }) {
   // Quoted in the email (the owner, 2026-11-17: "if I want to add a note to
   // the invite e-mail"); the Note stays on the list only.
   const [message, setMessage] = useState('');
+  // A mentor of the organization chosen, when they join (the owner, 2026-11-19).
+  const [asMentor, setAsMentor] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<string | null>(null);
@@ -51,9 +54,12 @@ export function InviteForm({ onCreated }: { onCreated: () => void }) {
   // Chosen, never left at a default (the owner, 2026-11-15: "better to have an
   // explicit no org selection. To prevent people from being lazy").
   const ready = looksLikeEmail(email) && (assigned !== undefined || organizationId !== '');
+  const inviteOrganization =
+    assigned ?? organizations.find((o) => o.id === organizationId && o.id !== NO_ORGANIZATION);
 
   function submit() {
     const address = email.trim();
+    const mentorFor = asMentor && inviteOrganization ? inviteOrganization.name : null;
     setBusy(true);
     setError(null);
     setDone(null);
@@ -67,6 +73,7 @@ export function InviteForm({ onCreated }: { onCreated: () => void }) {
       note: note.trim() || null,
       ...(name.trim() ? { name } : {}),
       ...(message.trim() ? { message } : {}),
+      ...(asMentor && inviteOrganization ? { asMentor: true } : {}),
     })
       .then((result) => {
         if (!result.ok) {
@@ -77,8 +84,12 @@ export function InviteForm({ onCreated }: { onCreated: () => void }) {
         setName('');
         setNote('');
         setMessage('');
+        setAsMentor(false);
         if (result.sendError) setError(result.sendError);
-        else setDone(`The link is on its way to ${address}.`);
+        else
+          setDone(
+            `The link is on its way to ${address}${mentorFor ? `, as a mentor for ${mentorFor}` : ''}.`,
+          );
         onCreated();
       })
       .catch((e: unknown) => {
@@ -141,6 +152,15 @@ export function InviteForm({ onCreated }: { onCreated: () => void }) {
           </div>
         )}
       </div>
+
+      {inviteOrganization ? (
+        <MentorField
+          id="invite"
+          organization={inviteOrganization.name}
+          checked={asMentor}
+          onChange={setAsMentor}
+        />
+      ) : null}
 
       <div className="mt-2.5">
         <label htmlFor="invite-name" className="block font-bold text-[0.75rem] text-ink">

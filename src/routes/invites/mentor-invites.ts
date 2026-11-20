@@ -1,4 +1,5 @@
 import { describeError, type Failure } from '@/lib/describe-error';
+import { setInvitesMentor } from '@/lib/organization-mentors';
 import { readPages } from '@/lib/read-pages';
 import { addedButNotSent, SEND_FAILED, sendInvite } from '@/lib/send-invite';
 import { getSupabase } from '@/lib/supabase';
@@ -31,6 +32,8 @@ export interface MentorInvite {
   note: string | null;
   createdAt: string;
   sentAt: string | null;
+  /** Whoever joins on it becomes a mentor of its organization (20261119200000). */
+  asMentor?: boolean;
 }
 
 interface MentorInviteRow {
@@ -41,6 +44,8 @@ interface MentorInviteRow {
   note: string | null;
   created_at: string;
   sent_at: string | null;
+  /** Absent before 20261119200000. */
+  as_mentor?: boolean | null;
 }
 
 /**
@@ -59,7 +64,7 @@ export async function fetchMyInvites(): Promise<
   const result = await readPages<MentorInviteRow>((from, to) =>
     getSupabase()
       .from('invites')
-      .select('id, email, phone, status, note, created_at, sent_at')
+      .select('id, email, phone, status, note, created_at, sent_at, as_mentor')
       .order('created_at', { ascending: false })
       .order('id', { ascending: false })
       .range(from, to),
@@ -76,6 +81,7 @@ export async function fetchMyInvites(): Promise<
       note: row.note,
       createdAt: row.created_at,
       sentAt: row.sent_at,
+      asMentor: row.as_mentor === true,
     })),
   };
 }
@@ -103,6 +109,8 @@ export async function createMyInvite(input: {
   noOrganization?: boolean;
   /** Quoted in the email, from the inviter, optional (20261117160000). */
   message?: string | null;
+  /** Whoever joins on it becomes a mentor of its organization (20261119200000). */
+  asMentor?: boolean;
 }): Promise<{ ok: boolean; error?: string; sendError?: string }> {
   const name = input.name?.trim() ? input.name.trim() : null;
   const message = input.message?.trim() ? input.message.trim() : null;
@@ -142,6 +150,16 @@ export async function createMyInvite(input: {
   const created: unknown = result.data;
   const id = (created as { id?: unknown } | null)?.id;
   if (typeof id !== 'string') return { ok: true, sendError: SEND_FAILED };
+  // A mentor's invite is marked before its email goes (20261119200000). If
+  // that fails, no email: the invite would make a member, not a mentor.
+  if (input.asMentor) {
+    const marked = await setInvitesMentor([id], true);
+    if (!marked.ok)
+      return {
+        ok: true,
+        sendError: `It is on the list, but not as a mentor (${marked.error}), so the email has not gone. Withdraw it and add them again.`,
+      };
+  }
   const sent = await sendInvite(id);
   return sent.ok ? { ok: true } : { ok: true, sendError: addedButNotSent(sent.error) };
 }

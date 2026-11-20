@@ -105,3 +105,26 @@ export function useMyMentorOrganizations(memberId: string | null): RepresentedOr
 
   return organizations;
 }
+
+/**
+ * Marks the inviter's own pending invites so whoever joins on them becomes a
+ * mentor of the organization each is for (20261119200000, the owner,
+ * 2026-11-19). Before the emails go: all of them or none.
+ */
+export async function setInvitesMentor(
+  inviteIds: string[],
+  mentor: boolean,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  if (inviteIds.length === 0) return { ok: true };
+  try {
+    const { error } = await getSupabase().rpc('set_invites_mentor', {
+      p_invites: inviteIds,
+      p_mentor: mentor,
+    });
+    return error
+      ? { ok: false, error: describeError(error, 'They were not invited as mentors.') }
+      : { ok: true };
+  } catch (e) {
+    return { ok: false, error: describeThrown(e, 'They were not invited as mentors.') };
+  }
+}
