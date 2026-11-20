@@ -169,7 +169,14 @@ export function Post({
       type="button"
       onClick={onReply}
       aria-label={answers ? 'Answer this question' : `Reply to ${whose} post`}
-      className="relative inline-flex min-h-11 items-center rounded-full px-3 text-[0.6875rem] text-grey hover:bg-tint"
+      className={
+        answers
+          ? // The home card's Answer, gold (answer-box.tsx; the owner, 2026-11-19:
+            // "highlight the answer button. Similar to how it appears on the
+            // home card").
+            'relative inline-flex min-h-[2.25rem] items-center rounded-full bg-gold px-4 font-bold font-head text-[0.8125rem] text-on-gold transition-colors hover:bg-gold-hi'
+          : 'relative inline-flex min-h-11 items-center rounded-full px-3 text-[0.6875rem] text-grey hover:bg-tint'
+      }
     >
       {answers ? 'Answer question' : 'Reply'}
     </button>
