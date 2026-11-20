@@ -192,9 +192,11 @@ describe('asking from Home', () => {
     sessionStorage.clear();
 
     renderAsk();
-    await user.click(screen.getByRole('button', { name: 'Resume draft' }));
-    expect(screen.getByRole('textbox', { name })).toHaveFocus();
-    expect(screen.getByRole('textbox', { name })).toHaveValue('Half a question');
+    const restored = screen.getByRole('textbox', { name });
+    expect(restored).toHaveValue('Half a question');
+    expect(screen.getByRole('checkbox', { name: 'Anonymous' })).toBeChecked();
+    await user.click(restored);
+    expect(restored).toHaveFocus();
     await user.click(screen.getByRole('button', { name: 'Post' }));
     expect(db.created[0]).toEqual([
       'general',

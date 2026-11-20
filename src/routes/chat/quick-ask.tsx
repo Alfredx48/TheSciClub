@@ -222,22 +222,7 @@ export function QuickAsk({
       />
       {mention.list}
       {started ? (
-        <div className="flex flex-wrap items-center justify-between gap-x-2">
-          <DraftStatus storage={storage} restored={text === recovered?.text} className="mt-1" />
-          {text === recovered?.text ? (
-            <button
-              type="button"
-              className="min-h-11 rounded px-2 font-semibold text-[0.875rem] text-emphasis underline"
-              onClick={() => {
-                const field = box.current;
-                field?.focus();
-                field?.setSelectionRange(field.value.length, field.value.length);
-              }}
-            >
-              Resume draft
-            </button>
-          ) : null}
-        </div>
+        <DraftStatus storage={storage} restored={text === recovered?.text} className="mt-1" />
       ) : null}
 
       {expanded ? (
