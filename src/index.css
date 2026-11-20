@@ -197,6 +197,9 @@
   --band-7: #8a2a8c;
   --band-8: #5e2fa0;
   --band-9: #3b0d73;
+  /* Wheelie wheels are drawn in the band colours as lines, not fills; on a dark
+     page they are mixed this far towards white so violet and dark purple show. */
+  --wheel-lift: 0%;
   /* The same stages as words (the owner, 2026-11-17: the words in the colour, no
      band; brighter, same hues, 2026-11-17). On a light page, each past 4.5:1 on
      --paper and --canvas (theme-contrast.test.ts); --stage-*-light
@@ -749,6 +752,7 @@ a[href]:not([class^="rounded"]):not([class*=" rounded"]):not(:has(div, p, img, h
   --room-family: #f2a7c3;
   --room-kit: #86d1b2;
   --room-places: #83cde3;
+  --wheel-lift: 25%;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -788,6 +792,7 @@ a[href]:not([class^="rounded"]):not([class*=" rounded"]):not(:has(div, p, img, h
     --room-family: #f2a7c3;
     --room-kit: #86d1b2;
     --room-places: #83cde3;
+    --wheel-lift: 25%;
   }
 }
 

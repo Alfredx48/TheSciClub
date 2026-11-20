@@ -37,7 +37,7 @@ import { Chips, childrenLabel, DetailRow, Section } from '@/routes/peers/profile
 
 export { childrenLabel };
 
-import { WheelBadge } from '@/components/wheel-badge';
+import { NameAndWheel } from '@/components/wheel-badge';
 import { type Role, RoleOrganizations } from '@/routes/peers/representation-tags';
 import { isAdminOfAny, isMentor, RolePill } from '@/routes/peers/role-pill';
 import { type BrowseMember, cityAndState, type RepresentedOrganization } from '@/types/domain';
@@ -810,7 +810,11 @@ function MemberProfile({ onBlocked }: { onBlocked: () => void }) {
               ) : null}
               <div className="pointer-events-none absolute inset-x-0 bottom-0 px-[18px] pb-3.5">
                 <h1 className="font-extrabold font-display text-[1.875rem] text-white leading-tight tracking-[-0.01em]">
-                  {member.displayName}
+                  <NameAndWheel
+                    name={member.displayName}
+                    memberId={member.id}
+                    className="pointer-events-auto ml-2 h-[0.75em] w-[0.75em] align-[-0.02em]"
+                  />
                 </h1>
                 {member.username ? (
                   <p className="mt-0.5 font-semibold text-[0.9375rem] text-white">
@@ -821,14 +825,7 @@ function MemberProfile({ onBlocked }: { onBlocked: () => void }) {
                 <p className="mt-1 text-[0.875rem] text-white">
                   <SummaryLine member={member} />
                 </p>
-                <span className="mt-1.5 flex items-center gap-1.5">
-                  <InjuryStageNote member={member} />
-                  <WheelBadge
-                    memberId={member.id}
-                    name={member.displayName}
-                    className="pointer-events-auto h-[1.375rem] w-[1.375rem]"
-                  />
-                </span>
+                <InjuryStageNote member={member} className="mt-1.5" />
                 {injury ? <p className="mt-1 text-[0.78125rem] text-white/90">{injury}</p> : null}
               </div>
             </div>

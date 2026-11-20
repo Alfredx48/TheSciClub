@@ -346,7 +346,12 @@ export function Post({
                 </span>
               ) : null}
               {author && !anonymous ? (
-                <WheelBadge memberId={author.id} name={author.displayName} className="ml-1.5" />
+                <WheelBadge
+                  memberId={author.id}
+                  name={author.displayName}
+                  // Outside the pill's smaller text: its 0.78125rem pill is 1rem tall.
+                  className="ml-1.5 h-4 w-4 align-[-0.25rem]"
+                />
               ) : null}
             </span>
             {note ? (

@@ -2,7 +2,14 @@ import { useId, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useDialogFocus } from '@/lib/dialog-focus';
 import { cn } from '@/lib/utils';
-import { pointsInWords, SPOKES, useWheeliePoints, type Wheel, wheelOf } from '@/lib/wheelies';
+import {
+  pointsInWords,
+  SPOKES,
+  useWheeliePoints,
+  WHEEL_LEVELS,
+  type Wheel,
+  wheelOf,
+} from '@/lib/wheelies';
 
 /**
  * A member's Wheelie points as a wheelchair wheel beside their name, next to
@@ -22,15 +29,18 @@ export function WheelBadge({
 }: {
   memberId: string | null | undefined;
   /** Whose wheel, for the sheet's heading: "Ana's wheel". */
-  name?: string;
+  name?: string | undefined;
   still?: boolean;
-  className?: string;
+  className?: string | undefined;
 }) {
   const points = useWheeliePoints(memberId);
   const [open, setOpen] = useState(false);
   if (points === null) return null;
   const wheel = wheelOf(points);
-  const said = `Wheel level ${wheel.level.level}, ${wheel.level.name.toLowerCase()}, ${pointsInWords(wheel.points)} Wheelie points`;
+  const said = `Wheel level ${wheel.level.level} of ${WHEEL_LEVELS.length}, ${wheel.level.name.toLowerCase()}, ${pointsInWords(wheel.points)} Wheelie points`;
+  // As tall as the injury pill beside it, top and bottom level (the owner,
+  // 2026-11-20): the pill is an inline span 1.28em tall in its own font, which
+  // the wheel shares where it sits in the same line of text.
   const icon = <WheelIcon wheel={wheel} className="h-full w-full" />;
   if (still) {
     return (
@@ -38,7 +48,7 @@ export function WheelBadge({
         role="img"
         aria-label={said}
         title={said}
-        className={cn('inline-block h-[1.1em] w-[1.1em] flex-none align-[-0.18em]', className)}
+        className={cn('inline-block h-[1.28em] w-[1.28em] flex-none align-[-0.32em]', className)}
       >
         {icon}
       </span>
@@ -57,7 +67,7 @@ export function WheelBadge({
           setOpen(true);
         }}
         className={cn(
-          'relative inline-flex h-[1.1em] w-[1.1em] flex-none items-center justify-center rounded-full align-[-0.18em] after:absolute after:-inset-2.5 after:content-[""]',
+          'relative inline-flex h-[1.28em] w-[1.28em] flex-none items-center justify-center rounded-full align-[-0.32em] after:absolute after:-inset-3.5 after:content-[""]',
           className,
         )}
       >
@@ -76,25 +86,25 @@ export function WheelBadge({
   );
 }
 
-/** The level's colour: the injury pills' ten bands, green to dark purple. */
+/**
+ * The level's colour: the injury pills' ten bands, green to dark purple,
+ * lightened on a dark page (--wheel-lift) so the darkest still show.
+ */
 function levelColor(wheel: Wheel): string {
-  return `var(--band-${wheel.level.level - 1})`;
+  return `color-mix(in oklab, var(--band-${wheel.level.level - 1}), white var(--wheel-lift, 0%))`;
 }
 
+/**
+ * The 2-pager's wheel: a rim, a hub and seven spokes, all lines in the level's
+ * colour; the spokes earned so far solid, the rest faint.
+ */
 export function WheelIcon({ wheel, className }: { wheel: Wheel; className?: string }) {
-  const rim = 8.4;
+  const color = levelColor(wheel);
+  // The rim's outer edge meets the box, so the wheel is as tall as the pill.
+  const rim = 10.9;
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true" className={className}>
-      <circle cx="12" cy="12" r="11.25" fill={levelColor(wheel)} />
-      <circle
-        cx="12"
-        cy="12"
-        r={rim}
-        fill="none"
-        stroke="white"
-        strokeOpacity="0.55"
-        strokeWidth="1.1"
-      />
+      <circle cx="12" cy="12" r={rim} fill="none" stroke={color} strokeWidth="2.2" />
       {Array.from({ length: SPOKES }, (_, i) => {
         const angle = ((-90 + (i * 360) / SPOKES) * Math.PI) / 180;
         const filled = i < wheel.spokes;
@@ -104,16 +114,16 @@ export function WheelIcon({ wheel, className }: { wheel: Wheel; className?: stri
             key={i}
             x1="12"
             y1="12"
-            x2={12 + rim * Math.cos(angle)}
-            y2={12 + rim * Math.sin(angle)}
-            stroke="white"
-            strokeOpacity={filled ? 1 : 0.3}
-            strokeWidth={filled ? 1.7 : 1.1}
+            x2={12 + (rim - 1.2) * Math.cos(angle)}
+            y2={12 + (rim - 1.2) * Math.sin(angle)}
+            stroke={color}
+            strokeOpacity={filled ? 1 : 0.5}
+            strokeWidth={filled ? 2 : 1.6}
             strokeLinecap="round"
           />
         );
       })}
-      <circle cx="12" cy="12" r="2.1" fill="white" />
+      <circle cx="12" cy="12" r="2" fill={color} />
     </svg>
   );
 }
@@ -158,9 +168,11 @@ function WheelSheet({
               tabIndex={-1}
               className="font-bold font-head text-lg leading-tight outline-none"
             >
-              {first ? `${first}’s wheel` : 'Wheel'}: level {wheel.level.level}
+              {first ? `${first}’s wheel` : 'Wheel'}
             </h2>
-            <p className="mt-0.5 text-[0.875rem] text-grey">{wheel.level.name}</p>
+            <p className="mt-0.5 text-[0.875rem] text-grey">
+              Level {wheel.level.level} of {WHEEL_LEVELS.length} · {wheel.level.name}
+            </p>
           </div>
         </div>
         <p className="mt-4 font-extrabold font-head text-[1.5rem] leading-none">
@@ -169,8 +181,8 @@ function WheelSheet({
         </p>
         <p className="mt-2 text-[0.875rem] text-ink2 leading-[1.45]">
           {wheel.next
-            ? `${pointsInWords(wheel.next.from - wheel.points)} more to level ${wheel.next.level}, ${wheel.next.name.toLowerCase()}. Each spoke is a seventh of the way.`
-            : 'The top level.'}
+            ? `${wheel.spokes} of ${SPOKES} spokes filled. ${pointsInWords(wheel.next.from - wheel.points)} more to level ${wheel.next.level}, ${wheel.next.name}.`
+            : `All ${SPOKES} spokes filled: the top level.`}
         </p>
         <p className="mt-3 text-[0.8125rem] text-grey leading-[1.45]">
           Members earn Wheelie points for taking part: asking and answering questions, coming to
@@ -186,5 +198,68 @@ function WheelSheet({
       </div>
     </>,
     document.body,
+  );
+}
+
+/**
+ * A name with its wheel after it, the wheel kept on the line of the name's
+ * last word, so a long name that wraps never leaves the wheel on a line alone.
+ */
+export function NameAndWheel({
+  name,
+  memberId,
+  still = false,
+  className,
+}: {
+  name: string;
+  memberId: string;
+  still?: boolean;
+  className?: string;
+}) {
+  const words = name.trim().split(/\s+/);
+  const last = words.pop() ?? '';
+  return (
+    <>
+      {words.length ? `${words.join(' ')} ` : null}
+      <span className="whitespace-nowrap">
+        {last}
+        <WheelBadge memberId={memberId} name={name} still={still} className={className} />
+      </span>
+    </>
+  );
+}
+
+/**
+ * The wheel with the count beside it, on a line of its own: a Peers card, under
+ * the injury pill (the owner, 2026-11-20). Over a photograph, so the colour is
+ * lightened further than on a dark page, with a shadow under it; "points" alone
+ * so five figures fit a narrow card on one line.
+ */
+export function WheelPoints({
+  memberId,
+  className,
+}: {
+  memberId: string;
+  className?: string | undefined;
+}) {
+  const points = useWheeliePoints(memberId);
+  if (points === null) return null;
+  const wheel = wheelOf(points);
+  return (
+    <span
+      className={cn('flex items-center gap-1.5 whitespace-nowrap [--wheel-lift:40%]', className)}
+      title={`Wheel level ${wheel.level.level} of ${WHEEL_LEVELS.length}, ${wheel.level.name.toLowerCase()}`}
+    >
+      <WheelIcon
+        wheel={wheel}
+        className="h-[1.15em] w-[1.15em] flex-none drop-shadow-[0_1px_3px_rgba(0,0,0,.8)]"
+      />
+      <span>
+        {pointsInWords(wheel.points)} points
+        <span className="sr-only">
+          , Wheelie points, wheel level {wheel.level.level} of {WHEEL_LEVELS.length}
+        </span>
+      </span>
+    </span>
   );
 }
