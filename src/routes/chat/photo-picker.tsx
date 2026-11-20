@@ -1,7 +1,7 @@
 import { ImagePlus, X } from 'lucide-react';
-import { type Ref, useEffect, useImperativeHandle, useRef, useState } from 'react';
+import { type Ref, useEffect, useId, useImperativeHandle, useRef, useState } from 'react';
 import { PhotoViewer } from '@/components/photo-viewer';
-import { attachmentProblem, MAX_ATTACHMENTS } from '@/lib/chat/attachments';
+import { attachmentProblem, MAX_ATTACHMENTS, photosFromLibrary } from '@/lib/chat/attachments';
 import type { PhotoTarget } from '@/lib/paste-photos';
 
 /**
@@ -57,23 +57,21 @@ export function PhotoPicker({
   ref?: Ref<PhotoTarget>;
 }) {
   const input = useRef<HTMLInputElement | null>(null);
+  const slotsId = useId();
   const [problem, setProblem] = useState<string | null>(null);
 
-  function add(list: File[]) {
+  const remaining = Math.max(0, MAX_ATTACHMENTS - files.length - already);
+  const full = remaining === 0;
+
+  function add(list: File[], overflow: string | null = null) {
     if (disabled) return;
     const said = attachmentProblem(list, files.length + already);
-    setProblem(said);
+    setProblem(said ?? overflow);
     if (said) return;
     onChange([...files, ...list]);
   }
 
   useImperativeHandle(ref, () => ({ add }));
-
-  function choose(chosen: FileList | null) {
-    add(chosen ? [...chosen] : []);
-  }
-
-  const full = files.length + already >= MAX_ATTACHMENTS;
 
   return (
     <>
@@ -81,12 +79,14 @@ export function PhotoPicker({
         ref={input}
         type="file"
         accept="image/*"
-        multiple
+        multiple={remaining > 1}
+        disabled={disabled || full}
         className="sr-only"
         tabIndex={-1}
         aria-hidden="true"
         onChange={(event) => {
-          choose(event.target.files);
+          const { photos, overflow } = photosFromLibrary(event.target.files, remaining);
+          if (photos.length) add(photos, overflow);
           // So the same photograph can be chosen again after being taken back.
           event.target.value = '';
         }}
@@ -98,15 +98,24 @@ export function PhotoPicker({
           input.current?.click();
         }}
         aria-label={full ? `${MAX_ATTACHMENTS} photographs is the most` : addLabel}
+        aria-describedby={full ? undefined : slotsId}
         title={full ? `${MAX_ATTACHMENTS} photographs is the most` : addLabel}
         className={
           compact
-            ? 'grid h-11 w-11 flex-none place-items-center rounded-full bg-tint text-emphasis transition-colors hover:bg-line disabled:opacity-35'
+            ? 'flex h-11 w-11 flex-none flex-col items-center justify-center gap-0.5 rounded-full bg-tint text-emphasis transition-colors hover:bg-line disabled:opacity-35'
             : 'inline-flex min-h-[44px] items-center gap-2 rounded-[13px] border-[1.6px] border-line bg-paper px-3.5 font-bold font-head text-[0.875rem] text-emphasis transition-colors hover:bg-tint disabled:opacity-35'
         }
       >
         <ImagePlus className="h-[19px] w-[19px]" aria-hidden="true" />
         {compact ? null : full ? 'Four is the most' : addLabel}
+        {!full ? (
+          <span
+            id={slotsId}
+            className={compact ? 'text-[0.625rem] leading-none' : 'text-[0.75rem] text-ink2'}
+          >
+            {remaining} left
+          </span>
+        ) : null}
       </button>
       {problem ? (
         <p className="mt-1.5 text-[0.78125rem] text-destructive leading-[1.45]" role="alert">

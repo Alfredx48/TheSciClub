@@ -55,6 +55,15 @@ export function attachmentProblem(files: File[], alreadyAttached: number): strin
   return null;
 }
 
+export function photosFromLibrary(chosen: FileList | null, remaining: number) {
+  const selected = Array.from(chosen ?? []);
+  const photos = selected.slice(0, remaining);
+  return {
+    photos,
+    overflow: selected.length > photos.length ? 'Only the photos that fit were added.' : null,
+  };
+}
+
 /** `threads/<thread_id>` or `rooms/<room_id>` — the folder the read policy checks. */
 export function attachmentFolder(kind: 'thread' | 'room', id: string): string {
   return kind === 'thread' ? `threads/${id}` : `rooms/${id}`;

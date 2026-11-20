@@ -1,6 +1,6 @@
 import { ImagePlus } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
-import { attachmentProblem } from '@/lib/chat/attachments';
+import { useEffect, useId, useRef, useState } from 'react';
+import { attachmentProblem, photosFromLibrary } from '@/lib/chat/attachments';
 import { MAX_MORE_PHOTOS, type MorePhotoChange } from '@/lib/events';
 import { usePhotoUrl } from '@/lib/photos';
 
@@ -32,16 +32,15 @@ export function MorePicturesField({
   fieldClassName: string;
 }) {
   const input = useRef<HTMLInputElement | null>(null);
+  const slotsId = useId();
   const [problem, setProblem] = useState<string | null>(null);
 
-  function add(files: File[]) {
+  const remaining = Math.max(0, max - value.length);
+
+  function add(files: File[], overflow: string | null) {
     if (files.length === 0) return;
-    if (value.length + files.length > max) {
-      setProblem(`Up to ${max} pictures.`);
-      return;
-    }
     const said = files.map((file) => attachmentProblem([file], 0)).find(Boolean) ?? null;
-    setProblem(said);
+    setProblem(said ?? overflow);
     if (said) return;
     onChange([
       ...value,
@@ -62,12 +61,14 @@ export function MorePicturesField({
         ref={input}
         type="file"
         accept="image/*"
-        multiple
+        multiple={remaining > 1}
+        disabled={remaining === 0}
         className="sr-only"
         tabIndex={-1}
         aria-hidden="true"
         onChange={(e) => {
-          add(e.target.files ? [...e.target.files] : []);
+          const { photos, overflow } = photosFromLibrary(e.target.files, remaining);
+          add(photos, overflow);
           e.target.value = '';
         }}
       />
@@ -92,14 +93,19 @@ export function MorePicturesField({
         </ul>
       ) : null}
 
-      {value.length < max ? (
+      {remaining > 0 ? (
         <button
           type="button"
           onClick={() => input.current?.click()}
+          aria-label={addLabel}
+          aria-describedby={slotsId}
           className="mt-2 inline-flex min-h-[44px] items-center gap-2 rounded-[13px] border-[1.6px] border-line bg-paper px-3.5 font-bold font-head text-[0.875rem] text-emphasis transition-colors hover:bg-tint"
         >
           <ImagePlus className="h-[19px] w-[19px]" aria-hidden="true" />
           {addLabel}
+          <span id={slotsId} className="text-[0.75rem] text-ink2">
+            {remaining} left
+          </span>
         </button>
       ) : null}
       {problem ? (

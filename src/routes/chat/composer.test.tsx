@@ -104,13 +104,22 @@ describe('the composer', () => {
     expect(files.map((f) => f.name)).toEqual(['b.jpg']);
   });
 
-  it('refuses a fifth photograph in a sentence, and keeps the four', async () => {
+  it('keeps the photos that fit and opens the library in single-select mode for the last slot', async () => {
     renderComposer();
     const user = userEvent.setup();
     const input = fileInput();
-    await user.upload(input, [photo('1.jpg'), photo('2.jpg'), photo('3.jpg'), photo('4.jpg')]);
+    await user.upload(
+      input,
+      ['1', '2', '3', '4', '5'].map((name) => photo(`${name}.jpg`)),
+    );
     expect(screen.getAllByRole('button', { name: /Take back/ })).toHaveLength(4);
-    // The button says why it is unavailable rather than going quiet.
+    expect(screen.queryByRole('button', { name: 'Take back 5.jpg' })).toBeNull();
+
+    await user.click(screen.getByRole('button', { name: 'Take back 4.jpg' }));
+    expect(input.multiple).toBe(false);
+    await user.upload(input, [photo('6.jpg'), photo('7.jpg')]);
+    expect(screen.getByRole('button', { name: 'Take back 6.jpg' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Take back 7.jpg' })).toBeNull();
     expect(screen.getByRole('button', { name: '4 photographs is the most' })).toBeDisabled();
   });
 

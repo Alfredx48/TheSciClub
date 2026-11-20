@@ -604,6 +604,8 @@ All live. Migration headers and the files named say how and why.
   forms also keep fields and selections. Signing out clears drafts.
   New posts, replies, messages, events and organization logos keep their
   unsent photos in IndexedDB. Recovery makes no network requests.
+  Pickers show the slots left, use single selection for the last slot,
+  and keep the pictures that fit from a larger library selection.
 - **Privacy at the API**: events, series, tag links and RSVP counts are
   members-only; `chat_authors` keeps its security barrier; organizations stay
   readable for the closed door.

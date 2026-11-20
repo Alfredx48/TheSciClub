@@ -16,6 +16,7 @@ import {
   attachmentProblem,
   deleteAttachments,
   MAX_ATTACHMENTS,
+  photosFromLibrary,
   uploadAttachments,
   useSmallCopies,
 } from '@/lib/chat/attachments';
@@ -303,12 +304,13 @@ export function PostComposer({
   const kept = keeps.length === attachments.length ? null : keeps;
   const below = attachments.filter((path) => !placedBefore.has(path));
   const already = keeps.length;
+  const remaining = Math.max(0, MAX_ATTACHMENTS - already - new Set(inWords).size);
 
   /** Names for pictures to put in, or null when they cannot be (the sentence says why). */
-  function addPhotos(files: File[]): string[] | null {
+  function addPhotos(files: File[], overflow: string | null = null): string[] | null {
     if (loadingPhotos) return null;
     const problem = attachmentProblem(files, already + new Set(inWords).size);
-    setPhotoProblem(problem);
+    setPhotoProblem(problem ?? overflow);
     if (problem) return null;
     return files.map((file) => {
       named.current += 1;
@@ -381,8 +383,8 @@ export function PostComposer({
     else applyText(insertLink(draft, linking.start, linking.end, read.url));
   }
 
-  function putPhotos(files: File[]) {
-    const paths = addPhotos(files);
+  function putPhotos(files: File[], overflow: string | null = null) {
+    const paths = addPhotos(files, overflow);
     if (!paths) return;
     if (shown === 'rich') {
       rich.current?.insertPhotos(paths);
@@ -526,7 +528,7 @@ export function PostComposer({
 
   const label = editing ? `Edit your ${editing.noun}` : placeholder;
   const tools = !editing?.plain;
-  const full = already + new Set(inWords).size >= MAX_ATTACHMENTS;
+  const full = remaining === 0;
   const button =
     'grid h-11 w-10 flex-none place-items-center rounded-[10px] text-emphasis transition-colors hover:bg-tint disabled:opacity-35 aria-pressed:bg-tint';
 
@@ -807,7 +809,7 @@ export function PostComposer({
       <div className="flex items-center gap-1 border-line border-t px-2 py-2">
         <button
           type="button"
-          disabled={sending || full}
+          disabled={sending || loadingPhotos || full}
           onMouseDown={(event) => {
             event.preventDefault();
           }}
@@ -815,23 +817,31 @@ export function PostComposer({
             picker.current?.click();
           }}
           title={full ? `${MAX_ATTACHMENTS} photographs is the most` : 'Add a photograph'}
+          aria-label={full ? undefined : 'Photo'}
+          aria-describedby={full ? undefined : `${id}-photo-slots`}
           className="inline-flex min-h-11 items-center gap-1.5 rounded-[10px] px-2.5 font-semibold text-[0.84375rem] text-emphasis transition-colors hover:bg-tint disabled:opacity-35"
         >
           <ImagePlus className="h-[18px] w-[18px]" aria-hidden="true" />
           {full ? 'Four is the most' : 'Photo'}
+          {!full ? (
+            <span id={`${id}-photo-slots`} className="text-[0.75rem] text-ink2">
+              {remaining} left
+            </span>
+          ) : null}
         </button>
         <input
           ref={picker}
           type="file"
           accept="image/*"
-          multiple
+          multiple={remaining > 1}
+          disabled={sending || loadingPhotos || full}
           className="sr-only"
           tabIndex={-1}
           aria-hidden="true"
           onChange={(event) => {
-            const chosen = event.target.files ? [...event.target.files] : [];
+            const { photos, overflow } = photosFromLibrary(event.target.files, remaining);
             event.target.value = '';
-            if (chosen.length) putPhotos(chosen);
+            if (photos.length) putPhotos(photos, overflow);
           }}
         />
         <button
