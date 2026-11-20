@@ -1,5 +1,10 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { photonUrl, suggestAddresses, toSuggestions } from '@/lib/address-suggestions';
+import {
+  photonUrl,
+  suggestAddresses,
+  toCitySuggestions,
+  toSuggestions,
+} from '@/lib/address-suggestions';
 
 /** Shaped as photon.komoot.io answered on 2026-10-28. */
 const feature = (properties: Record<string, unknown>) => ({
@@ -184,5 +189,28 @@ describe('asking Photon', () => {
     const controller = new AbortController();
     expect(await suggestAddresses('800 Potter', controller.signal)).toHaveLength(1);
     expect(asked.mock.calls[0]?.[1].signal).toBe(controller.signal);
+  });
+});
+
+// The owner, 2026-11-20: "Yes suggest cities".
+describe("Photon's answer as cities to fill in", () => {
+  it('asks its city layer, and gives each US city once with its two-letter state', () => {
+    expect(new URL(photonUrl('Oakl', 'city')).searchParams.get('layer')).toBe('city');
+    expect(new URL(photonUrl('800 Pot')).searchParams.has('layer')).toBe(false);
+    const city = (name: string, state: string, countrycode = 'US') =>
+      feature({ osm_id: name.length, type: 'city', name, state, countrycode });
+    expect(
+      toCitySuggestions({
+        features: [
+          city('Oakland', 'California'),
+          city('Oakland', 'California'),
+          city('Oakley', 'California'),
+          city('Oakville', 'Ontario', 'CA'),
+        ],
+      }).map((s) => [s.city, s.state, s.line, s.street]),
+    ).toEqual([
+      ['Oakland', 'CA', 'Oakland, CA', ''],
+      ['Oakley', 'CA', 'Oakley, CA', ''],
+    ]);
   });
 });

@@ -131,17 +131,19 @@ export function OrganizationLocations({
                       });
                     }}
                   />
-                  <label className="text-ink">
-                    City
-                    <input
-                      className={field}
-                      maxLength={160}
-                      value={place.city}
-                      onChange={(e) => {
-                        set(index, { city: e.target.value });
-                      }}
-                    />
-                  </label>
+                  <AddressField
+                    kind="city"
+                    label="City"
+                    className={field}
+                    maxLength={160}
+                    value={place.city}
+                    onChange={(city) => {
+                      set(index, { city });
+                    }}
+                    onPick={(found) => {
+                      set(index, { city: found.city.slice(0, 160), state: found.state });
+                    }}
+                  />
                   <label className="text-ink">
                     State
                     <select

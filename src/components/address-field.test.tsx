@@ -2,7 +2,7 @@ import { act, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { AddressField } from '@/components/address-field';
+import { AddressField, revealAboveKeyboard } from '@/components/address-field';
 import type { AddressSuggestion } from '@/lib/address-suggestions';
 
 const place = (housenumber: string, name?: string) => ({
@@ -238,5 +238,46 @@ describe('the street address box', () => {
     expect(screen.queryByRole('listbox')).toBeNull();
     await u.type(box(), ' Street');
     expect(box()).toHaveValue('800 Potter Street');
+  });
+});
+
+// The owner, 2026-11-20: adding an event and an organization on a phone, no
+// suggestions were seen: they were drawn under the keyboard.
+describe('suggestions under the keyboard', () => {
+  it('are scrolled up into what it leaves visible, never taking the box out of sight', () => {
+    const page = document.createElement('div');
+    const box = document.createElement('input');
+    const list = document.createElement('div');
+    page.append(box, list);
+    document.body.append(page);
+    const at = (element: Element, top: number, bottom: number) => {
+      vi.spyOn(element, 'getBoundingClientRect').mockReturnValue({ top, bottom } as DOMRect);
+    };
+    const scrollBy = vi.fn();
+    // jsdom has none; the page's own scroller.
+    Object.defineProperty(document, 'scrollingElement', {
+      configurable: true,
+      value: { scrollBy },
+    });
+    // A keyboard leaves the top 400 visible.
+    const keyboard = { offsetTop: 0, height: 400 };
+
+    at(box, 300, 340);
+    at(list, 344, 600);
+    revealAboveKeyboard(list, box, keyboard);
+    // All of the list would need 208; the box can go up 292 and stay seen.
+    expect(scrollBy).toHaveBeenLastCalledWith({ top: 208 });
+
+    at(box, 100, 140);
+    at(list, 144, 900);
+    revealAboveKeyboard(list, box, keyboard);
+    expect(scrollBy).toHaveBeenLastCalledWith({ top: 92 });
+
+    scrollBy.mockClear();
+    at(list, 144, 380);
+    revealAboveKeyboard(list, box, keyboard);
+    expect(scrollBy).not.toHaveBeenCalled();
+    page.remove();
+    Reflect.deleteProperty(document, 'scrollingElement');
   });
 });

@@ -32,15 +32,51 @@ const text = (value: unknown) => (typeof value === 'string' ? value.trim() : '')
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null;
 
+/**
+ * What a box suggests: a street address, or a city (the owner, 2026-11-20:
+ * "Yes suggest cities", for an event's and an organization's city boxes).
+ */
+export type SuggestionKind = 'address' | 'city';
+
 /** US only; ten asked, as some come back with no street to fill in. */
-export function photonUrl(query: string): string {
+export function photonUrl(query: string, kind: SuggestionKind = 'address'): string {
   const params = new URLSearchParams({
     q: query.trim(),
     limit: '10',
     lang: 'en',
     countrycode: 'US',
   });
+  // Photon's city layer: cities, towns and villages, no streets or buildings.
+  if (kind === 'city') params.set('layer', 'city');
   return `${PHOTON_ORIGIN}/api/?${params.toString()}`;
+}
+
+/** Photon's city layer as suggestions: a US place and its state, no street. */
+export function toCitySuggestions(body: unknown): AddressSuggestion[] {
+  const features = isRecord(body) && Array.isArray(body.features) ? body.features : [];
+  const found: AddressSuggestion[] = [];
+  const seen = new Set<string>();
+  features.forEach((feature: unknown, index) => {
+    const p = isRecord(feature) && isRecord(feature.properties) ? feature.properties : null;
+    if (!p || text(p.countrycode).toUpperCase() !== 'US') return;
+    const state = stateCodeForName(text(p.state));
+    const city = text(p.name);
+    if (!state || !city) return;
+    const line = `${city}, ${state}`;
+    if (seen.has(line)) return;
+    seen.add(line);
+    const osm = `${text(p.osm_type)}${typeof p.osm_id === 'number' ? p.osm_id : ''}`;
+    found.push({
+      key: osm || `${index}`,
+      name: null,
+      street: '',
+      city,
+      state,
+      postalCode: '',
+      line,
+    });
+  });
+  return found.slice(0, SUGGESTIONS_SHOWN);
 }
 
 /** Photon's GeoJSON as suggestions: US streets only, numbered ones first. */
@@ -88,14 +124,16 @@ export function toSuggestions(body: unknown): AddressSuggestion[] {
 export async function suggestAddresses(
   query: string,
   signal: AbortSignal,
+  kind: SuggestionKind = 'address',
 ): Promise<AddressSuggestion[] | null> {
   try {
-    const answer = await fetch(photonUrl(query), {
+    const answer = await fetch(photonUrl(query, kind), {
       signal,
       headers: { Accept: 'application/json' },
     });
     if (!answer.ok) return null;
-    return toSuggestions(await answer.json());
+    const body: unknown = await answer.json();
+    return kind === 'city' ? toCitySuggestions(body) : toSuggestions(body);
   } catch {
     return null;
   }

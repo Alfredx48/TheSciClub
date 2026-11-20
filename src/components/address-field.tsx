@@ -3,8 +3,41 @@ import {
   type AddressSuggestion,
   SUGGEST_AFTER,
   SUGGEST_DELAY_MS,
+  type SuggestionKind,
   suggestAddresses,
 } from '@/lib/address-suggestions';
+
+/**
+ * Scrolls the suggestions up into what the on-screen keyboard leaves visible
+ * (the owner, 2026-11-20: adding an event and an organization on a phone, no
+ * suggestions were seen; they were drawn under the keyboard). Only as far as
+ * keeps the box itself in sight. `view` is the visual viewport, which shrinks
+ * to the part above the keyboard; the rectangles are the layout viewport's.
+ */
+export function revealAboveKeyboard(
+  list: HTMLElement,
+  box: HTMLElement | null,
+  view: Pick<VisualViewport, 'offsetTop' | 'height'> | null = window.visualViewport,
+): void {
+  const top = view ? view.offsetTop : 0;
+  const bottom = view ? view.offsetTop + view.height : window.innerHeight;
+  const over = list.getBoundingClientRect().bottom - bottom;
+  if (over <= 0) return;
+  const room = box ? box.getBoundingClientRect().top - top - 8 : over + 8;
+  const by = Math.min(over + 8, room);
+  if (by <= 0) return;
+  let scroller: HTMLElement | null = list.parentElement;
+  while (scroller) {
+    const { overflowY } = getComputedStyle(scroller);
+    if (
+      (overflowY === 'auto' || overflowY === 'scroll') &&
+      scroller.scrollHeight > scroller.clientHeight
+    )
+      break;
+    scroller = scroller.parentElement;
+  }
+  (scroller ?? document.scrollingElement ?? document.documentElement).scrollBy({ top: by });
+}
 
 /**
  * A street address box that suggests addresses as it is typed: the WAI-ARIA
@@ -21,6 +54,7 @@ export function AddressField({
   maxLength,
   placeholder,
   suggest = true,
+  kind = 'address',
 }: {
   label: ReactNode;
   value: string;
@@ -32,10 +66,13 @@ export function AddressField({
   placeholder?: string;
   /** False: a plain box, nothing sent (an online event's "On Zoom"). */
   suggest?: boolean;
+  /** Street addresses, or cities ('city': the city and its state). */
+  kind?: SuggestionKind;
 }) {
   const id = useId();
   const listId = `${id}-list`;
   const input = useRef<HTMLInputElement>(null);
+  const listBox = useRef<HTMLDivElement>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const asking = useRef<AbortController | null>(null);
   const [suggestions, setSuggestions] = useState<AddressSuggestion[]>([]);
@@ -56,6 +93,9 @@ export function AddressField({
     [],
   );
 
+  const noun = (count: number) =>
+    kind === 'city' ? (count === 1 ? 'city' : 'cities') : count === 1 ? 'address' : 'addresses';
+
   const close = () => {
     setOpen(false);
     setActive(-1);
@@ -73,7 +113,7 @@ export function AddressField({
     timer.current = setTimeout(() => {
       const controller = new AbortController();
       asking.current = controller;
-      void suggestAddresses(typed, controller.signal).then((found) => {
+      void suggestAddresses(typed, controller.signal, kind).then((found) => {
         if (asking.current !== controller) return;
         asking.current = null;
         const list = found ?? [];
@@ -82,7 +122,7 @@ export function AddressField({
         setOpen(shown);
         setSaid(
           shown
-            ? `${list.length} ${list.length === 1 ? 'address' : 'addresses'} suggested. Up and down arrows to choose.`
+            ? `${list.length} ${noun(list.length)} suggested. Up and down arrows to choose.`
             : '',
         );
       });
@@ -99,6 +139,11 @@ export function AddressField({
   };
 
   const expanded = open && suggestions.length > 0;
+  useEffect(() => {
+    // Again when a longer list arrives while it is open.
+    if (expanded && suggestions.length > 0 && listBox.current)
+      revealAboveKeyboard(listBox.current, input.current);
+  }, [expanded, suggestions]);
   const onKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
     const last = suggestions.length - 1;
     if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
@@ -158,8 +203,13 @@ export function AddressField({
         />
       </label>
       {expanded ? (
-        <div className="mt-1 rounded-[11px] border border-line bg-paper shadow-sm">
-          <div id={listId} role="listbox" aria-label="Suggested addresses" className="py-1">
+        <div ref={listBox} className="mt-1 rounded-[11px] border border-line bg-paper shadow-sm">
+          <div
+            id={listId}
+            role="listbox"
+            aria-label={kind === 'city' ? 'Suggested cities' : 'Suggested addresses'}
+            className="py-1"
+          >
             {suggestions.map((suggestion, index) => (
               // biome-ignore lint/a11y/useKeyWithClickEvents: the box's own keys choose it (aria-activedescendant).
               <div

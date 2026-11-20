@@ -46,7 +46,7 @@ describe('adding an organization', () => {
     expect(screen.queryByLabelText('Can vouch for members')).toBeNull();
     await fillIn();
     const location = within(screen.getByRole('group', { name: 'Location 1 (main)' }));
-    await userEvent.type(location.getByRole('textbox', { name: 'City' }), 'Oakland');
+    await userEvent.type(location.getByRole('combobox', { name: 'City' }), 'Oakland');
     await userEvent.selectOptions(location.getByRole('combobox', { name: 'State' }), 'CA');
     first.unmount();
     sessionStorage.clear();
@@ -57,7 +57,7 @@ describe('adding an organization', () => {
 
     const restored = open();
     expect(screen.getByLabelText('Organization name')).toHaveValue('Rolling Hikers');
-    expect(screen.getByRole('textbox', { name: 'City' })).toHaveValue('Oakland');
+    expect(screen.getByRole('combobox', { name: 'City' })).toHaveValue('Oakland');
     await userEvent.click(screen.getByRole('button', { name: 'Send for approval' }));
     await waitFor(() => {
       expect(saved).toHaveBeenCalled();

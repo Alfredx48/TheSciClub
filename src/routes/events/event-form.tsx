@@ -719,8 +719,7 @@ function EventForm({
             set('location', where.slice(0, LOCATION_MAX));
             set('city', found.city.slice(0, CITY_MAX));
             // A picked place's state is a choice: the host no longer moves it.
-            setStateChosen(true);
-            set('state', found.state);
+            chooseState(found.state);
           }}
           placeholder={draft.format === 'online' ? 'On Zoom' : 'Lakeside Park, 666 Bellevue Ave'}
           className={FIELD}
@@ -751,18 +750,22 @@ function EventForm({
           </>
         ) : null}
 
-        <label htmlFor="event-city" className={LABEL}>
-          City (optional)
-        </label>
-        <input
-          id="event-city"
+        {/* Cities suggested as it is typed (the owner, 2026-11-20). */}
+        <AddressField
+          kind="city"
+          label={<span className={LABEL}>City (optional)</span>}
           value={draft.city}
           maxLength={CITY_MAX}
-          onChange={(e) => {
-            set('city', e.target.value);
+          onChange={(city) => {
+            set('city', city);
+          }}
+          onPick={(found) => {
+            set('city', found.city.slice(0, CITY_MAX));
+            // A picked city's state is a choice: the host no longer moves it.
+            chooseState(found.state);
           }}
           placeholder="Oakland"
-          aria-describedby="event-city-hint"
+          describedBy="event-city-hint"
           className={FIELD}
         />
         <p id="event-city-hint" className={HINT}>

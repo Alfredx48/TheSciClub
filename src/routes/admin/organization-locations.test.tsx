@@ -52,7 +52,7 @@ describe("an organization's locations in its editor", () => {
     render(<Editor />);
     await userEvent.click(screen.getByRole('button', { name: 'Add a location' }));
     const third = screen.getByRole('group', { name: 'Location 3' });
-    await userEvent.type(within(third).getByRole('textbox', { name: 'City' }), 'Oakland');
+    await userEvent.type(within(third).getByRole('combobox', { name: 'City' }), 'Oakland');
     await userEvent.click(screen.getByRole('button', { name: 'Remove location 2' }));
     expect(cities()).toEqual(['Berkeley', 'Oakland']);
   });

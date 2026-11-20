@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { AddressField } from '@/components/address-field';
 import { motionReduced } from '@/lib/accessibility';
 import { useAnnounce } from '@/lib/announce';
 import { useFormDraft } from '@/lib/form-draft';
@@ -345,18 +346,21 @@ export function OrganizationEditor({
             </select>
             <span className="text-[0.8125rem] text-grey">The colour of its pin on the map.</span>
           </label>
-          <label className="text-ink">
-            City or region
-            <input
-              className={field}
-              aria-describedby="organization-city-hint"
-              maxLength={160}
-              value={draft.city}
-              onChange={(event) => {
-                setDraft({ ...draft, city: event.target.value });
-              }}
-            />
-          </label>
+          {/* Cities suggested as it is typed (the owner, 2026-11-20); a region is typed. */}
+          <AddressField
+            kind="city"
+            label="City or region"
+            className={field}
+            describedBy="organization-city-hint"
+            maxLength={160}
+            value={draft.city}
+            onChange={(city) => {
+              setDraft({ ...draft, city });
+            }}
+            onPick={(found) => {
+              setDraft({ ...draft, city: found.city.slice(0, 160) });
+            }}
+          />
           <p id="organization-city-hint" className="-mt-2 text-[0.75rem] text-grey">
             Empty when its own site names no place.
           </p>
