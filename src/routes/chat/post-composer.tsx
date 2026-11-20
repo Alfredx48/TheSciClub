@@ -132,8 +132,9 @@ export function PostComposer({
   mentionScope?: MentionScope;
   draftKey?: string | undefined;
   /**
-   * Choices about the post drawn inside the box, over its Post button (the owner, 2026-11-20:
-   * "Can we bring anonymous into the yellow reply box?").
+   * Choices about the post drawn inside the box, under "Replying to" and over the formatting
+   * (the owner, 2026-11-20: "Can we bring anonymous into the yellow reply box?", then "above
+   * the formatting and below replying to").
    */
   options?: ReactNode;
 }) {
@@ -527,6 +528,7 @@ export function PostComposer({
         </div>
       ) : null}
 
+      {options ? <div className="px-3.5">{options}</div> : null}
       <fieldset className="flex flex-wrap items-center border-line border-b px-1 py-0.5">
         <legend className="sr-only">Formatting</legend>
         {tools ? (
@@ -727,7 +729,6 @@ export function PostComposer({
           {photoProblem}
         </p>
       ) : null}
-      {options ? <div className="border-line border-t px-3.5">{options}</div> : null}
       <div className="flex items-center gap-1 border-line border-t px-2 py-2">
         <button
           type="button"

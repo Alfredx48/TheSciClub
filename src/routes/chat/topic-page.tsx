@@ -604,7 +604,7 @@ export default function TopicPage() {
             canGoAnonymous ? (
               <PostOptions
                 id={`reply-${to.id}`}
-                className="mt-0 pb-1"
+                className="mt-1"
                 noun="reply"
                 anonymous={{ checked: replyAnonymously, onChange: chooseAnonymous }}
               />
@@ -868,7 +868,7 @@ export default function TopicPage() {
                     canGoAnonymous && !edited ? (
                       <PostOptions
                         id="reply"
-                        className="mt-0 pb-1"
+                        className="mt-1"
                         noun="reply"
                         anonymous={{ checked: replyAnonymously, onChange: chooseAnonymous }}
                       />
