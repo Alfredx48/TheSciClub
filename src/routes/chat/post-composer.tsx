@@ -118,6 +118,7 @@ export function PostComposer({
   editing = null,
   mentionScope = {},
   draftKey,
+  options,
 }: {
   placeholder: string;
   sendLabel: string;
@@ -130,6 +131,11 @@ export function PostComposer({
   editing?: PostEditing | null;
   mentionScope?: MentionScope;
   draftKey?: string | undefined;
+  /**
+   * Choices about the post drawn inside the box, over its Post button (the owner, 2026-11-20:
+   * "Can we bring anonymous into the yellow reply box?").
+   */
+  options?: ReactNode;
 }) {
   const id = useId();
   const announce = useAnnounce();
@@ -721,6 +727,7 @@ export function PostComposer({
           {photoProblem}
         </p>
       ) : null}
+      {options ? <div className="border-line border-t px-3.5">{options}</div> : null}
       <div className="flex items-center gap-1 border-line border-t px-2 py-2">
         <button
           type="button"
