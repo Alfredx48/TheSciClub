@@ -88,10 +88,12 @@ export interface PostRow {
   edited_at: string | null;
   reply_to: string | null;
   link_preview: unknown;
+  anonymous?: boolean;
+  by_asker?: boolean;
 }
 
 export const POST_COLUMNS =
-  'id, topic_id, author_id, body, attachments, created_at, removed_at, removed_by_admin, edited_at, reply_to, link_preview';
+  'id, topic_id, author_id, body, attachments, created_at, removed_at, removed_by_admin, edited_at, reply_to, link_preview, anonymous, by_asker';
 
 export function toPost(row: PostRow): ChatPost {
   return {
@@ -106,6 +108,8 @@ export function toPost(row: PostRow): ChatPost {
     editedAt: row.edited_at,
     replyTo: row.reply_to,
     linkPreview: toLinkPreview(row.link_preview),
+    anonymous: row.anonymous === true,
+    byAsker: row.by_asker === true,
   };
 }
 
@@ -599,15 +603,20 @@ export async function createTopic(
   attachments: string[] = [],
   /** Asked as a question, drawn larger on Home (20261010010000). */
   question = false,
+  /** Naming nobody (20261120100000): its own function, so a named topic is the same call. */
+  anonymous = false,
 ): Promise<ChatWriteResult<string>> {
-  const { data, error } = (await getSupabase().rpc('chat_create_topic', {
-    room: roomId,
-    title,
-    body,
-    attachments,
-    // Only when true, so an ordinary topic is the same call it always was.
-    ...(question ? { question: true } : {}),
-  })) as Result<string>;
+  const { data, error } = (await getSupabase().rpc(
+    anonymous ? 'chat_create_topic_anonymously' : 'chat_create_topic',
+    {
+      room: roomId,
+      title,
+      body,
+      attachments,
+      // Only when true, so an ordinary topic is the same call it always was.
+      ...(question ? { question: true } : {}),
+    },
+  )) as Result<string>;
   if (error) {
     return {
       ok: false,
@@ -649,6 +658,11 @@ export async function sendPost(
   attachments: string[] = [],
   /** The post this one answers, or null for a post at the top level. */
   replyTo: string | null = null,
+  /**
+   * Naming nobody (20261120100000): no author, and the database keeps who
+   * wrote it where only the writer and an administrator can learn it.
+   */
+  anonymous = false,
 ): Promise<ChatWriteResult<ChatPost>> {
   const { data, error } = (await getSupabase()
     .from('chat_posts')
@@ -657,10 +671,11 @@ export async function sendPost(
     // a parent in another topic, a removed one, or a reply, in a sentence.
     .insert({
       topic_id: topicId,
-      author_id: authorId,
+      author_id: anonymous ? null : authorId,
       body,
       attachments,
       ...(replyTo ? { reply_to: replyTo } : {}),
+      ...(anonymous ? { anonymous: true } : {}),
     })
     .select(POST_COLUMNS)
     .single()) as Result<PostRow>;

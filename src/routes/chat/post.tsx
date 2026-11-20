@@ -1,8 +1,14 @@
 import { cloneElement, type ReactElement, type ReactNode, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { LevelHighlight } from '@/components/injury-stage-pill';
-import { AvatarLink, FormerMemberAvatar, MemberAvatar } from '@/components/member-avatar';
+import {
+  AnonymousAvatar,
+  AvatarLink,
+  FormerMemberAvatar,
+  MemberAvatar,
+} from '@/components/member-avatar';
 import { PartnerLabel } from '@/components/partner-label';
+import { anonymousName, anonymousNote } from '@/lib/chat/anonymous';
 import { firstClubLink } from '@/lib/chat/club-links';
 import type { PostVote } from '@/lib/chat/likes';
 import { chatTime } from '@/lib/chat/time';
@@ -77,8 +83,14 @@ export function Post({
   place,
   composer,
   answers = false,
+  writer,
   children,
 }: {
+  /**
+   * Who wrote an anonymous post, where the reader may know: themselves, or
+   * any of them to an administrator, by name (20261120100000).
+   */
+  writer?: { you: boolean; name: string | null } | undefined;
   /** A question's own post, at the top: its Reply says Answer question. */
   answers?: boolean;
   /** The box a reply to this post is being written in, drawn under it. */
@@ -153,14 +165,20 @@ export function Post({
   const [hiddenAt, setHiddenAt] = useState<number | null>(null);
   const hidden = replies > 0 && hiddenAt === replies;
   const repliesId = `replies-${post.id}`;
-  const name = author ? author.displayName : 'a deleted member';
+  const anonymous = post.anonymous === true;
+  const name = anonymous
+    ? anonymousName(post.byAsker)
+    : author
+      ? author.displayName
+      : 'a deleted member';
+  const note = anonymous ? anonymousNote(writer) : null;
   // The club's own event or topic draws its own card (club-link-card.tsx).
   const clubLink = post.removedAt ? null : firstClubLink(post.body);
   // Photographs its words show in place; the grid has the rest.
   const shownBody = !!post.body && !hideBody && !repeatsTitle;
   const placed = shownBody ? new Set(photoPaths(post.body)) : new Set<string>();
   const below = post.attachments.filter((path) => !placed.has(path));
-  const whose = canEdit ? 'your' : `${name}'s`;
+  const whose = canEdit ? 'your' : anonymous ? 'the anonymous' : `${name}'s`;
   const control =
     'font-semibold text-[0.75rem] text-grey underline decoration-line underline-offset-2';
 
@@ -221,7 +239,7 @@ export function Post({
       ) : canReport ? (
         <ReportControl
           reported={reported}
-          label={`Report ${name}'s post`}
+          label={`Report ${whose} post`}
           onReport={onReport}
           buttonClassName={`${control} hover:text-destructive`}
           noteClassName="font-semibold text-[0.75rem] text-grey"
@@ -262,23 +280,29 @@ export function Post({
       {hideBody || opening ? (
         <h2 className="sr-only">{hideBody ? 'The question' : 'The post'}</h2>
       ) : (
-        <div className="flex items-center gap-2.5">
-          <AvatarLink memberId={author?.id} hasProfile={author?.hasProfile}>
-            {author ? (
-              <MemberAvatar
-                id={author.id}
-                displayName={author.displayName}
-                photoPath={author.photoPath}
-                photoAlt={author.photoAlt}
-              />
-            ) : (
-              <FormerMemberAvatar />
-            )}
-          </AvatarLink>
+        <div className={cn('flex gap-2.5', note ? 'items-start' : 'items-center')}>
+          {anonymous ? (
+            <AnonymousAvatar />
+          ) : (
+            <AvatarLink memberId={author?.id} hasProfile={author?.hasProfile}>
+              {author ? (
+                <MemberAvatar
+                  id={author.id}
+                  displayName={author.displayName}
+                  photoPath={author.photoPath}
+                  photoAlt={author.photoAlt}
+                />
+              ) : (
+                <FormerMemberAvatar />
+              )}
+            </AvatarLink>
+          )}
 
           <span className="min-w-0 flex-1">
             <span className="block font-extrabold font-head text-[0.875rem] text-ink">
-              {author ? (
+              {anonymous ? (
+                name
+              ) : author ? (
                 author.hasProfile ? (
                   <Link to={`/peers/${author.id}`} className="underline-offset-2 hover:underline">
                     {author.displayName}
@@ -303,6 +327,11 @@ export function Post({
                 </span>
               ) : null}
             </span>
+            {note ? (
+              // The writer and administrators only: chat_anonymous_writers
+              // names the writer to nobody else.
+              <span className="block text-[0.75rem] text-grey">{note}</span>
+            ) : null}
             <PartnerLabel memberId={author?.id} />
             <span className="block text-[0.78125rem] text-grey">
               {chatTime(post.createdAt)}
@@ -330,12 +359,15 @@ export function Post({
         <PostBody
           text={post.body}
           photos={post.attachments}
-          from={author?.displayName ?? 'a deleted member'}
+          from={anonymous ? name : (author?.displayName ?? 'a deleted member')}
           className={POST_TEXT}
         />
       ) : null}
       {below.length > 0 ? (
-        <AttachmentGrid paths={below} from={author?.displayName ?? 'a deleted member'} />
+        <AttachmentGrid
+          paths={below}
+          from={anonymous ? name : (author?.displayName ?? 'a deleted member')}
+        />
       ) : null}
       {clubLink ? (
         <ClubLinkCard link={clubLink} />

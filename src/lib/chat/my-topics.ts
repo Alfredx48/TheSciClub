@@ -55,10 +55,26 @@ export function useMyTopics(userId: string | null) {
     if (!userId) return;
     setError(null);
     try {
-      const { data, error: failure } = (await getSupabase()
+      const supabase = getSupabase();
+      // An anonymous topic has no author; the member's own come by id
+      // (20261120100000).
+      const anonymous = (await supabase.rpc('my_anonymous_topic_ids')) as {
+        data: string[] | null;
+        error: Failure | null;
+      };
+      if (anonymous.error) {
+        setError(describeError(anonymous.error, 'Could not load your posts.'));
+        return;
+      }
+      const anonymousIds = anonymous.data ?? [];
+      const mine =
+        anonymousIds.length > 0
+          ? `author_id.eq.${userId},id.in.(${anonymousIds.join(',')})`
+          : `author_id.eq.${userId}`;
+      const { data, error: failure } = (await supabase
         .from('chat_topics')
         .select('id, room_id, title, created_at, reply_count, is_question')
-        .eq('author_id', userId)
+        .or(mine)
         .order('created_at', { ascending: false })
         .limit(500)) as { data: Row[] | null; error: Failure | null };
       if (failure) {

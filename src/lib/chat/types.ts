@@ -213,6 +213,13 @@ export interface ChatPost {
   replyTo: string | null;
   /** The first link's page, filled in by the club a moment after posting. */
   linkPreview: LinkPreview | null;
+  /**
+   * Written anonymously (20261120100000): no author, and "Anonymous" where the
+   * name goes. Absent where a screen did not read it (Home's feed).
+   */
+  anonymous?: boolean;
+  /** Anonymous, by whoever asked the anonymous question it is under. */
+  byAsker?: boolean;
 }
 
 /**

@@ -336,7 +336,7 @@ describe('answering a question from Home', () => {
     await user.click(screen.getByRole('button', { name: 'Answer Best cushion?' }));
     await user.type(screen.getByRole('textbox', { name: /Your answer/ }), 'A ROHO.');
     await user.click(screen.getByRole('button', { name: 'Post answer' }));
-    expect(sent.calls).toEqual([['q1', 'me', 'A ROHO.']]);
+    expect(sent.calls).toEqual([['q1', 'me', 'A ROHO.', [], null, false]]);
     expect(
       await screen.findByText('at /chat/rooms/bowel/topics/q1 with {"from":"home"}'),
     ).toBeInTheDocument();

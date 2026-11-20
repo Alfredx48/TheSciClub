@@ -1,3 +1,4 @@
+import { HatGlasses } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { usePhoto } from '@/lib/use-photo';
 import { cn } from '@/lib/utils';
@@ -122,6 +123,25 @@ export function FormerMemberAvatar({ className }: { className?: string | undefin
       )}
     >
       —
+    </span>
+  );
+}
+
+/**
+ * The tile for an anonymous post (20261120100000): the former member's square,
+ * with a hat and glasses rather than a dash, so "Anonymous" never reads as
+ * somebody who has left. Decorative; the name beside it says it.
+ */
+export function AnonymousAvatar({ className }: { className?: string | undefined }) {
+  return (
+    <span
+      aria-hidden="true"
+      className={cn(
+        'grid h-[34px] w-[34px] flex-none place-items-center rounded-[11px] bg-tint text-ink2',
+        className,
+      )}
+    >
+      <HatGlasses className="h-[58%] w-[58%]" strokeWidth={2} />
     </span>
   );
 }

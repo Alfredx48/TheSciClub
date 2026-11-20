@@ -7,6 +7,7 @@ import { roomsByCategory, useChatRooms } from '@/lib/chat/rooms';
 import { createTopic } from '@/lib/chat/topics';
 import type { ChatRoom } from '@/lib/chat/types';
 import { describeThrown } from '@/lib/describe-error';
+import { AnonymousSwitch } from '@/routes/chat/anonymous-switch';
 import { useMentionSuggestions } from '@/routes/chat/mention-suggestions';
 import { QuestionSwitch } from '@/routes/chat/question-switch';
 import { SimilarTopics } from '@/routes/chat/similar-topics';
@@ -79,6 +80,7 @@ export default function HomeNewPage() {
     onChange: setDetails,
   });
   const [isQuestion, setIsQuestion] = useState(true);
+  const [anonymous, setAnonymous] = useState(false);
   const [saving, setSaving] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
 
@@ -113,7 +115,14 @@ export default function HomeNewPage() {
     setFailure(null);
     const title = question.trim();
     const target = room;
-    createTopic(target.id, title, details.trim() || title, [], isQuestion)
+    createTopic(
+      target.id,
+      title,
+      details.trim() || title,
+      [],
+      isQuestion,
+      anonymous && target.category !== 'Classifieds',
+    )
       .then((result) => {
         if (!result.ok) {
           setFailure(result.error);
@@ -221,6 +230,9 @@ export default function HomeNewPage() {
             <SimilarTopics text={question} linkState={location.state as unknown} />
 
             <QuestionSwitch checked={isQuestion} onChange={setIsQuestion} />
+            {room?.category === 'Classifieds' ? null : (
+              <AnonymousSwitch checked={anonymous} onChange={setAnonymous} />
+            )}
 
             <label
               htmlFor="ask-details"

@@ -2,7 +2,13 @@ import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { LevelHighlight } from '@/components/injury-stage-pill';
 import { LinkedText } from '@/components/linked-text';
-import { AvatarLink, FormerMemberAvatar, MemberAvatar } from '@/components/member-avatar';
+import {
+  AnonymousAvatar,
+  AvatarLink,
+  FormerMemberAvatar,
+  MemberAvatar,
+} from '@/components/member-avatar';
+import { type Anonymity, anonymousName, useAnonymity } from '@/lib/chat/anonymous';
 import { useSeenOnHome } from '@/lib/chat/home-views';
 import type { PostVote } from '@/lib/chat/likes';
 import { chatTime } from '@/lib/chat/time';
@@ -60,6 +66,15 @@ export function TopicCard({
   const seenRef = useSeenOnHome(topic.opening?.id);
   const { organizations } = useOrganizations(topic.title.includes('@'));
   const mentioned = splitMentions(topic.title, organizations).some((part) => part.kind !== 'text');
+  // No author: anonymous, or a member who has left (20261120100000).
+  // Home's posts carry the flag; asked for only when the opening post did not come.
+  const found = useAnonymity('topic', topic.authorId === null && !topic.opening ? topic.id : null);
+  const asking =
+    topic.authorId !== null
+      ? undefined
+      : topic.opening
+        ? { anonymous: topic.opening.anonymous === true, byAsker: false }
+        : (found ?? null);
 
   return (
     <article ref={seenRef} className="relative rounded-[17px] border border-line bg-paper p-3.5">
@@ -128,26 +143,35 @@ export function TopicCard({
           and shape as the first reply's below so the two read as a pair. */}
       <p className="mt-2 flex items-center gap-[9px] text-[0.8125rem] text-ink2 leading-[1.42]">
         {/* Above the title's stretched link, so a tap on it opens their profile. */}
-        <AvatarLink
-          memberId={starter?.id}
-          hasProfile={starter?.hasProfile}
-          state={linkState}
-          className="relative z-[1]"
-        >
-          {starter ? (
-            <MemberAvatar
-              id={starter.id}
-              displayName={starter.displayName}
-              photoPath={starter.photoPath}
-              photoAlt={starter.photoAlt}
-              className="h-[1.75rem] w-[1.75rem] rounded-[9px] text-[0.6875rem]"
-            />
-          ) : (
-            <FormerMemberAvatar className="h-[1.75rem] w-[1.75rem] rounded-[9px] text-[0.6875rem]" />
-          )}
-        </AvatarLink>
+        {asking?.anonymous ? (
+          <AnonymousAvatar className="h-[1.75rem] w-[1.75rem] rounded-[9px]" />
+        ) : (
+          <AvatarLink
+            memberId={starter?.id}
+            hasProfile={starter?.hasProfile}
+            state={linkState}
+            className="relative z-[1]"
+          >
+            {starter ? (
+              <MemberAvatar
+                id={starter.id}
+                displayName={starter.displayName}
+                photoPath={starter.photoPath}
+                photoAlt={starter.photoAlt}
+                className="h-[1.75rem] w-[1.75rem] rounded-[9px] text-[0.6875rem]"
+              />
+            ) : (
+              <FormerMemberAvatar className="h-[1.75rem] w-[1.75rem] rounded-[9px] text-[0.6875rem]" />
+            )}
+          </AvatarLink>
+        )}
         <span className="min-w-0">
-          <BylineName authorId={topic.authorId} author={starter} linkState={linkState} />
+          <BylineName
+            authorId={topic.authorId}
+            author={starter}
+            anonymity={asking}
+            linkState={linkState}
+          />
           {starter?.level ? (
             <>
               {' · '}
@@ -230,29 +254,42 @@ function QuotedReply({
   linkState: unknown;
 }) {
   const label = REPLY_LABEL[reply.kind];
+  const anonymity =
+    reply.post.authorId === null
+      ? { anonymous: reply.post.anonymous === true, byAsker: reply.post.byAsker === true }
+      : undefined;
   return (
     <div className="mt-[11px] border-tint border-l-[2.5px] py-0.5 pl-3">
       <p className="flex items-center gap-[9px]">
-        <AvatarLink
-          memberId={replier?.id}
-          hasProfile={replier?.hasProfile}
-          state={linkState}
-          className="relative z-[1]"
-        >
-          {replier ? (
-            <MemberAvatar
-              id={replier.id}
-              displayName={replier.displayName}
-              photoPath={replier.photoPath}
-              photoAlt={replier.photoAlt}
-              className="h-[1.75rem] w-[1.75rem] rounded-[9px] text-[0.6875rem]"
-            />
-          ) : (
-            <FormerMemberAvatar className="h-[1.75rem] w-[1.75rem] rounded-[9px] text-[0.6875rem]" />
-          )}
-        </AvatarLink>
+        {anonymity?.anonymous ? (
+          <AnonymousAvatar className="h-[1.75rem] w-[1.75rem] rounded-[9px]" />
+        ) : (
+          <AvatarLink
+            memberId={replier?.id}
+            hasProfile={replier?.hasProfile}
+            state={linkState}
+            className="relative z-[1]"
+          >
+            {replier ? (
+              <MemberAvatar
+                id={replier.id}
+                displayName={replier.displayName}
+                photoPath={replier.photoPath}
+                photoAlt={replier.photoAlt}
+                className="h-[1.75rem] w-[1.75rem] rounded-[9px] text-[0.6875rem]"
+              />
+            ) : (
+              <FormerMemberAvatar className="h-[1.75rem] w-[1.75rem] rounded-[9px] text-[0.6875rem]" />
+            )}
+          </AvatarLink>
+        )}
         <span className="min-w-0 font-semibold text-[0.78125rem] text-ink2">
-          <BylineName authorId={reply.post.authorId} author={replier} linkState={linkState} />
+          <BylineName
+            authorId={reply.post.authorId}
+            author={replier}
+            anonymity={anonymity}
+            linkState={linkState}
+          />
           {replier?.level ? (
             <>
               {' · '}
@@ -301,24 +338,32 @@ export type CardLikes = PostVote;
 
 /**
  * A name, "Deleted member", or an ellipsis while loading: an id not yet looked up is a current
- * member, never to be called former.
+ * member, never to be called former. With no author, `anonymity` tells an anonymous post from a
+ * former member's (20261120100000): null while it is being asked, absent where nobody asks.
  */
-export function byline(authorId: string | null, author: ChatAuthor | null): string {
+export function byline(
+  authorId: string | null,
+  author: ChatAuthor | null,
+  anonymity?: Anonymity | null,
+): string {
   if (author) return author.displayName;
-  return authorId ? '…' : 'Deleted member';
+  if (authorId || anonymity === null) return '…';
+  return anonymity?.anonymous ? anonymousName(anonymity.byAsker) : 'Deleted member';
 }
 
 /** The name in a byline, above the title's stretched link, as the picture beside it is. */
 function BylineName({
   authorId,
   author,
+  anonymity,
   linkState,
 }: {
   authorId: string | null;
   author: ChatAuthor | null;
+  anonymity?: Anonymity | null | undefined;
   linkState: unknown;
 }) {
-  const name = byline(authorId, author);
+  const name = byline(authorId, author, anonymity);
   if (!author?.hasProfile) return name;
   return (
     <Link

@@ -151,7 +151,7 @@ describe('asking', () => {
     expect(screen.getByRole('checkbox', { name: /This is a question/ })).toBeChecked();
     await user.click(screen.getByRole('button', { name: 'Post your question' }));
     await waitFor(() => {
-      expect(db.created).toEqual([['general', 'Best cushion?', 'Best cushion?', [], true]]);
+      expect(db.created).toEqual([['general', 'Best cushion?', 'Best cushion?', [], true, false]]);
     });
     expect(db.navigated).toEqual([
       ['/chat/rooms/general/topics/new-topic', { from: 'home', segment: 'topics' }],
@@ -167,7 +167,9 @@ describe('asking', () => {
     await user.selectOptions(roomSelect(), 'equip');
     await user.click(screen.getByRole('button', { name: 'Post your question' }));
     await waitFor(() => {
-      expect(db.created).toEqual([['equip', 'My new chair', 'It arrived today.', [], false]]);
+      expect(db.created).toEqual([
+        ['equip', 'My new chair', 'It arrived today.', [], false, false],
+      ]);
     });
   });
 

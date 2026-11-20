@@ -9,9 +9,15 @@ import {
 } from 'react-router-dom';
 import { BackLink } from '@/components/back-link';
 import { LinkedText } from '@/components/linked-text';
-import { AvatarLink, FormerMemberAvatar, MemberAvatar } from '@/components/member-avatar';
+import {
+  AnonymousAvatar,
+  AvatarLink,
+  FormerMemberAvatar,
+  MemberAvatar,
+} from '@/components/member-avatar';
 import { useAccount } from '@/lib/account';
 import { useMyBlocks } from '@/lib/blocks';
+import { anonymousName, anonymousNote, useAnonymousWriters } from '@/lib/chat/anonymous';
 import { attachmentFolder, deleteAttachments } from '@/lib/chat/attachments';
 import { useAuthorPlaces } from '@/lib/chat/author-places';
 import { useChatAuthors } from '@/lib/chat/authors';
@@ -46,6 +52,7 @@ import { describeThrown } from '@/lib/describe-error';
 import { useHoldScroll } from '@/lib/hold-scroll';
 import { photoPaths } from '@/lib/markdown';
 import { isNative } from '@/lib/standalone';
+import { AnonymousSwitch } from '@/routes/chat/anonymous-switch';
 import { backFromTopic } from '@/routes/chat/back';
 import { ChatBreadcrumb } from '@/routes/chat/breadcrumb';
 import { ListingPrice } from '@/routes/chat/listing-price';
@@ -161,6 +168,14 @@ export default function TopicPage() {
   useTopicRealtime(topicId, topicPosts, edits, likes);
 
   const authors = useChatAuthors([topic?.authorId ?? null, ...posts.map((post) => post.authorId)]);
+  // Which anonymous posts are the reader's, or, to an administrator, whose
+  // (20261120100000).
+  const writers = useAnonymousWriters(topicId, posts);
+  // "Reply anonymously", for this topic; null until the reader chooses.
+  const [anonymousChoice, setAnonymousChoice] = useState<{
+    topicId: string | undefined;
+    on: boolean;
+  } | null>(null);
   // An "@" suggests the people already in the topic first, then everybody else
   // (the owner, 2026-10-29).
   const mentionScope = useMemo(
@@ -381,10 +396,38 @@ export default function TopicPage() {
   }
 
   const starter = topic.authorId ? authors.get(topic.authorId) : null;
+  /** Whoever wrote it: its author, or an anonymous writer the reader may know. */
+  const writerOf = (post: ChatPost) => post.authorId ?? writers.get(post.id)?.memberId ?? null;
+  // An anonymous topic's opening post is anonymous too.
+  const openingPost = posts[0];
+  const anonymousTopic = topic.authorId === null && openingPost?.anonymous === true;
+  const startedByMe =
+    account.userId !== null &&
+    (topic.authorId !== null
+      ? topic.authorId === account.userId
+      : anonymousTopic && writerOf(openingPost) === account.userId);
+  const openingWriter = anonymousTopic ? writers.get(openingPost.id) : undefined;
+  const openingNote = openingWriter
+    ? anonymousNote({
+        you: openingWriter.memberId === account.userId,
+        name: openingWriter.displayName,
+      })
+    : null;
+  // Not in the Marketplace, where a buyer has to reach the seller.
+  const canGoAnonymous = room?.category !== 'Classifieds';
+  // The asker of an anonymous question answers anonymously unless they say
+  // otherwise, so a follow-up never gives them away by accident.
+  const chosen = anonymousChoice && anonymousChoice.topicId === topicId ? anonymousChoice : null;
+  const replyAnonymously = canGoAnonymous && (chosen ? chosen.on : anonymousTopic && startedByMe);
+  const chooseAnonymous = (on: boolean) => {
+    setAnonymousChoice({ topicId, on });
+  };
   const topicTitle = topic.title.trim();
   const counts = topicCounts(topic.replyCount);
   const nameOf = (post: ChatPost) =>
-    (post.authorId ? authors.get(post.authorId)?.displayName : null) ?? 'a deleted member';
+    post.anonymous
+      ? anonymousName(post.byAsker)
+      : ((post.authorId ? authors.get(post.authorId)?.displayName : null) ?? 'a deleted member');
 
   /** Block, on somebody else's post while they are still a member. */
   const blockOffer = (post: ChatPost) => {
@@ -409,7 +452,7 @@ export default function TopicPage() {
       (p) =>
         p.id !== post.id &&
         p.removedAt === null &&
-        p.authorId !== post.authorId &&
+        writerOf(p) !== writerOf(post) &&
         (p.replyTo === post.id || post.id === openingId),
     );
   // A topic posted with only its title: editing it edits the title.
@@ -418,19 +461,25 @@ export default function TopicPage() {
 
   const wholeTopic = (post: ChatPost) =>
     post.id === openingId &&
-    topic.authorId !== null &&
-    topic.authorId === account.userId &&
-    post.authorId === account.userId &&
-    !posts.some((p) => p.removedAt === null && p.authorId !== account.userId);
+    startedByMe &&
+    writerOf(post) === account.userId &&
+    !posts.some((p) => p.removedAt === null && writerOf(p) !== account.userId);
+
+  /** An anonymous post's writer: "(you)" to them, the name to an administrator. */
+  const writerShown = (post: ChatPost) => {
+    const known = writers.get(post.id);
+    return known ? { you: known.memberId === account.userId, name: known.displayName } : undefined;
+  };
 
   /** Controls act on this specific post, including replies to replies. */
   const postProps = (post: ChatPost) => ({
     post,
     author: post.authorId ? (authors.get(post.authorId) ?? null) : null,
     place: post.authorId ? places.get(post.authorId) : undefined,
+    writer: post.anonymous ? writerShown(post) : undefined,
     // The author's own, and nobody else's — not an administrator's either.
     // chat_edit_post decides; this only asks.
-    canEdit: canPost && post.authorId === account.userId,
+    canEdit: canPost && writerOf(post) === account.userId,
     editing: edited?.id === post.id,
     onEdit: () => {
       setReplyingTo(null);
@@ -443,7 +492,7 @@ export default function TopicPage() {
     },
     // An administrator can remove anybody's; everybody else only their own.
     // chat_remove_post decides — this only asks.
-    canRemove: account.isAdmin || (post.authorId === account.userId && !answered(post)),
+    canRemove: account.isAdmin || (writerOf(post) === account.userId && !answered(post)),
     // The opening post of the reader's own topic nobody else has posted in:
     // removing it would leave a title with nothing under it, so the topic goes.
     removeLabel: wholeTopic(post) ? 'Delete post' : undefined,
@@ -454,7 +503,10 @@ export default function TopicPage() {
     removing: removingId === post.id,
     // Exactly the posts the reader can neither remove nor wrote, and not a
     // former member's — see the header.
-    canReport: !account.isAdmin && post.authorId !== null && post.authorId !== account.userId,
+    canReport:
+      !account.isAdmin &&
+      (post.authorId !== null || post.anonymous === true) &&
+      writerOf(post) !== account.userId,
     reported: reports.postIds.has(post.id),
     onReport: () => {
       setReportingId(post.id);
@@ -536,6 +588,15 @@ export default function TopicPage() {
           </p>
         }
       >
+        {canGoAnonymous ? (
+          <AnonymousSwitch
+            compact
+            id={`reply-anonymously-${to.id}`}
+            label="Reply anonymously"
+            checked={replyAnonymously}
+            onChange={chooseAnonymous}
+          />
+        ) : null}
         <PostComposer
           draftKey={topicId ? `topic:${topicId}:reply:${to.id}` : undefined}
           // Plain: the bar over it already names who is answered.
@@ -553,7 +614,14 @@ export default function TopicPage() {
           }}
           onSend={async (body, paths) => {
             if (!account.userId) return 'You are signed out.';
-            const result = await sendPost(replyTopic, account.userId, body, paths, to.id);
+            const result = await sendPost(
+              replyTopic,
+              account.userId,
+              body,
+              paths,
+              to.id,
+              replyAnonymously,
+            );
             if (!result.ok) return result.error;
             setReplyingTo(null);
             reload();
@@ -630,22 +698,28 @@ export default function TopicPage() {
               linked name, so this line was the only trace of the asker. The
               name links as a post's does: only to a profile Peers will show. */}
             <p className="mt-1.5 flex items-center gap-2 text-[0.78125rem] text-grey leading-[1.45]">
-              <AvatarLink memberId={starter?.id} hasProfile={starter?.hasProfile}>
-                {starter ? (
-                  <MemberAvatar
-                    id={starter.id}
-                    displayName={starter.displayName}
-                    photoPath={starter.photoPath}
-                    photoAlt={starter.photoAlt}
-                    className="h-[1.75rem] w-[1.75rem] rounded-[9px] text-[0.6875rem]"
-                  />
-                ) : (
-                  <FormerMemberAvatar className="h-[1.75rem] w-[1.75rem] rounded-[9px] text-[0.6875rem]" />
-                )}
-              </AvatarLink>
+              {anonymousTopic ? (
+                <AnonymousAvatar className="h-[1.75rem] w-[1.75rem] rounded-[9px]" />
+              ) : (
+                <AvatarLink memberId={starter?.id} hasProfile={starter?.hasProfile}>
+                  {starter ? (
+                    <MemberAvatar
+                      id={starter.id}
+                      displayName={starter.displayName}
+                      photoPath={starter.photoPath}
+                      photoAlt={starter.photoAlt}
+                      className="h-[1.75rem] w-[1.75rem] rounded-[9px] text-[0.6875rem]"
+                    />
+                  ) : (
+                    <FormerMemberAvatar className="h-[1.75rem] w-[1.75rem] rounded-[9px] text-[0.6875rem]" />
+                  )}
+                </AvatarLink>
+              )}
               <span className="min-w-0">
                 {counts ? `${counts} · started by ` : 'Started by '}
-                {starter ? (
+                {anonymousTopic ? (
+                  <span className="font-semibold text-ink2">Anonymous</span>
+                ) : starter ? (
                   starter.hasProfile ? (
                     <Link
                       to={`/peers/${starter.id}`}
@@ -666,6 +740,7 @@ export default function TopicPage() {
                 <time dateTime={topic.createdAt} title={chatTimeLong(topic.createdAt)}>
                   {chatTimeOn(topic.createdAt)}
                 </time>
+                {openingNote ? <span className="block text-[0.75rem]">{openingNote}</span> : null}
               </span>
             </p>
             {/* An administrator seeding a room reaches this screen with a
@@ -697,7 +772,7 @@ export default function TopicPage() {
               ) : null}
               {/* Only the member who started a topic is notified of its
                 replies, so only they are offered a way to stop that. */}
-              {topic.authorId !== null && topic.authorId === account.userId ? (
+              {startedByMe ? (
                 <MuteButton target={{ kind: 'topic', id: topic.id }} what="replies to this topic" />
               ) : null}
               {/* Filing it where it belongs, after it was asked: an
@@ -769,6 +844,15 @@ export default function TopicPage() {
                   </p>
                 }
               >
+                {canGoAnonymous && !edited ? (
+                  <AnonymousSwitch
+                    compact
+                    id="reply-anonymously"
+                    label="Reply anonymously"
+                    checked={replyAnonymously}
+                    onChange={chooseAnonymous}
+                  />
+                ) : null}
                 <PostComposer
                   // A new topic is a new box, with that topic's draft.
                   key={topicId}
@@ -805,7 +889,14 @@ export default function TopicPage() {
                     // which is what the read policy checks; a refused row takes
                     // them back out (post-composer.tsx). A reply to a post is
                     // written under it (replyBox); this box answers the topic.
-                    const result = await sendPost(topic.id, account.userId, body, paths, null);
+                    const result = await sendPost(
+                      topic.id,
+                      account.userId,
+                      body,
+                      paths,
+                      null,
+                      replyAnonymously,
+                    );
                     if (!result.ok) return result.error;
                     reload();
                     return null;

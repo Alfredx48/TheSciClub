@@ -10,6 +10,7 @@ import { createTopic } from '@/lib/chat/topics';
 import { describeThrown } from '@/lib/describe-error';
 import { type PhotoTarget, pastePhotos } from '@/lib/paste-photos';
 import { noteSent } from '@/lib/push/notifications';
+import { AnonymousSwitch } from '@/routes/chat/anonymous-switch';
 import { PhotoPicker, PhotoStrip } from '@/routes/chat/photo-picker';
 import { PlaceAsk } from '@/routes/chat/place-ask';
 import { QuestionSwitch } from '@/routes/chat/question-switch';
@@ -50,6 +51,8 @@ export default function NewTopicPage() {
   // Asked, not guessed (the owner, 2026-10-09). Off in a room unless the quick
   // box said otherwise: much of what starts there is not a question.
   const [isQuestion, setIsQuestion] = useState(carried.question);
+  // Naming nobody (20261120100000); carried from the quick box too.
+  const [anonymous, setAnonymous] = useState(carried.anonymous);
   const [files, setFiles] = useState<File[]>([]);
   // Pictures pasted into the post join the photographs (lib/paste-photos.ts).
   const photoTarget = useRef<PhotoTarget | null>(null);
@@ -115,6 +118,9 @@ export default function NewTopicPage() {
         body.trim() || (paths.length > 0 ? '' : title.trim()),
         paths,
         !sharing && !feedback && !listing && isQuestion,
+        // Never a listing: a buyer has to reach the seller. Nor app feedback,
+        // which the club answers.
+        !feedback && !listing && anonymous,
       );
       if (!result.ok) void deleteAttachments(paths);
       // The listing stands even if its price does not save; the seller can
@@ -356,6 +362,9 @@ export default function NewTopicPage() {
         {sharing || feedback || listing ? null : (
           <QuestionSwitch checked={isQuestion} onChange={setIsQuestion} />
         )}
+        {feedback || listing ? null : (
+          <AnonymousSwitch checked={anonymous} onChange={setAnonymous} />
+        )}
 
         {sharing || listing ? null : photos}
 
@@ -422,11 +431,18 @@ export function topicProblem(
 }
 
 /** What the quick box handed over, or nothing. Router state is not trusted. */
-function carriedDraft(state: unknown): { draft: string; question: boolean } {
-  if (typeof state !== 'object' || state === null) return { draft: '', question: false };
-  const { draft, question } = state as { draft?: unknown; question?: unknown };
+function carriedDraft(state: unknown): { draft: string; question: boolean; anonymous: boolean } {
+  if (typeof state !== 'object' || state === null) {
+    return { draft: '', question: false, anonymous: false };
+  }
+  const { draft, question, anonymous } = state as {
+    draft?: unknown;
+    question?: unknown;
+    anonymous?: unknown;
+  };
   return {
     draft: typeof draft === 'string' ? draft.slice(0, 140) : '',
     question: question === true,
+    anonymous: anonymous === true,
   };
 }

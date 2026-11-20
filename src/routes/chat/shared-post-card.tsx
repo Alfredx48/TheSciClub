@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
-import { FormerMemberAvatar, MemberAvatar } from '@/components/member-avatar';
+import { AnonymousAvatar, FormerMemberAvatar, MemberAvatar } from '@/components/member-avatar';
+import { anonymousName, useAnonymity } from '@/lib/chat/anonymous';
 import { useSmallCopies } from '@/lib/chat/attachments';
 import { useChatAuthors } from '@/lib/chat/authors';
 import { type SharedPost, sharedPostPath } from '@/lib/chat/shared-posts';
@@ -39,7 +40,15 @@ export function SharedPostCard({ post }: { post: SharedPost | null | undefined }
 function Card({ post }: { post: SharedPost }) {
   const authors = useChatAuthors([post.authorId]);
   const author = post.authorId ? (authors.get(post.authorId) ?? null) : null;
-  const name = author ? author.displayName : post.authorId ? '…' : 'Deleted member';
+  // No author: anonymous (20261120100000), or a member who has left.
+  const anonymity = useAnonymity('post', post.authorId === null ? post.postId : null);
+  const name = author
+    ? author.displayName
+    : post.authorId || !anonymity
+      ? '…'
+      : anonymity.anonymous
+        ? anonymousName(anonymity.byAsker)
+        : 'Deleted member';
   const photos = useSmallCopies(post.photoPath ? [post.photoPath] : []);
   const picture = post.photoPath ? (photos.small.get(post.photoPath) ?? null) : null;
   const words = excerpt(markdownToPlain(post.body), CARD_WORDS);
@@ -64,7 +73,9 @@ function Card({ post }: { post: SharedPost }) {
         </span>
         <span className="mt-1 flex items-center gap-2">
           <span aria-hidden="true" className="flex-none">
-            {author ? (
+            {anonymity?.anonymous ? (
+              <AnonymousAvatar className="h-[1.5rem] w-[1.5rem] rounded-[7px]" />
+            ) : author ? (
               <MemberAvatar
                 id={author.id}
                 displayName={author.displayName}

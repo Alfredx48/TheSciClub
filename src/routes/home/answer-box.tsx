@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { POST_MAX } from '@/lib/chat/post-length';
 import { sendPost } from '@/lib/chat/topics';
 import { describeThrown } from '@/lib/describe-error';
+import { AnonymousSwitch } from '@/routes/chat/anonymous-switch';
 import { useMentionSuggestions } from '@/routes/chat/mention-suggestions';
 
 /**
@@ -39,6 +40,8 @@ export function AnswerBox({
   const [text, setText] = useState('');
   const [saving, setSaving] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
+  // Naming nobody (20261120100000).
+  const [anonymous, setAnonymous] = useState(false);
   const id = `answer-${topicId}`;
   const mention = useMentionSuggestions({ box, value: text, onChange: setText });
 
@@ -65,7 +68,7 @@ export function AnswerBox({
     if (!words || saving) return;
     setSaving(true);
     setFailure(null);
-    sendPost(topicId, answerAs, words)
+    sendPost(topicId, answerAs, words, [], null, anonymous)
       .then((result) => {
         if (!result.ok) {
           setFailure(result.error);
@@ -111,6 +114,13 @@ export function AnswerBox({
         className="w-full rounded-[12px] border-[1.6px] border-line bg-canvas px-3.5 py-2.5 text-[1rem] text-ink leading-[1.45] outline-none focus:border-emphasis"
       />
       {mention.list}
+      <AnonymousSwitch
+        compact
+        id={`${id}-anonymous`}
+        label="Answer anonymously"
+        checked={anonymous}
+        onChange={setAnonymous}
+      />
       {failure ? (
         <p role="alert" className="mt-1 text-[0.8125rem] text-destructive leading-[1.45]">
           {failure} Your answer is still here.

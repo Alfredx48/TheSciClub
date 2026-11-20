@@ -101,7 +101,7 @@ describe('asking from Home', () => {
     expect(screen.getByRole('checkbox', { name: /This is a question/ })).toBeChecked();
     await user.click(screen.getByRole('button', { name: 'Post' }));
     await waitFor(() => {
-      expect(db.created).toEqual([['general', 'Best cushion?', 'Best cushion?', [], true]]);
+      expect(db.created).toEqual([['general', 'Best cushion?', 'Best cushion?', [], true, false]]);
     });
     expect(
       screen.getByText(
@@ -119,7 +119,7 @@ describe('asking from Home', () => {
     await user.click(screen.getByRole('checkbox', { name: /This is a question/ }));
     await user.type(box, '{Enter}');
     await waitFor(() => {
-      expect(db.created).toEqual([['equip', 'My new chair', 'My new chair', [], false]]);
+      expect(db.created).toEqual([['equip', 'My new chair', 'My new chair', [], false, false]]);
     });
   });
 
@@ -140,7 +140,7 @@ describe('asking from Home', () => {
     await user.click(screen.getByRole('link', { name: 'Add details or a photo' }));
     expect(
       screen.getByText(
-        'at /chat/rooms/general/new with {"from":"home","segment":"topics","draft":"Best cushion?","question":true}',
+        'at /chat/rooms/general/new with {"from":"home","segment":"topics","draft":"Best cushion?","question":true,"anonymous":false}',
       ),
     ).toBeInTheDocument();
   });
@@ -181,7 +181,7 @@ describe('asking in a room', () => {
     expect(screen.queryByRole('combobox')).toBeNull();
     await user.click(screen.getByRole('button', { name: 'Post' }));
     await waitFor(() => {
-      expect(db.created).toEqual([['equip', 'Side guards?', 'Side guards?', [], true]]);
+      expect(db.created).toEqual([['equip', 'Side guards?', 'Side guards?', [], true, false]]);
     });
   });
 });

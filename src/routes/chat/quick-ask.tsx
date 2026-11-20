@@ -6,6 +6,7 @@ import { createTopic } from '@/lib/chat/topics';
 import type { ChatRoom } from '@/lib/chat/types';
 import { describeThrown } from '@/lib/describe-error';
 import { noteSent } from '@/lib/push/notifications';
+import { AnonymousSwitch } from '@/routes/chat/anonymous-switch';
 import { useMentionSuggestions } from '@/routes/chat/mention-suggestions';
 import { QuestionSwitch } from '@/routes/chat/question-switch';
 import { SimilarTopics } from '@/routes/chat/similar-topics';
@@ -69,6 +70,7 @@ export function QuickAsk({
   const box = useRef<HTMLTextAreaElement>(null);
   const mention = useMentionSuggestions({ box, value: text, onChange: setText });
   const [isQuestion, setIsQuestion] = useState(true);
+  const [anonymous, setAnonymous] = useState(false);
   const [chosenRoom, setChosenRoom] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [focused, setFocused] = useState(false);
@@ -99,7 +101,14 @@ export function QuickAsk({
     setSaving(true);
     setFailure(null);
     const target = room;
-    createTopic(target.id, words, words, [], isQuestion)
+    createTopic(
+      target.id,
+      words,
+      words,
+      [],
+      isQuestion,
+      anonymous && target.category !== 'Classifieds',
+    )
       .then((result) => {
         if (!result.ok) {
           setFailure(result.error);
@@ -209,6 +218,14 @@ export function QuickAsk({
             checked={isQuestion}
             onChange={setIsQuestion}
           />
+          {room?.category === 'Classifieds' ? null : (
+            <AnonymousSwitch
+              id={`${id}-anonymous`}
+              compact
+              checked={anonymous}
+              onChange={setAnonymous}
+            />
+          )}
           {fixedRoom ? null : (
             <label className="mt-1 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[0.875rem] text-ink">
               <span className="font-bold">Room</span>
@@ -252,6 +269,7 @@ export function QuickAsk({
                 ...(typeof linkState === 'object' && linkState !== null ? linkState : {}),
                 draft: text,
                 question: isQuestion,
+                anonymous,
               }}
               className="flex min-h-[44px] items-center rounded-[12px] bg-tint px-4 font-semibold text-[0.875rem] text-emphasis hover:bg-line"
             >

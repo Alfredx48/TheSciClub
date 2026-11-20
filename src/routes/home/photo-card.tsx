@@ -2,7 +2,13 @@ import type { ReactNode } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { LevelHighlight } from '@/components/injury-stage-pill';
 import { LinkedText } from '@/components/linked-text';
-import { AvatarLink, FormerMemberAvatar, MemberAvatar } from '@/components/member-avatar';
+import {
+  AnonymousAvatar,
+  AvatarLink,
+  FormerMemberAvatar,
+  MemberAvatar,
+} from '@/components/member-avatar';
+import { useAnonymity } from '@/lib/chat/anonymous';
 import { useSeenOnHome } from '@/lib/chat/home-views';
 import { chatTime } from '@/lib/chat/time';
 import type { ChatAuthor } from '@/lib/chat/types';
@@ -50,7 +56,15 @@ export function PhotoCard({
   const navigate = useNavigate();
   const opening = topic.opening;
   const to = `/chat/rooms/${topic.roomId}/topics/${topic.id}`;
-  const name = byline(topic.authorId, author);
+  // Home's posts carry the flag; asked for only when the opening post did not come.
+  const found = useAnonymity('topic', topic.authorId === null && !topic.opening ? topic.id : null);
+  const anonymity =
+    topic.authorId !== null
+      ? undefined
+      : topic.opening
+        ? { anonymous: topic.opening.anonymous === true, byAsker: false }
+        : (found ?? null);
+  const name = byline(topic.authorId, author, anonymity);
   // Read here is read: a view, as opening the topic is (home-views.ts).
   const seenRef = useSeenOnHome(topic.opening?.id);
   const { organizations } = useOrganizations(topic.title.includes('@'));
@@ -58,23 +72,27 @@ export function PhotoCard({
   return (
     <article ref={seenRef} className="relative rounded-[17px] border border-line bg-paper p-3.5">
       <div className="flex items-center gap-3">
-        <AvatarLink
-          memberId={author?.id}
-          hasProfile={author?.hasProfile}
-          state={linkState}
-          className="relative z-[1]"
-        >
-          {author ? (
-            <MemberAvatar
-              id={author.id}
-              displayName={author.displayName}
-              photoPath={author.photoPath}
-              photoAlt={author.photoAlt}
-            />
-          ) : (
-            <FormerMemberAvatar />
-          )}
-        </AvatarLink>
+        {anonymity?.anonymous ? (
+          <AnonymousAvatar />
+        ) : (
+          <AvatarLink
+            memberId={author?.id}
+            hasProfile={author?.hasProfile}
+            state={linkState}
+            className="relative z-[1]"
+          >
+            {author ? (
+              <MemberAvatar
+                id={author.id}
+                displayName={author.displayName}
+                photoPath={author.photoPath}
+                photoAlt={author.photoAlt}
+              />
+            ) : (
+              <FormerMemberAvatar />
+            )}
+          </AvatarLink>
+        )}
         <span className="min-w-0 flex-1">
           <span className="block font-extrabold font-head text-[0.90625rem] text-ink">
             {author?.hasProfile ? (
