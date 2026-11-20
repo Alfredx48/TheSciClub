@@ -258,6 +258,7 @@ function renderThread(path = '/chat/t/th1', repeatNotification = false) {
 }
 
 beforeEach(() => {
+  localStorage.clear();
   blocks.ids = new Set();
   blocks.reload.mockReset();
   blocks.block.mockReset().mockResolvedValue({ ok: true, value: null });

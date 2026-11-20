@@ -292,7 +292,13 @@ export default function RoomPage() {
                   {room.id === 'looking-for' ? 'Ask for something' : 'List something'}
                 </Link>
               ) : (
-                <QuickAsk rooms={rooms} fixedRoom={room} className="mb-2.5" />
+                <QuickAsk
+                  key={`${account.userId}:${room.id}`}
+                  memberId={account.userId}
+                  rooms={rooms}
+                  fixedRoom={room}
+                  className="mb-2.5"
+                />
               )
             ) : null}
             {topicsLoading ? (

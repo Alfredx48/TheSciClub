@@ -92,8 +92,8 @@ describe('checking in', () => {
     await userEvent.upload(camera, selfie);
     expect(await screen.findByRole('heading', { name: 'Group chat' })).toBeInTheDocument();
     expect(api.calls).toContainEqual(['chat_join_event_group', { event: 'e1' }]);
-    expect(handedPhotos('thread:t9')).toEqual([selfie]);
-    expect(readDraft('thread:t9')).toBe('Checked in at Game day!');
+    expect(handedPhotos('m1:thread:t9')).toEqual([selfie]);
+    expect(readDraft('m1:thread:t9')).toBe('Checked in at Game day!');
   });
 
   it('shows it is done when they come back', async () => {

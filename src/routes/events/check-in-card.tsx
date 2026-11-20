@@ -2,7 +2,7 @@ import { Camera, Check } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { attachmentProblem } from '@/lib/chat/attachments';
-import { handPhotos, readDraft, writeDraft } from '@/lib/chat/drafts';
+import { handPhotos, memberDraftKey, readDraft, writeDraft } from '@/lib/chat/drafts';
 import { joinEventGroup } from '@/lib/chat/groups';
 import { messageAboutMissedCheckIn, useMyCheckIn } from '@/lib/check-ins';
 
@@ -64,7 +64,12 @@ export function CheckInCard({
           </p>
         ) : null}
         {memberId ? (
-          <SelfieForTheGroup eventId={eventId} eventTitle={eventTitle} hostName={hostName} />
+          <SelfieForTheGroup
+            memberId={memberId}
+            eventId={eventId}
+            eventTitle={eventTitle}
+            hostName={hostName}
+          />
         ) : null}
       </div>
     );
@@ -144,8 +149,8 @@ export function CheckInClosed({
                   setOpening(false);
                   return;
                 }
-                const key = `thread:${result.value}`;
-                if (!readDraft(key)) {
+                const key = memberDraftKey(memberId, `thread:${result.value}`);
+                if (key && !readDraft(key)) {
                   writeDraft(key, `Hi, I was at ${eventTitle} but missed the check-in.`);
                 }
                 void navigate(`/chat/t/${result.value}`);
@@ -193,10 +198,12 @@ function markSelfieDone(eventId: string) {
  * Not now, or a picture taken, and it is not offered for this event again.
  */
 function SelfieForTheGroup({
+  memberId,
   eventId,
   eventTitle,
   hostName,
 }: {
+  memberId: string;
   eventId: string;
   eventTitle: string;
   hostName: string | null;
@@ -223,9 +230,11 @@ function SelfieForTheGroup({
       setFailure(result?.error ?? 'The group chat did not open. Try again.');
       return;
     }
-    const key = `thread:${result.value}`;
-    handPhotos(key, [file]);
-    if (!readDraft(key)) writeDraft(key, `Checked in at ${eventTitle}!`);
+    const key = memberDraftKey(memberId, `thread:${result.value}`);
+    if (key) {
+      handPhotos(key, [file]);
+      if (!readDraft(key)) writeDraft(key, `Checked in at ${eventTitle}!`);
+    }
     markSelfieDone(eventId);
     void navigate(`/chat/t/${result.value}`);
   }

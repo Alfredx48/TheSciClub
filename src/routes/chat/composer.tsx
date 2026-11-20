@@ -1,10 +1,11 @@
 import { SendHorizontal, X } from 'lucide-react';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useAnnounce } from '@/lib/announce';
-import { forgetHandedPhotos, handedPhotos, readDraft, writeDraft } from '@/lib/chat/drafts';
+import { forgetHandedPhotos, handedPhotos, readKeptDraft, writeDraft } from '@/lib/chat/drafts';
 import type { MentionScope } from '@/lib/mentions';
 import { type PhotoTarget, pastePhotos } from '@/lib/paste-photos';
 import { noteSent } from '@/lib/push/notifications';
+import { DraftStatus, type DraftStorage } from '@/routes/chat/draft-status';
 import { useMentionSuggestions } from '@/routes/chat/mention-suggestions';
 import { PhotoPicker, PhotoStrip } from '@/routes/chat/photo-picker';
 
@@ -113,7 +114,7 @@ export function Composer({
   /** What the send button says to a screen reader. */
   sendLabel: string;
   /** Resolves to null on success, or to a sentence to show. */
-  onSend: (body: string, files: File[]) => Promise<string | null>;
+  onSend: (body: string, files: File[], replyTo?: string) => Promise<string | null>;
   sendOnEnter?: boolean;
   maxLength?: number;
   /** A reply in progress, drawn over the box. */
@@ -132,7 +133,25 @@ export function Composer({
   onTyping?: ((hasWords: boolean) => void) | undefined;
 }) {
   const announce = useAnnounce();
-  const [draft, setDraft] = useState(() => (draftKey ? readDraft(draftKey) : ''));
+  const [recovered] = useState(() => readKeptDraft(draftKey));
+  const [draft, setDraft] = useState(recovered?.text ?? '');
+  const [storage, setStorage] = useState<DraftStorage>(null);
+  const [recoveredReply, setRecoveredReply] = useState(recovered?.replyTo);
+  const reply =
+    replyingTo ??
+    (recoveredReply
+      ? {
+          id: recoveredReply,
+          name: 'an earlier message',
+          onCancel: () => {
+            setRecoveredReply(undefined);
+          },
+        }
+      : null);
+  const replyId = reply?.id;
+  useEffect(() => {
+    if (replyingTo) setRecoveredReply(undefined);
+  }, [replyingTo]);
   // A selfie from checking in arrives attached (lib/chat/drafts.ts).
   const [files, setFiles] = useState<File[]>(() => handedPhotos(draftKey));
   useEffect(() => {
@@ -162,8 +181,9 @@ export function Composer({
   const editingId = editing?.id ?? null;
   // The member's own words only: while editing, the box holds the edited item's.
   useEffect(() => {
-    if (draftKey && editingId === null) writeDraft(draftKey, draft);
-  }, [draftKey, draft, editingId]);
+    if (draftKey && editingId === null)
+      setStorage(writeDraft(draftKey, draft, { replyTo: replyId }));
+  }, [draftKey, draft, editingId, replyId]);
   const editingWords = editing?.initial ?? '';
   const editingNoun = editing?.noun ?? 'message';
   useLayoutEffect(() => {
@@ -282,7 +302,7 @@ export function Composer({
     onTyping?.(false);
     setSending(true);
     setFailure(null);
-    void onSend(body, files)
+    void (replyId ? onSend(body, files, replyId) : onSend(body, files))
       .then((problem) => {
         if (problem) {
           setFailure(problem);
@@ -290,8 +310,15 @@ export function Composer({
         }
         // A member may already be writing the next message while this one
         // saves, or editing another with this draft put aside.
-        if (draftVersion.current === submittedVersion) setDraft('');
-        else if (setAside.current?.version === submittedVersion) setAside.current.text = '';
+        if (
+          draftVersion.current === submittedVersion ||
+          setAside.current?.version === submittedVersion
+        ) {
+          if (draftKey && readKeptDraft(draftKey)?.text === draft) writeDraft(draftKey, '');
+          if (draftVersion.current === submittedVersion) setDraft('');
+          else if (setAside.current) setAside.current.text = '';
+        }
+        setRecoveredReply(undefined);
         setFiles([]);
         noteSent();
         // The box shrinks back only once the words have actually gone.
@@ -392,14 +419,14 @@ export function Composer({
     <div className="flex-none border-line border-t bg-paper px-3.5 py-2.5">
       {failureLine}
       {editBar}
-      {replyingTo && !editing ? (
+      {reply && !editing ? (
         <div className="mx-auto mb-2 flex w-full max-w-[720px] items-center justify-between gap-2 rounded-[11px] bg-tint px-3 py-1.5">
           <span className="min-w-0 truncate text-[0.78125rem] text-ink2">
-            Replying to <span className="font-semibold text-ink">{replyingTo.name}</span>
+            Replying to <span className="font-semibold text-ink">{reply.name}</span>
           </span>
           <button
             type="button"
-            onClick={replyingTo.onCancel}
+            onClick={reply.onCancel}
             aria-label="Stop replying"
             data-target="small"
             className="grid h-7 w-7 flex-none place-items-center rounded-full text-ink2 hover:bg-line"
@@ -407,6 +434,13 @@ export function Composer({
             <X className="h-4 w-4" aria-hidden="true" />
           </button>
         </div>
+      ) : null}
+      {draft.trim() && !editing ? (
+        <DraftStatus
+          storage={storage}
+          restored={draft === recovered?.text}
+          className="mx-auto mb-1 w-full max-w-[720px]"
+        />
       ) : null}
       {mentions ? (
         <div className="relative mx-auto w-full max-w-[720px]">{mention.list}</div>

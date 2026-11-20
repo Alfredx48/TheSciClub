@@ -45,7 +45,7 @@ function renderAsk(props: Partial<Parameters<typeof QuickAsk>[0]> = {}) {
   return render(
     <MemoryRouter initialEntries={['/here']}>
       <Routes>
-        <Route path="/here" element={<QuickAsk rooms={rooms} {...props} />} />
+        <Route path="/here" element={<QuickAsk rooms={rooms} memberId="member-one" {...props} />} />
         <Route path="*" element={<Where />} />
       </Routes>
     </MemoryRouter>,
@@ -57,6 +57,7 @@ beforeEach(() => {
   db.failure = null;
   similar.found = [];
   sessionStorage.clear();
+  localStorage.clear();
 });
 
 describe('asking from Home', () => {
@@ -181,18 +182,28 @@ describe('asking from Home', () => {
     expect(screen.getByRole('textbox', { name: 'Ask or post to the club' })).toHaveValue('Anyone?');
   });
 
-  it('keeps an unposted draft when the member goes away and comes back', async () => {
+  it('recovers a draft and its anonymous posting choice after the session ends', async () => {
     const user = userEvent.setup();
     const first = renderAsk();
-    await user.type(
-      screen.getByRole('textbox', { name: 'Ask or post to the club' }),
-      'Half a question',
-    );
+    const name = 'Ask or post to the club';
+    await user.type(screen.getByRole('textbox', { name }), 'Half a question');
+    await user.click(screen.getByRole('checkbox', { name: 'Anonymous' }));
     first.unmount();
+    sessionStorage.clear();
+
     renderAsk();
-    expect(screen.getByRole('textbox', { name: 'Ask or post to the club' })).toHaveValue(
+    await user.click(screen.getByRole('button', { name: 'Resume draft' }));
+    expect(screen.getByRole('textbox', { name })).toHaveFocus();
+    expect(screen.getByRole('textbox', { name })).toHaveValue('Half a question');
+    await user.click(screen.getByRole('button', { name: 'Post' }));
+    expect(db.created[0]).toEqual([
+      'general',
       'Half a question',
-    );
+      'Half a question',
+      [],
+      true,
+      true,
+    ]);
   });
 });
 

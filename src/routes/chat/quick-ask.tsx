@@ -1,11 +1,13 @@
 import { MessageCirclePlus, X } from 'lucide-react';
 import { useEffect, useId, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { memberDraftKey, readKeptDraft, writeDraft } from '@/lib/chat/drafts';
 import { roomsByCategory } from '@/lib/chat/rooms';
 import { createTopic } from '@/lib/chat/topics';
 import type { ChatRoom } from '@/lib/chat/types';
 import { describeThrown } from '@/lib/describe-error';
 import { noteSent } from '@/lib/push/notifications';
+import { DraftStatus, type DraftStorage } from '@/routes/chat/draft-status';
 import { useMentionSuggestions } from '@/routes/chat/mention-suggestions';
 import { PostOptions } from '@/routes/chat/post-options';
 import { SimilarTopics } from '@/routes/chat/similar-topics';
@@ -31,31 +33,20 @@ import { SimilarTopics } from '@/routes/chat/similar-topics';
  * and the topic page does not draw them twice. 140 characters, the title's
  * limit; the count shows only near it.
  *
- * What is typed is kept on this device (sessionStorage, per place) until it is
- * posted, so following a link away and coming back finds it still there.
+ * Drafts stay on the device, per member and place.
  */
 const LIMIT = 140;
 
-function draftKey(place: string) {
-  return `club:quick-ask:${place}`;
-}
-
-function readDraft(place: string): string {
-  try {
-    return sessionStorage.getItem(draftKey(place)) ?? '';
-  } catch {
-    return '';
-  }
-}
-
 export function QuickAsk({
   rooms,
+  memberId,
   fixedRoom,
   linkState,
   className,
 }: {
   /** The rooms that can be asked in, for the picker. Unused with `fixedRoom`. */
   rooms: readonly ChatRoom[];
+  memberId?: string | null;
   /** In a room: always this one, and no picker. */
   fixedRoom?: ChatRoom;
   /** Router state for the topic it opens, so its back link returns here. */
@@ -64,13 +55,16 @@ export function QuickAsk({
 }) {
   const navigate = useNavigate();
   const id = useId();
-  const place = fixedRoom?.id ?? 'home';
-  const [text, setText] = useState(() => readDraft(place));
+  const key = memberDraftKey(memberId, `ask:${fixedRoom?.id ?? 'home'}`);
+  const [recovered] = useState(() => readKeptDraft(key));
+  const [text, setText] = useState(recovered?.text ?? '');
+  const [storage, setStorage] = useState<DraftStorage>(null);
+  const hadDraft = useRef(Boolean(recovered));
   const box = useRef<HTMLTextAreaElement>(null);
   const mention = useMentionSuggestions({ box, value: text, onChange: setText });
-  const [isQuestion, setIsQuestion] = useState(true);
-  const [anonymous, setAnonymous] = useState(false);
-  const [chosenRoom, setChosenRoom] = useState<string | null>(null);
+  const [isQuestion, setIsQuestion] = useState(recovered?.question ?? true);
+  const [anonymous, setAnonymous] = useState(recovered?.anonymous ?? false);
+  const [chosenRoom, setChosenRoom] = useState<string | null>(recovered?.room ?? null);
   const [saving, setSaving] = useState(false);
   const [focused, setFocused] = useState(false);
   // Held open by a press inside the box (the owner, 2026-11-20: tapping Anonymous or "?" in an
@@ -97,20 +91,22 @@ export function QuickAsk({
   }, [held]);
 
   useEffect(() => {
-    try {
-      if (text) sessionStorage.setItem(draftKey(place), text);
-      else sessionStorage.removeItem(draftKey(place));
-    } catch {
-      // Private browsing: the draft is simply not kept.
-    }
-  }, [place, text]);
+    if (!key || (!text.trim() && !hadDraft.current)) return;
+    const saved = writeDraft(key, text, {
+      anonymous,
+      question: isQuestion,
+      room: chosenRoom ?? undefined,
+    });
+    hadDraft.current = Boolean(saved);
+    setStorage(saved);
+  }, [key, text, anonymous, isQuestion, chosenRoom]);
 
   const open = rooms.filter((room) => room.openedAt !== null);
   const room =
     fixedRoom ??
-    open.find((r) => r.id === chosenRoom) ??
-    open.find((r) => r.id === 'general') ??
-    roomsByCategory(open)[0]?.[1][0] ??
+    (chosenRoom
+      ? open.find((r) => r.id === chosenRoom)
+      : (open.find((r) => r.id === 'general') ?? roomsByCategory(open)[0]?.[1][0])) ??
     null;
   const words = text.trim();
   const started = text.length > 0;
@@ -134,6 +130,7 @@ export function QuickAsk({
           setFailure(result.error);
           return;
         }
+        if (key) writeDraft(key, '');
         setText('');
         noteSent();
         void navigate(`/chat/rooms/${target.id}/topics/${result.value}`, { state: linkState });
@@ -224,10 +221,30 @@ export function QuickAsk({
         className="mt-2 w-full resize-none rounded-[12px] border-[1.6px] border-line bg-canvas px-3.5 py-2.5 text-[1rem] text-ink leading-[1.45] outline-none focus:border-emphasis"
       />
       {mention.list}
+      {started ? (
+        <div className="flex flex-wrap items-center justify-between gap-x-2">
+          <DraftStatus storage={storage} restored={text === recovered?.text} className="mt-1" />
+          {text === recovered?.text ? (
+            <button
+              type="button"
+              className="min-h-11 rounded px-2 font-semibold text-[0.875rem] text-emphasis underline"
+              onClick={() => {
+                const field = box.current;
+                field?.focus();
+                field?.setSelectionRange(field.value.length, field.value.length);
+              }}
+            >
+              Resume draft
+            </button>
+          ) : null}
+        </div>
+      ) : null}
 
       {expanded ? (
         <>
-          <SimilarTopics text={text} linkState={linkState} />
+          {focused || held || text !== recovered?.text ? (
+            <SimilarTopics text={text} linkState={linkState} />
+          ) : null}
           {text.length > LIMIT - 40 ? (
             <p id={`${id}-left`} className="mt-1 text-[0.75rem] text-grey">
               {LIMIT - text.length} characters left. More can go in the details.
@@ -257,6 +274,7 @@ export function QuickAsk({
                 }}
                 className="min-h-[44px] min-w-0 flex-1 rounded-[11px] border-[1.6px] border-line bg-paper px-2.5 text-[1rem] text-ink outline-none focus:border-emphasis"
               >
+                {!room ? <option value="">Choose a room</option> : null}
                 {roomsByCategory([...open]).map(([category, inCategory]) => (
                   <optgroup key={category} label={category}>
                     {inCategory.map((r) => (

@@ -325,6 +325,7 @@ function renderTopic(path = '/chat/rooms/bowel/topics/t', repeatNotification = f
 }
 
 beforeEach(() => {
+  localStorage.clear();
   blocks.ids = new Set();
   blocks.reload.mockReset();
   blocks.block.mockReset().mockResolvedValue({ ok: true, value: null });

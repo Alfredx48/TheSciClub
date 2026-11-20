@@ -509,6 +509,7 @@ describe('adding photographs while editing a post', () => {
 describe('a kept draft', () => {
   it('comes back with the box, per conversation, and goes once sent', async () => {
     sessionStorage.clear();
+    localStorage.clear();
     const onSend = vi.fn<OnSend>(() => Promise.resolve(null));
     const box = (key: string) => (
       <AnnounceProvider>
@@ -523,6 +524,7 @@ describe('a kept draft', () => {
     const first = render(box('thread:a'));
     await userEvent.type(screen.getByPlaceholderText('Message Bo'), 'Half a thought');
     first.unmount();
+    sessionStorage.clear();
 
     const other = render(box('thread:b'));
     expect(screen.getByPlaceholderText('Message Bo')).toHaveValue('');
@@ -534,6 +536,6 @@ describe('a kept draft', () => {
     await waitFor(() => {
       expect(screen.getByPlaceholderText('Message Bo')).toHaveValue('');
     });
-    expect(sessionStorage.getItem('club:draft:thread:a')).toBeNull();
+    expect(localStorage.getItem('club:kept-draft:thread:a')).toBeNull();
   });
 });

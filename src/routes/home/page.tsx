@@ -306,7 +306,13 @@ export default function HomePage() {
           {segment === 'photos' ? (
             <ComposeCard segment={segment} linkState={linkState} />
           ) : (
-            <QuickAsk rooms={rooms.rooms} linkState={linkState} className="mb-[11px]" />
+            <QuickAsk
+              key={memberId}
+              memberId={memberId}
+              rooms={rooms.rooms}
+              linkState={linkState}
+              className="mb-[11px]"
+            />
           )}
 
           {!settled ? (

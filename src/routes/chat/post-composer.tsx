@@ -19,7 +19,7 @@ import {
   uploadAttachments,
   useSmallCopies,
 } from '@/lib/chat/attachments';
-import { forgetHandedPhotos, handedPhotos, readDraft, writeDraft } from '@/lib/chat/drafts';
+import { forgetHandedPhotos, handedPhotos, readKeptDraft, writeDraft } from '@/lib/chat/drafts';
 import { photoPaths } from '@/lib/markdown';
 import { roundTrips } from '@/lib/markdown-doc';
 import type { MentionScope } from '@/lib/mentions';
@@ -32,9 +32,11 @@ import {
   excerpt,
   focusAfterEdit,
 } from '@/routes/chat/composer';
+import { DraftStatus, type DraftStorage } from '@/routes/chat/draft-status';
 import { LocalPhotos } from '@/routes/chat/local-photos';
 import { useMentionSuggestions } from '@/routes/chat/mention-suggestions';
 import { POST_TEXT, PostBody } from '@/routes/chat/post-body';
+import { PostOptions } from '@/routes/chat/post-options';
 import { type Format, RichEditor, type RichEditorHandle } from '@/routes/chat/rich-editor';
 import { insertLink, prefixLines, wrap } from '@/routes/events/description-editor';
 import { readLink } from '@/routes/events/event-draft';
@@ -118,31 +120,28 @@ export function PostComposer({
   editing = null,
   mentionScope = {},
   draftKey,
-  options,
+  anonymousOption,
 }: {
   placeholder: string;
   sendLabel: string;
   /** Where photographs go: the room's folder (lib/chat/attachments.ts). */
   folder: string;
   /** With the photographs uploaded: null on success, or a sentence to show. */
-  onSend: (body: string, paths: string[]) => Promise<string | null>;
+  onSend: (body: string, paths: string[], anonymous: boolean) => Promise<string | null>;
   maxLength?: number;
   replyingTo?: ComposerReplyingTo | null;
   editing?: PostEditing | null;
   mentionScope?: MentionScope;
   draftKey?: string | undefined;
-  /**
-   * Choices about the post drawn inside the box, under "Replying to" and over the formatting
-   * (the owner, 2026-11-20: "Can we bring anonymous into the yellow reply box?", then "above
-   * the formatting and below replying to").
-   */
-  options?: ReactNode;
+  anonymousOption?: { checked: boolean; onChange: (checked: boolean) => void } | undefined;
 }) {
   const id = useId();
   const announce = useAnnounce();
-  const [draft, setDraft] = useState(() =>
-    draftKey ? withoutLocalPhotos(readDraft(draftKey)) : '',
-  );
+  const [recovered] = useState(() => readKeptDraft(draftKey));
+  const [draft, setDraft] = useState(() => withoutLocalPhotos(recovered?.text ?? ''));
+  const [storage, setStorage] = useState<DraftStorage>(null);
+  const [anonymousChoice, setAnonymousChoice] = useState(recovered?.anonymous);
+  const anonymous = !!anonymousOption && (anonymousChoice ?? anonymousOption.checked);
   const [mode, setMode] = useState(readMode);
   const [preview, setPreview] = useState(false);
   const [sending, setSending] = useState(false);
@@ -185,8 +184,9 @@ export function PostComposer({
   const shown = asMarkdown ? 'markdown' : mode;
 
   useEffect(() => {
-    if (draftKey && editingId === null) writeDraft(draftKey, draft);
-  }, [draftKey, draft, editingId]);
+    if (draftKey && editingId === null)
+      setStorage(writeDraft(draftKey, withoutLocalPhotos(draft), { anonymous }));
+  }, [draftKey, draft, editingId, anonymous]);
 
   useLayoutEffect(() => {
     if (editingId === loaded.current) return;
@@ -428,7 +428,7 @@ export function PostComposer({
       if (!uploaded.ok) return uploaded.error;
       const problem = current
         ? await current.onSave(uploaded.body, uploaded.paths, kept)
-        : await onSend(uploaded.body, uploaded.paths);
+        : await onSend(uploaded.body, uploaded.paths, anonymous);
       if (problem) {
         if (uploaded.paths.length > 0) void deleteAttachments(uploaded.paths);
         return problem;
@@ -446,6 +446,8 @@ export function PostComposer({
           return;
         }
         changed.current = false;
+        if (draftKey) writeDraft(draftKey, '');
+        setAnonymousChoice(undefined);
         setDraft('');
         setPreview(false);
         noteSent();
@@ -528,7 +530,29 @@ export function PostComposer({
         </div>
       ) : null}
 
-      {options ? <div className="px-3.5">{options}</div> : null}
+      {!editing && anonymousOption ? (
+        <div className="px-3.5">
+          <PostOptions
+            id={id}
+            className="mt-1"
+            noun="reply"
+            anonymous={{
+              checked: anonymous,
+              onChange: (checked) => {
+                setAnonymousChoice(checked);
+                anonymousOption.onChange(checked);
+              },
+            }}
+          />
+        </div>
+      ) : null}
+      {!editing && draft.trim() ? (
+        <DraftStatus
+          storage={storage}
+          restored={draft === recovered?.text}
+          className="px-3.5 pt-1"
+        />
+      ) : null}
       <fieldset className="flex flex-wrap items-center border-line border-b px-1 py-0.5">
         <legend className="sr-only">Formatting</legend>
         {tools ? (

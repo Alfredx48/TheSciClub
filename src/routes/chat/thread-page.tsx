@@ -22,6 +22,7 @@ import {
   useAttachmentUrls,
 } from '@/lib/chat/attachments';
 import { useChatAuthors } from '@/lib/chat/authors';
+import { memberDraftKey } from '@/lib/chat/drafts';
 import { useThreadRoster } from '@/lib/chat/groups';
 import { acknowledgeImportant, markImportant, useThreadImportant } from '@/lib/chat/important';
 import { useReactions } from '@/lib/chat/reactions';
@@ -822,7 +823,8 @@ function ThreadScreen({ threadId }: { threadId: string | undefined }) {
         </div>
       ) : (
         <Composer
-          draftKey={threadId ? `thread:${threadId}` : undefined}
+          key={account.userId}
+          draftKey={threadId ? memberDraftKey(account.userId, `thread:${threadId}`) : undefined}
           placeholder={title ? `Message ${title}` : 'Message'}
           sendLabel="Send this message"
           // Enter sends here — see the header.
@@ -857,7 +859,7 @@ function ThreadScreen({ threadId }: { threadId: string | undefined }) {
                 }
               : null
           }
-          onSend={async (body, files) => {
+          onSend={async (body, files, replyTo) => {
             // Files first, under this thread's folder, which is what the read
             // policy checks; then the row that names them. A refused row takes
             // its files back out — see attachments.ts.
@@ -867,7 +869,7 @@ function ThreadScreen({ threadId }: { threadId: string | undefined }) {
               if (!up.ok) return up.error;
               paths = up.value;
             }
-            const problem = await send(body, paths, replyingTo?.id ?? null);
+            const problem = await send(body, paths, replyTo ?? null);
             if (problem) {
               void deleteAttachments(paths);
               return problem;

@@ -1,55 +1,94 @@
-/**
- * Unsent words in a message or reply box, kept on this device per
- * conversation or topic (the owner, 2026-11-10), so switching tabs and coming
- * back finds them. sessionStorage, as Home's ask box does: gone when the tab or
- * app closes, and on sign-out, so the next person on a shared device does not
- * read them.
- */
 const PREFIX = 'club:draft:';
+const LOCAL_PREFIX = 'club:kept-draft:';
+
+interface Draft {
+  text: string;
+  anonymous?: boolean | undefined;
+  question?: boolean | undefined;
+  room?: string | undefined;
+  replyTo?: string | undefined;
+}
+
+export function memberDraftKey(member: string | null | undefined, place: string) {
+  return member ? `${member}:${place}` : undefined;
+}
+
+export function readKeptDraft(key: string | undefined): Draft | null {
+  if (!key) return null;
+  // The session copy also works when persistent browser storage is disabled.
+  for (const storage of ['sessionStorage', 'localStorage'] as const) {
+    try {
+      const raw = window[storage].getItem(LOCAL_PREFIX + key);
+      if (!raw) continue;
+      const draft = JSON.parse(raw) as Draft | null;
+      if (typeof draft?.text === 'string') return draft;
+    } catch {
+      // A browser can refuse storage.
+    }
+  }
+  return null;
+}
 
 export function readDraft(key: string): string {
-  try {
-    return sessionStorage.getItem(PREFIX + key) ?? '';
-  } catch {
-    return '';
-  }
+  return readKeptDraft(key)?.text ?? '';
 }
 
-export function writeDraft(key: string, text: string) {
-  try {
-    if (text) sessionStorage.setItem(PREFIX + key, text);
-    else sessionStorage.removeItem(PREFIX + key);
-  } catch {
-    // Private browsing: the draft is simply not kept.
-  }
-}
-
-/** Every kept draft, Home's ask box's too. For sign-out. */
-export function forgetDrafts() {
-  try {
-    for (const key of Object.keys(sessionStorage)) {
-      if (key.startsWith(PREFIX) || key.startsWith('club:quick-ask:'))
-        sessionStorage.removeItem(key);
+export function writeDraft(
+  key: string,
+  text: string,
+  options?: Omit<Draft, 'text'>,
+): 'device' | 'session' | null {
+  const storageKey = LOCAL_PREFIX + key;
+  const value = text.trim() ? JSON.stringify({ text, ...options }) : null;
+  for (const storage of ['localStorage', 'sessionStorage'] as const) {
+    try {
+      if (value) {
+        window[storage].setItem(storageKey, value);
+        if (storage === 'localStorage') {
+          try {
+            sessionStorage.removeItem(storageKey);
+          } catch {
+            // The persistent copy still saved.
+          }
+        }
+        return storage === 'localStorage' ? 'device' : 'session';
+      }
+      window[storage].removeItem(storageKey);
+    } catch {
+      // A browser can refuse storage.
     }
-  } catch {
-    // Nothing kept.
+  }
+  return null;
+}
+
+/** Forget drafts and photo hand-offs on sign-out. */
+export function forgetDrafts() {
+  for (const storage of ['sessionStorage', 'localStorage'] as const) {
+    try {
+      const area = window[storage];
+      for (const key of Object.keys(area)) {
+        if (
+          key.startsWith(LOCAL_PREFIX) ||
+          key.startsWith(PREFIX) ||
+          key.startsWith('club:quick-ask:')
+        ) {
+          area.removeItem(key);
+        }
+      }
+    } catch {
+      // A browser can refuse storage.
+    }
   }
   handed.clear();
 }
 
-/**
- * Photographs handed to a conversation's box from elsewhere: the selfie taken
- * on checking in to an event (the owner, 2026-11-15). In memory only, as a
- * File cannot be kept, until that box opens with them; nothing leaves the
- * phone before Send.
- */
+/** Check-in photos stay in memory until the member sends them. */
 const handed = new Map<string, File[]>();
 
 export function handPhotos(key: string, files: File[]) {
   handed.set(key, files);
 }
 
-/** What was handed to this box, left in place: a box drawn twice finds it both times. */
 export function handedPhotos(key: string | undefined): File[] {
   return key ? (handed.get(key) ?? []) : [];
 }
