@@ -1,3 +1,4 @@
+import type { Session } from '@supabase/supabase-js';
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { AccountContext } from '@/lib/account-context';
 import { forgetTrail } from '@/lib/back-trail';
@@ -171,8 +172,12 @@ export function useOwnAccount({
     // for whatever it announces meanwhile (a restored session's SIGNED_IN
     // was a second read of the same row at every start).
     let answered = false;
-    async function resolve(userId: string | null) {
+    let earlyFeed: AbortController | undefined;
+    async function resolve(session: Session | null) {
       if (aborted()) return;
+      earlyFeed?.abort();
+      earlyFeed = undefined;
+      const userId = session?.user.id ?? null;
       reading = userId;
       const request = ++revision;
       if (!userId) {
@@ -186,10 +191,11 @@ export function useOwnAccount({
         // screen opened: a pause still shows on the next screen.
         const membership = readOwnRow(GUARD_COLUMNS, { since });
         // First Home only. The feed obeys RLS and the shell still waits for membership.
-        let initialHomeFeed =
-          refresh === '/home' && !known.current
-            ? readHomeFeed(DEFAULT_HOME_VIEW, controller.signal)
-            : undefined;
+        let initialHomeFeed: Promise<unknown[] | null> | undefined;
+        if (refresh === '/home' && !known.current && session?.access_token) {
+          earlyFeed = new AbortController();
+          initialHomeFeed = readHomeFeed(DEFAULT_HOME_VIEW, earlyFeed.signal, session.access_token);
+        }
         const shared = await membership;
         if (aborted() || request !== revision) return;
         if (shared?.error) throw shared.error;
@@ -208,11 +214,13 @@ export function useOwnAccount({
           row = result.data as Record<string, unknown> | null;
         }
         const status = statusFor(row);
+        if (status !== 'member') earlyFeed?.abort();
         settle({
           status,
           ...(status === 'member' && initialHomeFeed
             ? {
                 takeInitialHomeFeed: () => {
+                  if (aborted() || request !== revision) return undefined;
                   const feed = initialHomeFeed;
                   initialHomeFeed = undefined;
                   return feed;
@@ -226,6 +234,7 @@ export function useOwnAccount({
         });
       } catch (error) {
         if (aborted() || request !== revision) return;
+        earlyFeed?.abort();
         fail({
           status: 'error',
           userId,
@@ -245,7 +254,7 @@ export function useOwnAccount({
             fail({ status: 'error', userId: null, isAdmin: false, displayName: null });
           return;
         }
-        void resolve(data.session?.user.id ?? null);
+        void resolve(data.session);
       })
       .catch(() => {
         answered = true;
@@ -265,11 +274,12 @@ export function useOwnAccount({
       if (event !== 'USER_UPDATED' && userId !== null && userId === reading) return;
       ownRowChanged();
       since = Date.now();
-      void resolve(userId);
+      void resolve(session);
     });
 
     return () => {
       controller.abort();
+      earlyFeed?.abort();
       sub.subscription.unsubscribe();
     };
   }, [attempt, enabled, opened, refresh]);

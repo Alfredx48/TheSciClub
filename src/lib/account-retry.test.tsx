@@ -1,12 +1,19 @@
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, renderHook, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { RequireMember } from '@/components/require-member';
+import { useOwnAccount } from '@/lib/account';
 
 const state = vi.hoisted(() => ({
   error: null as { message: string } | null,
-  onChange: null as ((event: string, session: { user: { id: string } } | null) => void) | null,
+  onChange: null as
+    | ((event: string, session: { user: { id: string }; access_token?: string } | null) => void)
+    | null,
   lookup: vi.fn(),
+  feedHeader: vi.fn(),
+  feedSignal: null as AbortSignal | null,
+  feed: null as Promise<{ data: unknown[]; error: null }> | null,
+  memberId: 'me',
   reject: false,
   /** A restored session announcing itself before getSession answers. */
   restoring: false,
@@ -17,11 +24,17 @@ vi.mock('@/lib/supabase', () => ({
       getSession: () =>
         new Promise((resolve) => {
           setTimeout(() => {
-            resolve({ data: { session: { user: { id: 'me' } } }, error: null });
+            resolve({
+              data: { session: { user: { id: 'me' }, access_token: 'session-one' } },
+              error: null,
+            });
           }, 0);
         }),
       onAuthStateChange: (
-        callback: (event: string, session: { user: { id: string } } | null) => void,
+        callback: (
+          event: string,
+          session: { user: { id: string }; access_token?: string } | null,
+        ) => void,
       ) => {
         state.onChange = callback;
         if (state.restoring) {
@@ -32,6 +45,14 @@ vi.mock('@/lib/supabase', () => ({
         return { data: { sub: null, subscription: { unsubscribe: vi.fn() } } };
       },
     },
+    rpc: () => ({
+      abortSignal: (signal: AbortSignal) => {
+        state.feedSignal = signal;
+        return Object.assign(state.feed ?? Promise.resolve({ data: [], error: null }), {
+          setHeader: state.feedHeader,
+        });
+      },
+    }),
     from: () => {
       const query = {
         select: () => query,
@@ -41,7 +62,9 @@ vi.mock('@/lib/supabase', () => ({
           state.lookup();
           if (state.reject) return Promise.reject(new Error('Offline'));
           return Promise.resolve({
-            data: state.error ? null : { id: 'me', status: 'active', display_name: 'Member' },
+            data: state.error
+              ? null
+              : { id: state.memberId, status: 'active', display_name: 'Member' },
             error: state.error,
           });
         },
@@ -56,6 +79,10 @@ beforeEach(() => {
   state.reject = false;
   state.restoring = false;
   state.lookup.mockClear();
+  state.feedHeader.mockClear();
+  state.feedSignal = null;
+  state.feed = null;
+  state.memberId = 'me';
 });
 
 describe('membership outages', () => {
@@ -133,4 +160,43 @@ describe('membership outages', () => {
     await screen.findByText('Home');
     expect(state.lookup).toHaveBeenCalledTimes(1);
   });
+});
+
+it.each(['sign-out', 'switch'])('discards a pending feed after %s', async (change) => {
+  state.error = null;
+  interface FeedResult {
+    data: unknown[];
+    error: null;
+  }
+  let finishFeed: (result: FeedResult) => void = () => {
+    throw new Error('The feed request has not started');
+  };
+  state.feed = new Promise<FeedResult>((resolve) => {
+    finishFeed = resolve;
+  });
+  const { result } = renderHook(() => useOwnAccount({ refresh: '/home' }));
+  await waitFor(() => {
+    expect(result.current.status).toBe('member');
+  });
+  expect(state.feedHeader).toHaveBeenCalledWith('Authorization', 'Bearer session-one');
+  const take = result.current.takeInitialHomeFeed;
+  const delivered = take?.();
+  expect(delivered).toBeDefined();
+  const signal = state.feedSignal;
+  expect(signal?.aborted).toBe(false);
+
+  await act(async () => {
+    state.memberId = 'other';
+    if (change === 'switch') {
+      state.onChange?.('SIGNED_IN', { user: { id: 'other' }, access_token: 'session-two' });
+    } else {
+      state.onChange?.('SIGNED_OUT', null);
+    }
+    finishFeed({ data: [{ title: 'First member’s post' }], error: null });
+    expect(await delivered).toBeNull();
+  });
+  expect(signal?.aborted).toBe(true);
+  expect(take?.()).toBeUndefined();
+  expect(result.current.userId).toBe(change === 'switch' ? 'other' : null);
+  expect(result.current.takeInitialHomeFeed).toBeUndefined();
 });
