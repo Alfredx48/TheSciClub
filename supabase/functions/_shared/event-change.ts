@@ -14,7 +14,7 @@ const FORMATS: Record<string, string> = {
 const PARTS: Record<string, string> = {
   date: 'date',
   time: 'time',
-  place: 'place',
+  place: 'location',
   link: 'video call link',
 };
 
@@ -23,7 +23,7 @@ export function cancelledTitle(detail: string | null | undefined): string | null
   return detail?.startsWith('cancelled:') ? detail.slice('cancelled:'.length) : null;
 }
 
-/** "the date and time changed", "it’s now online, and the place changed". */
+/** "the date and time changed", "it’s now online, and the location changed". */
 export function eventChangePhrase(detail: string | null | undefined): string {
   const words = (detail ?? '').split(',');
   const format = words.map((w) => FORMATS[w]).find(Boolean);
