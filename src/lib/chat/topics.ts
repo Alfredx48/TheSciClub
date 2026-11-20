@@ -820,3 +820,34 @@ export async function moveTopic(topicId: string, roomId: string): Promise<ChatWr
     return { ok: false, error: describeThrown(e, 'The post was not moved.') };
   }
 }
+
+/**
+ * Whether a topic was asked as a question (chat_topics.is_question), for the
+ * words on its page: "Answer question" and "Reply to this question" (the
+ * owner, 2026-11-19). False until it is read, or when it cannot be: the
+ * page then says "post", as it always did.
+ */
+export function useTopicIsQuestion(topicId: string | undefined): boolean {
+  const [question, setQuestion] = useState<{ id: string; is: boolean } | null>(null);
+  useEffect(() => {
+    if (!topicId) return;
+    // Left behind once the page moves on to another topic.
+    const run = { live: true };
+    void (async () => {
+      try {
+        const { data } = (await getSupabase()
+          .from('chat_topics')
+          .select('is_question')
+          .eq('id', topicId)
+          .maybeSingle()) as { data: { is_question?: boolean } | null };
+        if (run.live) setQuestion({ id: topicId, is: data?.is_question === true });
+      } catch {
+        // Offline: the page says "post".
+      }
+    })();
+    return () => {
+      run.live = false;
+    };
+  }, [topicId]);
+  return question !== null && question.id === topicId && question.is;
+}

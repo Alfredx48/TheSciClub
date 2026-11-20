@@ -76,8 +76,11 @@ export function Post({
   opening = false,
   place,
   composer,
+  answers = false,
   children,
 }: {
+  /** A question's own post, at the top: its Reply says Answer question. */
+  answers?: boolean;
   /** The box a reply to this post is being written in, drawn under it. */
   composer?: ReactNode;
   /** Where the author is, in Classifieds (author-places.ts). */
@@ -165,10 +168,10 @@ export function Post({
     <button
       type="button"
       onClick={onReply}
-      aria-label={`Reply to ${whose} post`}
+      aria-label={answers ? 'Answer this question' : `Reply to ${whose} post`}
       className="relative inline-flex min-h-11 items-center rounded-full px-3 text-[0.6875rem] text-grey hover:bg-tint"
     >
-      Reply
+      {answers ? 'Answer question' : 'Reply'}
     </button>
   ) : null;
 

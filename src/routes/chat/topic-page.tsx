@@ -35,6 +35,7 @@ import {
   replyCount,
   sendPost,
   threadPosts,
+  useTopicIsQuestion,
   useTopicPosts,
   useTopicRealtime,
 } from '@/lib/chat/topics';
@@ -128,6 +129,9 @@ export default function TopicPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   /** The specific post the next reply goes under, or null. */
   const [replyingTo, setReplyingTo] = useState<ChatPost | null>(null);
+  // A question's page says so: "Answer question" on it, "Reply to this
+  // question" in the box at the bottom (the owner, 2026-11-19).
+  const isQuestion = useTopicIsQuestion(topicId);
   // Scrolled: a line under the way back. See the page's top.
   const [scrolledDown, setScrolledDown] = useState(false);
   const reports = useMyReports();
@@ -556,6 +560,7 @@ export default function TopicPage() {
         flash={flashId === thread.post.id}
         hideBody={onlyTitle}
         opening={first}
+        answers={first && isQuestion}
         repeatsTitle={first && thread.post.body.trim() === topicTitle}
       >
         {thread.replies.map((reply) => renderThread(reply, depth + 1))}
@@ -747,7 +752,7 @@ export default function TopicPage() {
                   // A new topic is a new box, with that topic's draft.
                   key={topicId}
                   draftKey={topicId ? `topic:${topicId}` : undefined}
-                  placeholder="Reply to this post"
+                  placeholder={isQuestion ? 'Reply to this question' : 'Reply to this post'}
                   maxLength={POST_MAX}
                   sendLabel="Post this reply"
                   folder={attachmentFolder('room', room.id)}
