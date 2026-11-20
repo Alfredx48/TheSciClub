@@ -5,6 +5,7 @@ export function useFormDraft<T extends object>(
   key: string | undefined,
   createInitial: () => T,
   restore?: (value: T) => T,
+  seed?: (value: T) => T,
 ) {
   const [initial] = useState(createInitial);
   const [pristine] = useState(() => (key ? JSON.stringify({ version: 1, value: initial }) : null));
@@ -21,7 +22,7 @@ export function useFormDraft<T extends object>(
     }
     return null;
   });
-  const [value, setValue] = useState(recovered?.value ?? initial);
+  const [value, setValue] = useState(() => recovered?.value ?? (seed ? seed(initial) : initial));
   const [storage, setStorage] = useState<ReturnType<typeof writeDraft>>(recovered?.storage ?? null);
   const lastWritten = useRef<string | null>(recovered?.text ?? null);
   const complete = useRef(false);

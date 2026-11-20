@@ -1,10 +1,12 @@
 import { SendHorizontal, X } from 'lucide-react';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useAnnounce } from '@/lib/announce';
+import { MAX_ATTACHMENTS } from '@/lib/chat/attachments';
 import { forgetHandedPhotos, handedPhotos, readKeptDraft, writeDraft } from '@/lib/chat/drafts';
 import type { MentionScope } from '@/lib/mentions';
 import { type PhotoTarget, pastePhotos } from '@/lib/paste-photos';
 import { noteSent } from '@/lib/push/notifications';
+import { useDraftFiles } from '@/lib/use-draft-media';
 import { DraftStatus, type DraftStorage } from '@/routes/chat/draft-status';
 import { useMentionSuggestions } from '@/routes/chat/mention-suggestions';
 import { PhotoPicker, PhotoStrip } from '@/routes/chat/photo-picker';
@@ -153,10 +155,14 @@ export function Composer({
     if (replyingTo) setRecoveredReply(undefined);
   }, [replyingTo]);
   // A selfie from checking in arrives attached (lib/chat/drafts.ts).
-  const [files, setFiles] = useState<File[]>(() => handedPhotos(draftKey));
+  const photoDraft = useDraftFiles(draftKey);
+  const { value: files, setValue: setFiles, loading: loadingPhotos } = photoDraft;
   useEffect(() => {
-    if (draftKey) forgetHandedPhotos(draftKey);
-  }, [draftKey]);
+    if (!draftKey || loadingPhotos) return;
+    const handed = handedPhotos(draftKey);
+    forgetHandedPhotos(draftKey);
+    if (handed.length) setFiles((current) => [...current, ...handed].slice(0, MAX_ATTACHMENTS));
+  }, [draftKey, loadingPhotos, setFiles]);
   // Added to the post being edited: apart from the draft's, which wait for it.
   const [editFiles, setEditFiles] = useState<File[]>([]);
   // Pictures pasted into the box join the photographs (lib/paste-photos.ts).
@@ -253,7 +259,7 @@ export function Composer({
     editing.photos === 0 &&
     editFiles.length === 0 &&
     !editing.shared;
-  const cannotSend = sending || (editing ? blank : empty);
+  const cannotSend = sending || loadingPhotos || (editing ? blank : empty);
 
   function finishEdit(current: ComposerEditing, message: string) {
     setEditFiles([]);
@@ -319,7 +325,7 @@ export function Composer({
           else if (setAside.current) setAside.current.text = '';
         }
         setRecoveredReply(undefined);
-        setFiles([]);
+        photoDraft.clear();
         noteSent();
         // The box shrinks back only once the words have actually gone.
         requestAnimationFrame(resize);
@@ -435,10 +441,11 @@ export function Composer({
           </button>
         </div>
       ) : null}
-      {draft.trim() && !editing ? (
+      {!editing && (draft.trim() || photoDraft.status !== 'idle') ? (
         <DraftStatus
           storage={storage}
           restored={draft === recovered?.text}
+          media={photoDraft.status}
           className="mx-auto mb-1 w-full max-w-[720px]"
         />
       ) : null}
@@ -470,7 +477,13 @@ export function Composer({
             />
           ) : null
         ) : (
-          <PhotoPicker ref={photos} files={files} onChange={setFiles} disabled={sending} compact />
+          <PhotoPicker
+            ref={photos}
+            files={files}
+            onChange={setFiles}
+            disabled={sending || loadingPhotos}
+            compact
+          />
         )}
         {textarea}
         <button

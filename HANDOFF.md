@@ -602,7 +602,8 @@ All live. Migration headers and the files named say how and why.
 - **Drafts**: Home and room ask boxes, topic replies and chat messages
   recover text from device storage per member. New event and organization
   forms also keep fields and selections. Signing out clears drafts.
-  Unsent photos and logos remain in memory. Recovery makes no network requests.
+  New posts, replies, messages, events and organization logos keep their
+  unsent photos in IndexedDB. Recovery makes no network requests.
 - **Privacy at the API**: events, series, tag links and RSVP counts are
   members-only; `chat_authors` keeps its security barrier; organizations stay
   readable for the closed door.

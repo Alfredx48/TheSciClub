@@ -1,3 +1,5 @@
+import { forgetDraftMedia } from '@/lib/draft-media';
+
 const PREFIX = 'club:draft:';
 const LOCAL_PREFIX = 'club:kept-draft:';
 
@@ -66,6 +68,7 @@ export function writeDraft(
 
 /** Forget drafts and photo hand-offs on sign-out. */
 export function forgetDrafts() {
+  const clearing = forgetDraftMedia();
   for (const storage of ['sessionStorage', 'localStorage'] as const) {
     try {
       const area = window[storage];
@@ -83,6 +86,7 @@ export function forgetDrafts() {
     }
   }
   handed.clear();
+  return clearing;
 }
 
 /** Check-in photos stay in memory until the member sends them. */

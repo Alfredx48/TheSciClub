@@ -3,7 +3,7 @@ import { forgetDrafts, memberDraftKey, readDraft, writeDraft } from '@/lib/chat/
 
 // Privacy: the next person to sign in on a shared device reads nothing unsent.
 describe('drafts on sign-out', () => {
-  it('forgets every draft, the ask box too, and nothing else', () => {
+  it('forgets every draft, the ask box too, and nothing else', async () => {
     sessionStorage.clear();
     localStorage.clear();
     const key = memberDraftKey('alice', 'thread:a') ?? '';
@@ -13,7 +13,7 @@ describe('drafts on sign-out', () => {
     localStorage.setItem('club:other', 'kept');
     sessionStorage.setItem('club:quick-ask:home', 'a question');
     sessionStorage.setItem('club:other', 'kept');
-    forgetDrafts();
+    await forgetDrafts();
     expect(readDraft(key)).toBe('');
     expect(localStorage.getItem('club:other')).toBe('kept');
     expect(sessionStorage.getItem('club:quick-ask:home')).toBeNull();

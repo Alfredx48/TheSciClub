@@ -1,15 +1,20 @@
 import { useRef, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { BackLink } from '@/components/back-link';
+import { useAccount } from '@/lib/account';
 import { attachmentFolder, deleteAttachments, uploadAttachments } from '@/lib/chat/attachments';
+import { memberDraftKey } from '@/lib/chat/drafts';
 import { PRICED_ROOM, parsePrice, setListingPrice } from '@/lib/chat/listing-prices';
 import { POST_COUNT_FROM, POST_MAX } from '@/lib/chat/post-length';
 import { roomPrompt } from '@/lib/chat/room-prompts';
 import { roomsByCategory, useChatRooms } from '@/lib/chat/rooms';
 import { createTopic } from '@/lib/chat/topics';
 import { describeThrown } from '@/lib/describe-error';
+import { useFormDraft } from '@/lib/form-draft';
 import { type PhotoTarget, pastePhotos } from '@/lib/paste-photos';
 import { noteSent } from '@/lib/push/notifications';
+import { useDraftFiles } from '@/lib/use-draft-media';
+import { DraftStatus } from '@/routes/chat/draft-status';
 import { PhotoPicker, PhotoStrip } from '@/routes/chat/photo-picker';
 import { PlaceAsk } from '@/routes/chat/place-ask';
 import { PostOptions } from '@/routes/chat/post-options';
@@ -35,32 +40,67 @@ import { appFeedbackRoom } from '@/routes/home/feedback-card';
  */
 export default function NewTopicPage() {
   const { roomId } = useParams<{ roomId: string }>();
+  const account = useAccount();
+  const location = useLocation();
+  const roomsRead = useChatRooms();
+  const sharing = fromHome(location.state)?.kind === 'share';
+  const feedback = appFeedbackRoom(roomsRead.rooms)?.id === roomId;
+  const draftKey = memberDraftKey(
+    account.userId,
+    `new-post:${feedback ? 'feedback' : sharing ? 'photo' : 'post'}`,
+  );
+  return <NewTopicForm key={draftKey} draftKey={draftKey} roomId={roomId} roomsRead={roomsRead} />;
+}
+
+function NewTopicForm({
+  draftKey,
+  roomId,
+  roomsRead,
+}: {
+  draftKey: string | undefined;
+  roomId: string | undefined;
+  roomsRead: ReturnType<typeof useChatRooms>;
+}) {
   const navigate = useNavigate();
   const location = useLocation();
   const home = fromHome(location.state);
   // Opened from Me's Send app feedback (the owner, 2026-10-28): back is Me.
   const fromMe = (location.state as { from?: unknown } | null)?.from === 'me';
   const sharing = home?.kind === 'share';
-  const { rooms, loading } = useChatRooms();
+  const { rooms, loading } = roomsRead;
   // Carried from the quick box on Home or a room ("Add details or a photo"),
   // so nothing typed there is typed twice.
   const carried = carriedDraft(location.state);
-  const [title, setTitle] = useState(carried.draft);
-  const [body, setBody] = useState('');
-  // Asked, not guessed (the owner, 2026-10-09). Off in a room unless the quick
-  // box said otherwise: much of what starts there is not a question.
-  const [isQuestion, setIsQuestion] = useState(carried.question);
-  // Naming nobody (20261120100000); carried from the quick box too.
-  const [anonymous, setAnonymous] = useState(carried.anonymous);
-  const [files, setFiles] = useState<File[]>([]);
+  const draft = useFormDraft(
+    draftKey,
+    () => ({
+      title: '',
+      body: '',
+      isQuestion: false,
+      anonymous: false,
+      priceText: '',
+      destination: roomId,
+    }),
+    undefined,
+    (initial) => ({
+      ...initial,
+      title: carried.draft,
+      isQuestion: carried.question,
+      anonymous: carried.anonymous,
+    }),
+  );
+  const { title, body, isQuestion, anonymous, priceText, destination } = draft.value;
+  function set<K extends keyof typeof draft.value>(key: K, value: (typeof draft.value)[K]) {
+    draft.setValue((current) => ({ ...current, [key]: value }));
+  }
+  const photoDraft = useDraftFiles(draftKey);
+  const { value: files, setValue: setFiles } = photoDraft;
   // Pictures pasted into the post join the photographs (lib/paste-photos.ts).
   const photoTarget = useRef<PhotoTarget | null>(null);
   const [saving, setSaving] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
-  // For sale's asking price, as typed (listing-prices.ts).
-  const [priceText, setPriceText] = useState('');
 
-  const room = rooms.find((r) => r.id === roomId) ?? null;
+  const room = rooms.find((r) => r.id === (destination ?? roomId)) ?? null;
   // The App Feedback room's form reads as feedback (the owner, 2026-10-28);
   // every other room's is as it was.
   const feedback = room !== null && appFeedbackRoom([room]) !== null;
@@ -90,13 +130,27 @@ export default function NewTopicPage() {
           <p className="mt-6 text-[0.875rem] text-ink2">
             There is no such room, or it is not open.
           </p>
+          {draft.storage || photoDraft.status !== 'idle' ? (
+            <button
+              type="button"
+              className="min-h-11 font-semibold text-[0.875rem] text-emphasis underline"
+              disabled={photoDraft.loading}
+              onClick={() => {
+                draft.discard();
+                photoDraft.clear();
+                set('destination', roomId);
+              }}
+            >
+              Discard draft
+            </button>
+          ) : null}
         </div>
       </div>
     );
   }
 
   function submit() {
-    if (!ready || saving || !room) return;
+    if (!ready || saving || photoDraft.loading || !room) return;
     setSaving(true);
     setFailure(null);
     const roomId = room.id;
@@ -122,9 +176,12 @@ export default function NewTopicPage() {
         !feedback && !listing && anonymous,
       );
       if (!result.ok) void deleteAttachments(paths);
-      // The listing stands even if its price does not save; the seller can
-      // add it from the listing.
-      else if (typeof price === 'number') await setListingPrice(result.value, price);
+      else {
+        draft.finish();
+        photoDraft.clear();
+        // The listing stands even if its price does not save.
+        if (typeof price === 'number') await setListingPrice(result.value, price);
+      }
       return result;
     })()
       .then((result) => {
@@ -158,7 +215,7 @@ export default function NewTopicPage() {
     <div className={sharing ? 'mt-4' : 'mt-3'}>
       <PhotoStrip
         files={files}
-        disabled={saving}
+        disabled={saving || photoDraft.loading}
         onRemove={(index) => {
           setFiles((current) => current.filter((_, i) => i !== index));
         }}
@@ -167,7 +224,7 @@ export default function NewTopicPage() {
         ref={photoTarget}
         files={files}
         onChange={setFiles}
-        disabled={saving}
+        disabled={saving || photoDraft.loading}
         addLabel={feedback ? 'Add a screenshot' : 'Add a photograph'}
       />
     </div>
@@ -199,6 +256,27 @@ export default function NewTopicPage() {
             : 'Every member can read this, including members who join later. Nothing here is public.'}
         </p>
 
+        {draft.storage || photoDraft.status !== 'idle' ? (
+          <div className="mt-1 flex flex-wrap items-center gap-x-3">
+            <DraftStatus
+              storage={draft.storage}
+              restored={draft.restored}
+              media={photoDraft.status}
+            />
+            <button
+              type="button"
+              disabled={saving || photoDraft.loading}
+              className="min-h-11 font-semibold text-[0.8125rem] text-emphasis underline disabled:opacity-50"
+              onClick={() => {
+                draft.discard();
+                photoDraft.clear();
+                setFailure(null);
+              }}
+            >
+              Discard draft
+            </button>
+          </div>
+        ) : null}
         {/* A listing starts with its photographs (the owner, 2026-11-12). */}
         {listing && !sharing ? (
           <>
@@ -226,6 +304,7 @@ export default function NewTopicPage() {
               id="topic-room"
               value={room.id}
               onChange={(event) => {
+                set('destination', event.target.value);
                 void navigate(`/chat/rooms/${event.target.value}/new`, {
                   replace: true,
                   state: location.state as unknown,
@@ -280,7 +359,7 @@ export default function NewTopicPage() {
           value={title}
           maxLength={140}
           onChange={(event) => {
-            setTitle(event.target.value);
+            set('title', event.target.value);
           }}
           placeholder={sharing ? 'The cushion that finally worked' : prompt.title}
           className="mt-1.5 min-h-[44px] w-full rounded-[12px] border-[1.6px] border-line bg-paper px-3.5 py-2.5 text-[0.9375rem] text-ink outline-none focus:border-emphasis"
@@ -310,7 +389,7 @@ export default function NewTopicPage() {
                 value={priceText}
                 maxLength={12}
                 onChange={(event) => {
-                  setPriceText(event.target.value);
+                  set('priceText', event.target.value);
                 }}
                 placeholder="250"
                 aria-describedby="topic-price-hint"
@@ -347,7 +426,9 @@ export default function NewTopicPage() {
           value={body}
           maxLength={POST_MAX}
           countFrom={POST_COUNT_FROM}
-          onChange={setBody}
+          onChange={(value) => {
+            set('body', value);
+          }}
           mentions
           placeholder={prompt.body}
           hintClassName="mt-1 text-[0.71875rem] text-grey leading-[1.45]"
@@ -361,8 +442,22 @@ export default function NewTopicPage() {
         {feedback || listing ? null : (
           <PostOptions
             id="new-topic-options"
-            question={sharing ? undefined : { checked: isQuestion, onChange: setIsQuestion }}
-            anonymous={{ checked: anonymous, onChange: setAnonymous }}
+            question={
+              sharing
+                ? undefined
+                : {
+                    checked: isQuestion,
+                    onChange: (value) => {
+                      set('isQuestion', value);
+                    },
+                  }
+            }
+            anonymous={{
+              checked: anonymous,
+              onChange: (value) => {
+                set('anonymous', value);
+              },
+            }}
           />
         )}
 
@@ -379,7 +474,7 @@ export default function NewTopicPage() {
         <button
           type="button"
           onClick={submit}
-          disabled={!ready || saving}
+          disabled={!ready || saving || photoDraft.loading}
           className="mt-3 flex min-h-[48px] w-full items-center justify-center rounded-[13px] bg-gold font-bold font-head text-on-gold text-[0.9375rem] transition-colors hover:bg-gold-hi disabled:opacity-40 disabled:hover:bg-gold"
         >
           {saving ? (feedback ? 'Sending…' : 'Posting…') : feedback ? 'Send feedback' : 'Post it'}

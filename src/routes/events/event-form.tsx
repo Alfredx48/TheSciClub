@@ -29,6 +29,7 @@ import { useMemberOrganizations } from '@/lib/organization-members';
 import { useMyOrganizations } from '@/lib/organization-representatives';
 import { useOrganizations } from '@/lib/organizations';
 import { type PhotoTarget, pastePhotos } from '@/lib/paste-photos';
+import { useDraftMedia } from '@/lib/use-draft-media';
 import { OrganizationEditor } from '@/routes/admin/organization-editor';
 import { DraftStatus } from '@/routes/chat/draft-status';
 import {
@@ -252,6 +253,15 @@ const FIELD = `mt-1.5 w-full ${BOX}`;
 const LABEL = 'mt-4 block font-bold font-head text-[0.8125rem] text-ink';
 const HINT = 'mt-1 text-[0.71875rem] text-grey leading-[1.45]';
 
+interface EventDraftPhotos {
+  cover: CoverChange;
+  more: MorePhotoChange[];
+}
+
+function hasEventDraftPhotos({ cover, more }: EventDraftPhotos) {
+  return cover.kind === 'new' || more.some((photo) => photo.kind === 'new');
+}
+
 function EventForm({
   eventId,
   draftKey,
@@ -300,10 +310,15 @@ function EventForm({
 }) {
   const navigate = useNavigate();
   const announce = useAnnounce();
-  const [cover, setCover] = useState<CoverChange>({ kind: 'keep', ...initialCover });
-  const [more, setMore] = useState<MorePhotoChange[]>(
-    initialMore.map((photo) => ({ kind: 'keep', ...photo })),
+  const photoDraft = useDraftMedia<EventDraftPhotos>(
+    draftKey,
+    () => ({
+      cover: { kind: 'keep', ...initialCover },
+      more: initialMore.map((photo) => ({ kind: 'keep', ...photo })),
+    }),
+    hasEventDraftPhotos,
   );
+  const { cover, more } = photoDraft.value;
   // An old event for its host's followers reads as that one organization.
   const startingAudience: AudienceChoice = {
     audience: initialAudience === 'followers' ? 'organizations' : initialAudience,
@@ -399,7 +414,7 @@ function EventForm({
   const meetingChanged = reading.ok && reading.meetingUrl !== initial.meetingUrl.trim();
 
   function submit() {
-    if (!reading.ok || saving || !audienceReady(chosenAudience)) return;
+    if (!reading.ok || saving || photoDraft.loading || !audienceReady(chosenAudience)) return;
     setSaving(true);
     const repeat = reading.repeat;
     const accessDetails = draft.accessDetails.trim();
@@ -419,6 +434,7 @@ function EventForm({
         return;
       }
       finish();
+      if (draftKey) photoDraft.clear();
       // The picture after the event, because it is filed under the event's
       // id. The event is saved either way; a picture that did not go up
       // reopens this form on the saved event, saying so, rather than leaving
@@ -518,17 +534,16 @@ function EventForm({
           {isNew ? 'It goes on the calendar as soon as you add it. ' : ''}
           Who can see it is chosen below.
         </p>
-        {storage ? (
+        {storage || photoDraft.status !== 'idle' ? (
           <div className="mt-1 flex flex-wrap items-center gap-x-3">
-            <DraftStatus storage={storage} restored={restored} />
+            <DraftStatus storage={storage} restored={restored} media={photoDraft.status} />
             <button
               type="button"
-              disabled={saving}
+              disabled={saving || photoDraft.loading}
               className="min-h-11 font-semibold text-[0.8125rem] text-emphasis underline disabled:opacity-50"
               onClick={() => {
                 discard();
-                setCover({ kind: 'keep', ...initialCover });
-                setMore([]);
+                photoDraft.clear();
                 setFailure(null);
               }}
             >
@@ -816,7 +831,7 @@ function EventForm({
           ref={coverTarget}
           value={cover}
           onChange={(next) => {
-            setCover(next);
+            photoDraft.setValue((current) => ({ ...current, cover: next }));
             setFailure(null);
           }}
           labelClassName={LABEL}
@@ -826,7 +841,7 @@ function EventForm({
         <MorePicturesField
           value={more}
           onChange={(next) => {
-            setMore(next);
+            photoDraft.setValue((current) => ({ ...current, more: next }));
             setFailure(null);
           }}
           labelClassName={LABEL}
@@ -891,7 +906,7 @@ function EventForm({
         <button
           type="button"
           onClick={submit}
-          disabled={!reading.ok || saving || !audienceReady(chosenAudience)}
+          disabled={!reading.ok || saving || photoDraft.loading || !audienceReady(chosenAudience)}
           aria-describedby={reading.ok ? undefined : 'event-missing'}
           className="mt-4 flex min-h-[48px] w-full items-center justify-center rounded-[13px] bg-gold font-bold font-head text-on-gold text-[0.9375rem] transition-colors hover:bg-gold-hi disabled:opacity-40 disabled:hover:bg-gold"
         >

@@ -251,7 +251,7 @@ export function useOwnAccount({
       // refresh TOKEN_REFRESHED, for the same person: their row has not
       // changed, so only another person, a sign-out, or their own account
       // changing reads again.
-      if (event === 'SIGNED_OUT') forgetDrafts();
+      if (event === 'SIGNED_OUT') void forgetDrafts();
       if (event === 'INITIAL_SESSION' || !answered) return;
       const userId = session?.user.id ?? null;
       if (event !== 'USER_UPDATED' && userId !== null && userId === reading) return;
@@ -290,7 +290,7 @@ export async function signOut(): Promise<{ ok: boolean; error?: string }> {
   if (!error) {
     resetAttachmentUrls();
     // Unsent words, which the next person on this device must not read.
-    forgetDrafts();
+    await forgetDrafts();
     // And the way back from where they were.
     forgetTrail();
     // And anything else held in memory for the screens (lib/shared-reads.ts).

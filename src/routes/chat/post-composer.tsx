@@ -25,6 +25,7 @@ import { roundTrips } from '@/lib/markdown-doc';
 import type { MentionScope } from '@/lib/mentions';
 import { pastedImages } from '@/lib/paste-photos';
 import { noteSent } from '@/lib/push/notifications';
+import { useDraftMedia } from '@/lib/use-draft-media';
 import { cn } from '@/lib/utils';
 import {
   type ComposerEditing,
@@ -62,8 +63,8 @@ import { readLink } from '@/routes/events/event-draft';
  * It sits at the end of the topic, below the last reply, and scrolls with it
  * (the owner, 2026-11-19); Reply and Edit bring it into view.
  *
- * As Composer: a draft kept on this device (photographs not, as files are
- * not kept), put aside while a post is edited; Escape cancels an edit; an
+ * As Composer: the draft and its photos stay on this device, put aside while
+ * a post is edited. Escape cancels an edit, and an
  * unchanged edit just closes. A post only added to (20261029260000) whose
  * words the editor would write differently, and a question's title, are
  * edited as Markdown.
@@ -102,13 +103,23 @@ function saveMode(mode: 'rich' | 'markdown') {
 }
 
 /** A draft's words without photographs whose files are gone. */
-function withoutLocalPhotos(text: string): string {
+function withoutMissingLocalPhotos(text: string, has: (name: string) => boolean): string {
   return text
     .split('\n')
-    .filter((line) => !LOCAL_PHOTO.test(line))
+    .filter((line) => {
+      const name = LOCAL_PHOTO.exec(line)?.[1];
+      return !name || has(name);
+    })
     .join('\n')
     .replace(/\n{3,}/g, '\n\n');
 }
+
+interface DraftPostPhoto {
+  name: string;
+  file: File;
+}
+
+const hasDraftPostPhotos = (photos: DraftPostPhoto[]) => photos.length > 0;
 
 export function PostComposer({
   placeholder,
@@ -138,7 +149,13 @@ export function PostComposer({
   const id = useId();
   const announce = useAnnounce();
   const [recovered] = useState(() => readKeptDraft(draftKey));
-  const [draft, setDraft] = useState(() => withoutLocalPhotos(recovered?.text ?? ''));
+  const photoDraft = useDraftMedia<DraftPostPhoto[]>(draftKey, () => [], hasDraftPostPhotos);
+  const { value: keptPhotos, setValue: setKeptPhotos, loading: loadingPhotos } = photoDraft;
+  const [draft, setDraft] = useState(() =>
+    loadingPhotos
+      ? (recovered?.text ?? '')
+      : withoutMissingLocalPhotos(recovered?.text ?? '', () => false),
+  );
   const [storage, setStorage] = useState<DraftStorage>(null);
   const [anonymousChoice, setAnonymousChoice] = useState(recovered?.anonymous);
   const anonymous = !!anonymousOption && (anonymousChoice ?? anonymousOption.checked);
@@ -175,6 +192,23 @@ export function PostComposer({
     };
   }, []);
 
+  const waitingForPhotos = useRef(loadingPhotos);
+  const [, updatePhotoPreviews] = useState(0);
+  useLayoutEffect(() => {
+    if (loadingPhotos || !waitingForPhotos.current) return;
+    waitingForPhotos.current = false;
+    for (const { name, file } of keptPhotos) {
+      local.current.set(name, { file, url: URL.createObjectURL(file) });
+      const index = Number(name.slice('local:'.length));
+      if (Number.isSafeInteger(index)) named.current = Math.max(named.current, index);
+    }
+    const has = (name: string) => local.current.has(name);
+    if (loaded.current === null) setDraft((text) => withoutMissingLocalPhotos(text, has));
+    else if (setAside.current !== null)
+      setAside.current = withoutMissingLocalPhotos(setAside.current, has);
+    updatePhotoPreviews((version) => version + 1);
+  }, [keptPhotos, loadingPhotos]);
+
   const editingId = editing?.id ?? null;
   const editingWords = editing?.initial ?? '';
   const editingNoun = editing?.noun ?? 'post';
@@ -185,9 +219,22 @@ export function PostComposer({
   const shown = asMarkdown ? 'markdown' : mode;
 
   useEffect(() => {
-    if (draftKey && editingId === null)
-      setStorage(writeDraft(draftKey, withoutLocalPhotos(draft), { anonymous: draftAnonymous }));
-  }, [draftKey, draft, editingId, draftAnonymous]);
+    if (!draftKey || editingId !== null || loadingPhotos) return;
+    const selected = [...new Set(photoPaths(draft))].flatMap((name) => {
+      const photo = local.current.get(name);
+      return photo ? [{ name, file: photo.file }] : [];
+    });
+    setKeptPhotos((current) =>
+      current.length === selected.length &&
+      current.every(
+        (photo, index) =>
+          photo.name === selected[index]?.name && photo.file === selected[index].file,
+      )
+        ? current
+        : selected,
+    );
+    setStorage(writeDraft(draftKey, draft, { anonymous: draftAnonymous }));
+  }, [draftKey, draft, editingId, draftAnonymous, loadingPhotos, setKeptPhotos]);
 
   useLayoutEffect(() => {
     if (editingId === loaded.current) return;
@@ -226,14 +273,14 @@ export function PostComposer({
   // A selfie from checking in arrives attached (lib/chat/drafts.ts).
   // biome-ignore lint/correctness/useExhaustiveDependencies: once, for the box this key opened.
   useEffect(() => {
-    if (!draftKey) return;
+    if (!draftKey || loadingPhotos) return;
     const handed = handedPhotos(draftKey);
     forgetHandedPhotos(draftKey);
     if (handed.length === 0) return;
     const paths = addPhotos(handed);
     if (paths)
       setDraft((words) => [words.trim(), ...paths.map(photoLine)].filter(Boolean).join('\n\n'));
-  }, [draftKey]);
+  }, [draftKey, loadingPhotos]);
 
   useLayoutEffect(() => {
     const caret = caretTo.current;
@@ -259,6 +306,7 @@ export function PostComposer({
 
   /** Names for pictures to put in, or null when they cannot be (the sentence says why). */
   function addPhotos(files: File[]): string[] | null {
+    if (loadingPhotos) return null;
     const problem = attachmentProblem(files, already + new Set(inWords).size);
     setPhotoProblem(problem);
     if (problem) return null;
@@ -362,7 +410,7 @@ export function PostComposer({
 
   const body = draft.trim();
   const blank = editing !== null && body === '' && keeps.length === 0 && !editing.shared;
-  const cannotSend = sending || (editing ? blank : body === '');
+  const cannotSend = sending || loadingPhotos || (editing ? blank : body === '');
 
   function finishEdit(current: PostEditing, message: string) {
     current.onClose();
@@ -441,11 +489,12 @@ export function PostComposer({
           setFailure(problem);
           return;
         }
-        forgetLocal();
         if (current) {
           finishEdit(current, 'Changes saved.');
           return;
         }
+        forgetLocal();
+        photoDraft.clear();
         changed.current = false;
         if (draftKey) writeDraft(draftKey, '');
         setAnonymousChoice(undefined);
@@ -547,10 +596,11 @@ export function PostComposer({
           />
         </div>
       ) : null}
-      {!editing && draft.trim() ? (
+      {!editing && (draft.trim() || photoDraft.status !== 'idle') ? (
         <DraftStatus
           storage={storage}
           restored={draft === recovered?.text}
+          media={photoDraft.status}
           className="px-3.5 pt-1"
         />
       ) : null}
@@ -697,7 +747,7 @@ export function PostComposer({
             onChange={change}
             label={label}
             placeholder={label}
-            readOnly={sending}
+            readOnly={sending || loadingPhotos}
             onPhotos={addPhotos}
             onKeyDown={onKeys}
             mentionScope={mentionScope}
@@ -712,7 +762,7 @@ export function PostComposer({
               maxLength={maxLength}
               placeholder={label}
               aria-label={label}
-              readOnly={sending}
+              readOnly={sending || loadingPhotos}
               {...(editing?.plain ? {} : markdownMention.boxProps)}
               onPaste={(event) => {
                 const images = pastedImages(event.clipboardData);

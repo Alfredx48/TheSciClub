@@ -28,6 +28,8 @@ const db = vi.hoisted(() => ({
   questions: [] as boolean[],
 }));
 
+vi.mock('@/lib/account', () => ({ useAccount: () => ({ userId: 'member' }) }));
+
 vi.mock('@/lib/chat/rooms', async (importOriginal) => ({
   ...(await importOriginal<typeof ChatRooms>()),
   useChatRooms: () => ({ rooms: db.rooms, loading: false, error: null, reload: () => undefined }),
@@ -72,6 +74,8 @@ vi.mock('react-router-dom', async (importOriginal) => ({
 const { default: NewTopicPage, topicProblem } = await import('@/routes/chat/new-topic');
 
 beforeEach(() => {
+  localStorage.clear();
+  sessionStorage.clear();
   db.rooms = [makeRoom({ id: 'equip', name: 'Equipment & assistive tech', category: 'Kit' })];
   db.created = [];
   db.failure = null;
