@@ -51,7 +51,7 @@ import { memberType } from '@/types/domain';
 export const HAND_ADDED_TIMEZONE = 'America/Los_Angeles';
 
 const EVENT_COLUMNS =
-  'id, short_link, title, description, description_html, detail_summary, start_time, end_time, location, city, url, registration_url, event_format, organization_id, host_name, feed_id, series_id, photo_path, photo_alt, more_photos, timezone, all_day, state, audience, admin_override, feed_values, meeting_url';
+  'id, short_link, title, description, description_html, detail_summary, start_time, end_time, location, city, url, registration_url, event_format, organization_id, host_name, feed_id, series_id, photo_path, photo_alt, more_photos, timezone, all_day, state, audience, admin_override, feed_values, meeting_url, postal_code';
 
 /**
  * A list's columns: what a card, a filter and Home draw, without the
@@ -114,6 +114,7 @@ interface EventRow {
   url: string | null;
   registration_url: string | null;
   meeting_url?: string | null;
+  postal_code?: string | null;
   short_link?: string | null;
   event_format: string | null;
   organization_id: string | null;
@@ -228,6 +229,7 @@ export function toEvents(inputs: EventJoinInputs): ClubEvent[] {
       url: row.url,
       registrationUrl: row.registration_url,
       meetingUrl: row.meeting_url ?? null,
+      postalCode: row.postal_code ?? null,
       shortLink: row.short_link ?? null,
       format: row.event_format as ClubEvent['format'],
       organizationId: row.organization_id,
@@ -839,6 +841,30 @@ export async function setEventMeetingLink(
       event: eventId,
       link,
     });
+    if (error) return { ok: false, error: describeError(error, refusal) };
+    calendarChanged();
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: describeThrown(e, refusal) };
+  }
+}
+
+/**
+ * An event's ZIP code (20261121030000), set on its own after the event is
+ * saved, as the video call link is; '' clears it. A repeating event's later
+ * dates take it too.
+ */
+export async function setEventPostalCode(
+  eventId: string,
+  code: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const refusal = {
+    attempt: 'The ZIP code was not saved.',
+    refused: 'You cannot change this event.',
+    missing: 'That event is not on the calendar any more.',
+  };
+  try {
+    const { error } = await getSupabase().rpc('set_event_postal_code', { event: eventId, code });
     if (error) return { ok: false, error: describeError(error, refusal) };
     calendarChanged();
     return { ok: true };

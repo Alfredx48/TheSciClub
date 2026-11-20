@@ -105,7 +105,7 @@ describe("an event's state on its form", () => {
     expect(state).toHaveValue('OR');
   });
 
-  it('fills Where, City and State from a picked address, and the host no longer moves the state', async () => {
+  it('fills Where, City, ZIP code and State from a picked address, and the host no longer moves the state', async () => {
     renderForm();
     const host = await screen.findByLabelText('Who is hosting it?');
     await userEvent.selectOptions(host, 'borp');
@@ -114,6 +114,7 @@ describe("an event's state on its form", () => {
     await userEvent.click(await screen.findByRole('option', { name: /Lakeside Park/ }));
     expect(where).toHaveValue('Lakeside Park, 666 Bellevue Avenue');
     expect(screen.getByLabelText('City (optional)')).toHaveValue('Bend');
+    expect(screen.getByLabelText('ZIP code (optional)')).toHaveValue('97701');
     expect(screen.getByLabelText('State')).toHaveValue('OR');
     await userEvent.selectOptions(host, 'hf');
     expect(screen.getByLabelText('State')).toHaveValue('OR');

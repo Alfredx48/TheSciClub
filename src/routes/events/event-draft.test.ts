@@ -166,6 +166,7 @@ describe('readDraft', () => {
       },
       repeat: null,
       meetingUrl: '',
+      postalCode: '',
     });
   });
 
