@@ -83,6 +83,9 @@ export default function RoomPage() {
   // Top first (the owner, 2026-11-18): votes, an administrator's boost, recent activity, and what
   // the reader has not opened yet, ranked by the database. The others order the rows read.
   const [sort, setSort] = useState<RoomSort>('top');
+  // Scrolled: a line under the way back, so what passes under it reads as
+  // passing under, not as cut off.
+  const [scrolled, setScrolled] = useState(false);
   const {
     topics,
     loading: topicsLoading,
@@ -168,168 +171,195 @@ export default function RoomPage() {
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
-      <header className="flex-none border-line border-b bg-paper px-[18px] pt-3">
+      {/* Only the way back stays put; the room's name, its counts and the
+          sort scroll away with the posts (the owner, 2026-11-19: "do not
+          freeze the title and stuff, it should all scroll, only the reverse
+          breadcrumb should stay"). */}
+      <div
+        className={`flex-none border-b bg-paper px-[18px] pt-3 pb-1.5 ${scrolled ? 'border-line' : 'border-transparent'}`}
+      >
         <div className="mx-auto w-full max-w-[720px]">
           <ChatBreadcrumb state={location.state as unknown} />
-          <div className="mt-1 flex items-start gap-[11px]">
-            <span
-              aria-hidden="true"
-              className={`grid h-[2.4em] w-[2.4em] flex-none place-items-center rounded-[12px] bg-tint text-[1.125rem] leading-none ${CATEGORY_ICON[room.category]}`}
-            >
-              {room.icon ?? roomInitial(room.name)}
-            </span>
-            <span className="min-w-0 flex-1">
-              {/* Share and Mute beside the name only, so the description and
-                  counts below keep the column's width. */}
-              <span className="flex items-start gap-2">
-                <h1 className="min-w-0 flex-1 font-extrabold font-head text-[1.125rem] text-ink leading-[1.25]">
-                  {room.name}
-                </h1>
-                {/* A room's replies notify whoever started the topic, so muting a
-                    room means: no notifications for replies to my topics in it. */}
-                <span className="mt-0.5 flex flex-none items-start gap-1.5">
-                  {/* Not a closed room: no member could open the link. */}
-                  {closed ? null : <ShareRoomButton id={room.id} name={room.name} />}
-                  <MuteButton
-                    target={{ kind: 'room', id: room.id }}
-                    what="replies to your posts in this room"
-                  />
-                </span>
+        </div>
+      </div>
+
+      <div
+        className="flex-1 overflow-y-auto"
+        onScroll={(event) => {
+          setScrolled(event.currentTarget.scrollTop > 0);
+        }}
+      >
+        <header className="border-line border-b bg-paper px-[18px]">
+          <div className="mx-auto w-full max-w-[720px]">
+            <div className="mt-1.5 flex items-start gap-[11px]">
+              <span
+                aria-hidden="true"
+                className={`grid h-[2.4em] w-[2.4em] flex-none place-items-center rounded-[12px] bg-tint text-[1.125rem] leading-none ${CATEGORY_ICON[room.category]}`}
+              >
+                {room.icon ?? roomInitial(room.name)}
               </span>
-              <p className="mt-[3px] text-[0.78125rem] text-ink2 leading-[1.45]">
-                {room.description}
-              </p>
-              {/* Only for a room a member started. The seeded twelve came with
-                  the club and have nobody to name. */}
-              {room.createdBy ? (
-                <p className="mt-[3px] text-[0.75rem] text-grey leading-[1.45]">
-                  Started by {starter?.displayName ?? 'a deleted member'}
+              <span className="min-w-0 flex-1">
+                {/* Share and Mute beside the name only, so the description and
+                  counts below keep the column's width. */}
+                <span className="flex items-start gap-2">
+                  <h1 className="min-w-0 flex-1 font-extrabold font-head text-[1.125rem] text-ink leading-[1.25]">
+                    {room.name}
+                  </h1>
+                  {/* A room's replies notify whoever started the topic, so muting a
+                    room means: no notifications for replies to my topics in it. */}
+                  <span className="mt-0.5 flex flex-none items-start gap-1.5">
+                    {/* Not a closed room: no member could open the link. */}
+                    {closed ? null : <ShareRoomButton id={room.id} name={room.name} />}
+                    <MuteButton
+                      target={{ kind: 'room', id: room.id }}
+                      what="replies to your posts in this room"
+                    />
+                  </span>
+                </span>
+                <p className="mt-[3px] text-[0.78125rem] text-ink2 leading-[1.45]">
+                  {room.description}
                 </p>
-              ) : null}
-              {/* Left off entirely until there is something to count, for the
+                {/* Only for a room a member started. The seeded twelve came with
+                  the club and have nobody to name. */}
+                {room.createdBy ? (
+                  <p className="mt-[3px] text-[0.75rem] text-grey leading-[1.45]">
+                    Started by {starter?.displayName ?? 'a deleted member'}
+                  </p>
+                ) : null}
+                {/* Left off entirely until there is something to count, for the
                   reason room-card.tsx gives: two zeros read as a room that
                   failed rather than as one that has not started. And "open to
                   all" is not a promise to make about a closed room, which is
                   open to nobody — the banner below says so instead. */}
-              {count && count.topicCount > 0 ? (
-                <>
-                  <p className="mt-[5px] font-semibold text-[0.78125rem] text-emphasis">
-                    {roomCounts(count)}
-                  </p>
-                  <p className="text-[0.75rem] text-grey leading-[1.45]">
-                    {count.lastActivityAt ? lastActivity(count.lastActivityAt) : null}
-                    {count.lastActivityAt && !closed ? ' · ' : null}
-                    {closed ? null : 'Open to all, full history'}
-                  </p>
-                </>
-              ) : null}
-            </span>
-          </div>
+                {count && count.topicCount > 0 ? (
+                  <>
+                    <p className="mt-[5px] font-semibold text-[0.78125rem] text-emphasis">
+                      {roomCounts(count)}
+                    </p>
+                    <p className="text-[0.75rem] text-grey leading-[1.45]">
+                      {count.lastActivityAt ? lastActivity(count.lastActivityAt) : null}
+                      {count.lastActivityAt && !closed ? ' · ' : null}
+                      {closed ? null : 'Open to all, full history'}
+                    </p>
+                  </>
+                ) : null}
+              </span>
+            </div>
 
-          {closed ? (
-            <p className="mt-2.5 rounded-[11px] bg-tint px-3 py-2 text-[0.78125rem] text-ink2 leading-[1.45]">
-              This room is closed. No member can see it yet — you can, because you are an
-              administrator, so that there is something here before it opens.
-            </p>
-          ) : null}
+            {closed ? (
+              <p className="mt-2.5 rounded-[11px] bg-tint px-3 py-2 text-[0.78125rem] text-ink2 leading-[1.45]">
+                This room is closed. No member can see it yet — you can, because you are an
+                administrator, so that there is something here before it opens.
+              </p>
+            ) : null}
 
-          {/* "Sort by", not "Topic": the owner read "Topic" as a fourth chip.
+            {/* "Sort by", not "Topic": the owner read "Topic" as a fourth chip.
               A fieldset named by it, so a screen reader hears "Sort by" before
               "Activity, pressed" rather than a pressed button with no context. */}
-          <fieldset
-            aria-labelledby="room-sort-label"
-            className="mt-1 flex min-w-0 items-center gap-2 border-line border-t pt-1"
-          >
-            <span id="room-sort-label" className="flex-none font-bold text-[0.78125rem] text-ink2">
-              Sort by
-            </span>
-            <SegmentPills
-              segments={ROOM_SORTS.map((key) => [key, SORT_LABELS[key]] as const)}
-              value={sort}
-              onChange={setSort}
-              className="flex-1"
-            />
-          </fieldset>
-        </div>
-      </header>
+            <fieldset
+              aria-labelledby="room-sort-label"
+              className="mt-1 flex min-w-0 items-center gap-2 border-line border-t pt-1"
+            >
+              <span
+                id="room-sort-label"
+                className="flex-none font-bold text-[0.78125rem] text-ink2"
+              >
+                Sort by
+              </span>
+              <SegmentPills
+                segments={ROOM_SORTS.map((key) => [key, SORT_LABELS[key]] as const)}
+                value={sort}
+                onChange={setSort}
+                className="flex-1"
+              />
+            </fieldset>
+          </div>
+        </header>
 
-      <div className="flex-1 overflow-y-auto px-4 pt-2.5 pb-[18px] md:px-6">
-        <div className="mx-auto w-full max-w-[720px]">
-          {/* At the top, where it is seen first, rather than after every
+        <div className="px-4 pt-2.5 pb-[18px] md:px-6">
+          <div className="mx-auto w-full max-w-[720px]">
+            {/* At the top, where it is seen first, rather than after every
               topic (the owner, 2026-10-09): typed into and posted from here,
               with "Add details or a photo" for the full form. */}
-          {canPost ? (
-            classifieds ? (
-              // Straight to the full form, where photographs come first: a
-              // listing is mostly its picture (the owner, 2026-11-12).
-              <Link
-                to={`/chat/rooms/${room.id}/new`}
-                className="mb-2.5 flex min-h-[48px] w-full items-center justify-center rounded-[13px] bg-gold font-bold font-head text-on-gold text-[0.9375rem] transition-colors hover:bg-gold-hi"
-              >
-                {room.id === 'looking-for' ? 'Ask for something' : 'List something'}
-              </Link>
+            {canPost ? (
+              classifieds ? (
+                // Straight to the full form, where photographs come first: a
+                // listing is mostly its picture (the owner, 2026-11-12).
+                <Link
+                  to={`/chat/rooms/${room.id}/new`}
+                  className="mb-2.5 flex min-h-[48px] w-full items-center justify-center rounded-[13px] bg-gold font-bold font-head text-on-gold text-[0.9375rem] transition-colors hover:bg-gold-hi"
+                >
+                  {room.id === 'looking-for' ? 'Ask for something' : 'List something'}
+                </Link>
+              ) : (
+                <QuickAsk rooms={rooms} fixedRoom={room} className="mb-2.5" />
+              )
+            ) : null}
+            {topicsLoading ? (
+              <LoadingCards label="Loading the posts…" count={4} height={96} />
+            ) : error ? (
+              <div className="py-10 text-center">
+                <p className="text-[0.875rem] text-ink2 leading-relaxed">
+                  Could not load the posts.
+                </p>
+                <p className="mt-2 text-[0.78125rem] text-grey leading-relaxed">{error}</p>
+              </div>
+            ) : sorted.length === 0 ? (
+              // Invites the first one; does not pretend there is activity.
+              <p className="py-10 text-center text-[0.875rem] text-grey leading-relaxed">
+                {classifieds ? 'Nothing listed here yet.' : 'Nothing has been asked here yet.'}
+                <br />
+                {canPost
+                  ? classifieds
+                    ? 'Be the first.'
+                    : 'Start the first topic.'
+                  : 'An administrator can start one before the room opens.'}
+              </p>
+            ) : classifieds ? (
+              <ListingGrid
+                topics={sorted}
+                openingPosts={openingPosts}
+                places={places}
+                prices={prices}
+                free={room.id === 'giving-away'}
+                priced={room.id === PRICED_ROOM}
+              />
             ) : (
-              <QuickAsk rooms={rooms} fixedRoom={room} className="mb-2.5" />
-            )
-          ) : null}
-          {topicsLoading ? (
-            <LoadingCards label="Loading the posts…" count={4} height={96} />
-          ) : error ? (
-            <div className="py-10 text-center">
-              <p className="text-[0.875rem] text-ink2 leading-relaxed">Could not load the posts.</p>
-              <p className="mt-2 text-[0.78125rem] text-grey leading-relaxed">{error}</p>
-            </div>
-          ) : sorted.length === 0 ? (
-            // Invites the first one; does not pretend there is activity.
-            <p className="py-10 text-center text-[0.875rem] text-grey leading-relaxed">
-              {classifieds ? 'Nothing listed here yet.' : 'Nothing has been asked here yet.'}
-              <br />
-              {canPost
-                ? classifieds
-                  ? 'Be the first.'
-                  : 'Start the first topic.'
-                : 'An administrator can start one before the room opens.'}
-            </p>
-          ) : classifieds ? (
-            <ListingGrid
-              topics={sorted}
-              openingPosts={openingPosts}
-              places={places}
-              prices={prices}
-              free={room.id === 'giving-away'}
-              priced={room.id === PRICED_ROOM}
-            />
-          ) : (
-            sorted.map((topic) => {
-              const postId = openingPosts.get(topic.id);
-              return (
-                <TopicRow
-                  key={topic.id}
-                  topic={topic}
-                  authors={authors}
-                  place={topic.authorId ? places.get(topic.authorId) : undefined}
-                  likes={
-                    postId
-                      ? voteFor(likes, postId, account.status === 'member' ? account.userId : null)
-                      : undefined
-                  }
-                />
-              );
-            })
-          )}
-          {/* Top or newest activity first, 40 at a time; the other sorts order those shown. */}
-          {!topicsLoading && !error && hasMore ? (
-            <div className="mt-3 flex justify-center">
-              <button
-                type="button"
-                onClick={showMore}
-                disabled={loadingMore}
-                className="min-h-[44px] rounded-[10px] bg-tint px-4 py-2 font-semibold text-[0.8125rem] text-emphasis transition-colors hover:bg-line"
-              >
-                {loadingMore ? 'Loading…' : 'Show more posts'}
-              </button>
-            </div>
-          ) : null}
+              sorted.map((topic) => {
+                const postId = openingPosts.get(topic.id);
+                return (
+                  <TopicRow
+                    key={topic.id}
+                    topic={topic}
+                    authors={authors}
+                    place={topic.authorId ? places.get(topic.authorId) : undefined}
+                    likes={
+                      postId
+                        ? voteFor(
+                            likes,
+                            postId,
+                            account.status === 'member' ? account.userId : null,
+                          )
+                        : undefined
+                    }
+                  />
+                );
+              })
+            )}
+            {/* Top or newest activity first, 40 at a time; the other sorts order those shown. */}
+            {!topicsLoading && !error && hasMore ? (
+              <div className="mt-3 flex justify-center">
+                <button
+                  type="button"
+                  onClick={showMore}
+                  disabled={loadingMore}
+                  className="min-h-[44px] rounded-[10px] bg-tint px-4 py-2 font-semibold text-[0.8125rem] text-emphasis transition-colors hover:bg-line"
+                >
+                  {loadingMore ? 'Loading…' : 'Show more posts'}
+                </button>
+              </div>
+            ) : null}
+          </div>
         </div>
       </div>
     </div>
