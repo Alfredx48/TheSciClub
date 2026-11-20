@@ -1,5 +1,6 @@
 import { Capacitor } from '@capacitor/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { FOLLOWED } from '@/lib/push/payload';
 import { CHECK_EVERY_MS, GRACE_MS, stayCurrent } from '@/lib/stay-current';
 
 function fakeWorkers(inControl: boolean) {
@@ -84,6 +85,22 @@ describe('catching up when a new version takes over', () => {
     const reload = vi.fn();
     stop = stayCurrent({ container, reload });
     window.dispatchEvent(new KeyboardEvent('keydown', { key: 'h' }));
+    takeOver();
+    expect(reload).not.toHaveBeenCalled();
+    setVisibility('hidden');
+    expect(reload).toHaveBeenCalledTimes(1);
+  });
+
+  // The owner, 2026-11-20: a notification tapped after a deploy opened the
+  // app where it already was.
+  it('keeps a pressed notification on its page, even when the return comes after the press', () => {
+    vi.useFakeTimers();
+    const { container, takeOver } = fakeWorkers(true);
+    const reload = vi.fn();
+    stop = stayCurrent({ container, reload });
+    setVisibility('hidden');
+    window.dispatchEvent(new Event(FOLLOWED));
+    setVisibility('visible');
     takeOver();
     expect(reload).not.toHaveBeenCalled();
     setVisibility('hidden');

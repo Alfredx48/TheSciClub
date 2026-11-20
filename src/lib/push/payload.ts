@@ -147,6 +147,12 @@ export function pickWindow(
  * worker whether a press is waiting for it.
  */
 export const NAVIGATE = 'club:navigate';
+/**
+ * A window event: the app has just opened a pressed notification's address.
+ * stay-current holds a version reload back for a while after it, as after a
+ * touch, so the reload cannot take the member back where they were.
+ */
+export const FOLLOWED = 'club:notification-followed';
 export const PENDING = 'club:pending-navigation';
 /** How long a press waits for a starting window to collect it. */
 export const PENDING_FOR_MS = 20_000;

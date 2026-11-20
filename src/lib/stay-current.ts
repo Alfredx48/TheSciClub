@@ -18,6 +18,14 @@
  * The first worker ever installed also takes over, and that is not an
  * update: a page with no worker in control when it opened does not reload.
  *
+ * A pressed notification counts as a touch, for FOLLOW_HOLD_MS (the owner,
+ * 2026-11-20: a notification tapped with the app in the background left it
+ * where it was, after a deploy). The app coming back usually comes with the
+ * press, and the new version taking over a moment later reloaded the screen
+ * the press had only just opened. It reloads the next time the app goes to the
+ * background instead. Held by the time, not the touch flag, since the press
+ * can be heard just before the return that clears that flag.
+ *
  * As a last resort (the owner, 2026-11-01: a Home Screen app still old after
  * being closed and opened): each check also reads /version.json, which the
  * worker does not keep. Still behind a minute after noticing, the app empties
@@ -30,11 +38,14 @@
  * store.
  */
 
+import { FOLLOWED } from '@/lib/push/payload';
 import { isNative } from '@/lib/standalone';
 
 export const CHECK_EVERY_MS = 30 * 60 * 1000;
 /** Long enough for the worker to bring the new version in the ordinary way. */
 export const GRACE_MS = 60 * 1000;
+/** How long after a pressed notification opens the app counts as in use. */
+export const FOLLOW_HOLD_MS = 30 * 1000;
 const FORCED_KEY = 'club:forced-refresh';
 
 /** The release that is out, or null when it cannot be told. */
@@ -94,7 +105,13 @@ export function stayCurrent({
   let behind = false;
   // Pressed or typed since the app last came to the foreground.
   let touched = false;
+  // When a pressed notification last opened its address.
+  let followedAt = Number.NEGATIVE_INFINITY;
   let reloading = false;
+
+  function inUse() {
+    return touched || Date.now() - followedAt < FOLLOW_HOLD_MS;
+  }
 
   function catchUp() {
     if (reloading) return;
@@ -124,7 +141,7 @@ export function stayCurrent({
         if (grace !== undefined || stuck) return;
         grace = window.setTimeout(() => {
           stuck = true;
-          if (document.visibilityState === 'hidden' || !touched) force();
+          if (document.visibilityState === 'hidden' || !inUse()) force();
         }, GRACE_MS);
       })
       .catch(() => undefined);
@@ -146,7 +163,7 @@ export function stayCurrent({
       return;
     }
     behind = true;
-    if (document.visibilityState === 'hidden' || !touched) catchUp();
+    if (document.visibilityState === 'hidden' || !inUse()) catchUp();
   }
 
   function onVisibility() {
@@ -163,11 +180,16 @@ export function stayCurrent({
     touched = true;
   }
 
+  function onFollowed() {
+    followedAt = Date.now();
+  }
+
   sw.addEventListener('controllerchange', onControllerChange);
   document.addEventListener('visibilitychange', onVisibility);
   // Capture, so a handler that stops the event does not hide it from here.
   window.addEventListener('pointerdown', onTouch, true);
   window.addEventListener('keydown', onTouch, true);
+  window.addEventListener(FOLLOWED, onFollowed);
   const timer = window.setInterval(check, CHECK_EVERY_MS);
   // Opened from cold, no return to the foreground says so.
   compare();
@@ -178,6 +200,7 @@ export function stayCurrent({
     document.removeEventListener('visibilitychange', onVisibility);
     window.removeEventListener('pointerdown', onTouch, true);
     window.removeEventListener('keydown', onTouch, true);
+    window.removeEventListener(FOLLOWED, onFollowed);
     window.clearInterval(timer);
   };
 }

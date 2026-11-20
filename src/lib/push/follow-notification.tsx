@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { navigationRequest, PENDING } from '@/lib/push/payload';
+import { FOLLOWED, navigationRequest, PENDING } from '@/lib/push/payload';
 
 /**
  * Opens the address of a notification that was pressed, inside the app.
@@ -29,6 +29,7 @@ export function FollowNotification() {
     function onMessage(event: MessageEvent) {
       const path = navigationRequest(event.data, origin);
       if (path === null) return;
+      window.dispatchEvent(new Event(FOLLOWED));
       // A fresh location also re-centres a notification's message or post
       // when its URL was already open and the member has scrolled away.
       void navigate.current(path);
