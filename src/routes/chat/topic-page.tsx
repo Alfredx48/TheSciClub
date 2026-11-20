@@ -128,6 +128,8 @@ export default function TopicPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   /** The specific post the next reply goes under, or null. */
   const [replyingTo, setReplyingTo] = useState<ChatPost | null>(null);
+  // Scrolled: a line under the way back. See the page's top.
+  const [scrolledDown, setScrolledDown] = useState(false);
   const reports = useMyReports();
   // Which post the sheet is open over, or null. One at a time, and the id
   // rather than a boolean so that the sheet cannot outlive the post it is
@@ -563,14 +565,29 @@ export default function TopicPage() {
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
-      <div ref={scroller} className="relative flex-1 overflow-y-auto pb-[18px]">
-        <header className="border-line border-b bg-paper px-[18px] pt-3 pb-3">
+      {/* Only the way back stays at the top; the title and everything under
+          it scroll (the owner, 2026-11-19: "Only the top back link should be
+          pinned to the top"). A line under it once scrolled, as in a room. */}
+      <div
+        className={`flex-none border-b bg-paper px-[18px] pt-3 pb-1.5 ${scrolledDown ? 'border-line' : 'border-transparent'}`}
+      >
+        <div className="mx-auto w-full max-w-[720px]">
+          <ChatBreadcrumb state={location.state as unknown} room={room} />
+        </div>
+      </div>
+      <div
+        ref={scroller}
+        className="relative flex-1 overflow-y-auto pb-[18px]"
+        onScroll={(event) => {
+          setScrolledDown(event.currentTarget.scrollTop > 0);
+        }}
+      >
+        <header className="border-line border-b bg-paper px-[18px] pt-1.5 pb-3">
           <div className="mx-auto w-full max-w-[720px]">
-            <ChatBreadcrumb state={location.state as unknown} room={room} />
             <h1
               ref={heading}
               tabIndex={-1}
-              className="mt-1 font-extrabold font-head text-[1.125rem] text-ink leading-[1.3] outline-none [overflow-wrap:anywhere]"
+              className="font-extrabold font-head text-[1.125rem] text-ink leading-[1.3] outline-none [overflow-wrap:anywhere]"
             >
               {/* A question's @people and @Organizations open their pages (the owner, 2026-11-17). */}
               <LinkedText text={topic.title} />

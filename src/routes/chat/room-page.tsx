@@ -189,9 +189,9 @@ export default function RoomPage() {
           setScrolled(event.currentTarget.scrollTop > 0);
         }}
       >
-        <header className="border-line border-b bg-paper px-[18px]">
+        <header className="border-line border-b bg-paper px-[18px] pt-1.5">
           <div className="mx-auto w-full max-w-[720px]">
-            <div className="mt-1.5 flex items-start gap-[11px]">
+            <div className="flex items-start gap-[11px]">
               <span
                 aria-hidden="true"
                 className={`grid h-[2.4em] w-[2.4em] flex-none place-items-center rounded-[12px] bg-tint text-[1.125rem] leading-none ${CATEGORY_ICON[room.category]}`}
