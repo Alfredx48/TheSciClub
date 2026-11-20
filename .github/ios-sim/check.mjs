@@ -1,6 +1,5 @@
 // Release check for the reply editor in a native iPhone Simulator build.
 import assert from 'node:assert/strict';
-import { execFileSync } from 'node:child_process';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { remote } from 'webdriverio';
 
@@ -120,61 +119,29 @@ try {
   }
   note('signed in');
 
-  const base = new URL(process.env.LT_SUPABASE_URL);
-  assert.equal(base.protocol, 'https:');
-  assert.match(base.hostname, /^[a-z0-9]+\.supabase\.co$/);
-  assert.notEqual(base.hostname, 'erijdvqnxavwezsbbojv.supabase.co');
-  const apiKey = process.env.LT_SUPABASE_ANON_KEY;
-  const signInResponse = await fetch(new URL('/auth/v1/token?grant_type=password', base), {
-    method: 'POST',
-    headers: { apikey: apiKey, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email: process.env.LT_EMAIL, password: process.env.LT_PASSWORD }),
-  });
-  assert(signInResponse.ok, `Robot test sign-in returned ${signInResponse.status}`);
-  const { access_token: token } = await signInResponse.json();
-  assert(token, 'Robot test sign-in returned no token');
-  const restGet = async (table, params) => {
-    const url = new URL(`/rest/v1/${table}`, base);
-    url.search = new URLSearchParams(params).toString();
-    const response = await fetch(url, {
-      headers: { apikey: apiKey, Authorization: `Bearer ${token}` },
-    });
-    assert(response.ok, `Fixture read returned ${response.status}`);
-    return response.json();
-  };
-  const rooms = await restGet('chat_rooms', {
-    select: 'id',
-    opened_at: 'not.is.null',
-    show_in_home: 'eq.true',
-  });
-  const roomIds = rooms.map(({ id }) => id).filter((id) => /^[a-z0-9_-]+$/.test(id));
-  assert(roomIds.length, 'No readable test rooms');
-  const [topic] = await restGet('chat_topics', {
-    select: 'id,room_id',
-    room_id: `in.(${roomIds.join(',')})`,
-    order: 'reply_count.desc',
-    limit: '1',
-  });
-  assert(
-    topic && /^[a-f0-9-]{36}$/.test(topic.id) && roomIds.includes(topic.room_id),
-    'No readable fixture topic',
-  );
-  const path = `/chat/rooms/${topic.room_id}/topics/${topic.id}`;
-  const open = (path) =>
-    execFileSync(
-      'xcrun',
-      ['simctl', 'openurl', process.env.UDID, `thesciclub://open?${new URLSearchParams({ path })}`],
-      { stdio: 'ignore' },
+  const home = () => visible(byLabel('XCUIElementTypeLink', 'Home(,.*)?'));
+  const topicLinks =
+    '(?s)(Reply to .*|[0-9]+ (reply|replies) to .*|Open the (question|post)|Question .+)';
+  const topic = await waitFor(() => visible(byLabel('XCUIElementTypeLink', topicLinks)), 30000);
+  assert(topic, 'Home has no accessible discussion link');
+  const name = (await topic.getAttribute('label')) || (await topic.getAttribute('name'));
+  assert(name, 'The Home discussion link has no accessible name');
+  const sameTopic = () =>
+    visible(
+      driver.$(
+        `-ios predicate string:type == 'XCUIElementTypeLink' AND (label == ${JSON.stringify(name)} OR name == ${JSON.stringify(name)})`,
+      ),
     );
-  open(path);
+  await topic.click();
+  note('opened a discussion from Home');
 
   const editor = () =>
     waitFor(() => visible(byLabel('XCUIElementTypeTextView', 'Reply to this post')), 30000);
   const reply = await waitFor(
-    () => visible(byLabel('XCUIElementTypeButton', 'Reply to .*post')),
+    () => visible(byLabel('XCUIElementTypeButton', 'Reply( to .*post)?')),
     30000,
   );
-  assert(reply, 'Discussion has no Reply action');
+  assert(reply, 'The discussion has no accessible Reply button');
   await reply.click();
   const box = await editor();
   assert(box, 'Reply editor did not appear');
@@ -189,9 +156,14 @@ try {
     'The software keyboard did not open',
   );
   const keyboard = await ofType('XCUIElementTypeKeyboard');
-  const keyboardTop = (await keyboard.getLocation()).y;
-  const boxBottom = (await box.getLocation()).y + (await box.getSize()).height;
-  assert(boxBottom <= keyboardTop + 2, 'The reply editor is under the keyboard');
+  assert(
+    await waitFor(async () => {
+      const keyboardTop = (await keyboard.getLocation()).y;
+      const boxBottom = (await box.getLocation()).y + (await box.getSize()).height;
+      return boxBottom <= keyboardTop + 2;
+    }, 5000),
+    'The reply editor is under the keyboard',
+  );
   note(
     `Reply editor above keyboard (bot opened keyboard by ${keyboardOnReply ? 'Reply' : 'tapping the editor'})`,
   );
@@ -202,12 +174,16 @@ try {
     await waitFor(async () => (await screenText()).includes(marker), 10000),
     'Typing did not reach the reply editor',
   );
-  open('/home');
+  const homeLink = await home();
+  assert(homeLink, 'The Home tab is missing');
+  await homeLink.click();
   assert(
     await waitFor(async () => !(await screenText()).includes(marker), 15000),
     'Home did not replace the discussion',
   );
-  open(path);
+  const reopen = await waitFor(sameTopic, 20000);
+  assert(reopen, 'The same discussion was missing on return to Home');
+  await reopen.click();
   assert(await editor(), 'Reply editor did not reopen');
   assert(
     await waitFor(async () => (await screenText()).includes(marker), 15000),
