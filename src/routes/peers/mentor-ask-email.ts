@@ -4,12 +4,13 @@
  * 2026-11-20: "I want it to come from me. Maybe a mailto link. Something I
  * can do on my phone"). The words and the subject are the owner's; only the
  * two first names change. Plain text, as a mailto: link can carry no more, so
- * each link is written out after its words.
+ * each link is written out, on its own line, and the mail app links it.
  */
 
 export const MENTOR_ASK_SUBJECT = 'Completing your profile and helping us grow';
 export const ME_TAB_URL = 'https://thesciclub.com/me';
-export const APP_STORE_URL = 'https://apps.apple.com/us/app/the-sci-club/id6825594961';
+/** The short form; Apple sends it on to the app's page. */
+export const APP_STORE_URL = 'https://apps.apple.com/app/id6825594961';
 
 /** "Lake" from "Lake Thompson". */
 export function firstName(displayName: string | null | undefined): string {
@@ -23,8 +24,15 @@ export function mentorAskBody({ member, admin }: { member: string; admin: string
     '',
     'Thank you for joining the SCI Club. We need your help to build our team of mentors! If you could do the following you could really help us out.',
     '',
-    `1. Go to the me tab (${ME_TAB_URL}) and complete your profile`,
-    `2. Install the iOS app (${APP_STORE_URL}) and turn on notifications`,
+    // A blank line between the steps, and each link on its own line under its
+    // step, where a mail app makes it tappable (the owner, 2026-11-20: "put
+    // spaces between the 1, 2, 3 in the e-mail and format it nicer").
+    '1. Go to the me tab and complete your profile:',
+    ME_TAB_URL,
+    '',
+    '2. Install the iOS app and turn on notifications:',
+    APP_STORE_URL,
+    '',
     '3. Try to answer a question or ask one. Any content you create makes the app more dynamic and interesting to people with SCI.',
     '',
     "Thank you so much for your help. Let's build this club one wheeler at a time.",
