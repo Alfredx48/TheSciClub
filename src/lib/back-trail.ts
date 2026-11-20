@@ -14,8 +14,7 @@
  * still say where back goes when nothing is remembered: a screen opened from
  * a notification, a shared link or a refresh (`OwnBack`, back-line.tsx).
  *
- * In memory only, for this visit, like tab-places.ts, and forgotten with it
- * on sign-out.
+ * In memory only, for this visit, and forgotten on sign-out.
  *
  * ---------------------------------------------------------------------------
  * The rules, in `nextTrail`
@@ -29,8 +28,9 @@
  *   again, so two screens never bounce between each other.
  * - A screen that replaces another (a form that becomes what it made) takes
  *   its place.
- * - A tab pressed goes where that tab was left (tab-places.ts). If that is a
- *   deeper screen, the trail that led to it is put back with it.
+ * - A tab pressed opens that tab's first screen (app-nav.tsx; Chat too since
+ *   2026-11-19), so the first rule covers it. Were a tab to go back where it
+ *   was left again, the trail that led there is put back with it.
  */
 
 export const TAB_ROOTS: Readonly<Record<string, string>> = {

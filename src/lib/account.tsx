@@ -9,7 +9,6 @@ import { ownRowChanged, readOwnRow } from '@/lib/own-row';
 import { forgetThisDevice } from '@/lib/push/notifications';
 import { forgetSharedReads } from '@/lib/shared-reads';
 import { getSupabase } from '@/lib/supabase';
-import { forgetTabPlaces } from '@/lib/tab-places';
 
 /**
  * Where somebody stands with the club, in one answer.
@@ -291,8 +290,7 @@ export async function signOut(): Promise<{ ok: boolean; error?: string }> {
     resetAttachmentUrls();
     // Unsent words, which the next person on this device must not read.
     forgetDrafts();
-    // And where each tab was left, and the way back from it.
-    forgetTabPlaces();
+    // And the way back from where they were.
     forgetTrail();
     // And anything else held in memory for the screens (lib/shared-reads.ts).
     forgetSharedReads();

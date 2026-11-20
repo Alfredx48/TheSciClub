@@ -64,7 +64,7 @@ describe('the way back', () => {
     expect(paths(made)).toEqual(['/chat', '/chat/rooms/life', '/chat/rooms/life/topics/t9']);
   });
 
-  // A tab goes where it was left (tab-places.ts): the way back from there is
+  // Were a tab to go where it was left (none does now): the way back from there is
   // the one that led to it, not the tab just left.
   it('puts a tab’s own trail back when the tab returns to a deeper screen', () => {
     const chat = walk('/chat', '/chat/rooms/life', '/chat/rooms/life/topics/t1');

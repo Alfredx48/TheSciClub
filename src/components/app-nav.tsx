@@ -11,7 +11,6 @@ import { useUnprovenEmail } from '@/lib/email-proof';
 import { useIconBadge } from '@/lib/icon-badge';
 import { onReadsInFlight, readsInFlight, refreshTabReads } from '@/lib/kept-reads';
 import { useUnseenNotifications } from '@/lib/notifications';
-import { rememberTabPlace, tabPlace } from '@/lib/tab-places';
 import { cn } from '@/lib/utils';
 
 /**
@@ -144,9 +143,6 @@ export function AppNav() {
   const wide = useWideLayout();
   const lit = litTab(location.pathname, location.state);
   const { spinning, tapped } = useTabSpinner(location);
-  useEffect(() => {
-    if (lit) rememberTabPlace(lit, `${location.pathname}${location.search}`, location.state);
-  }, [lit, location.pathname, location.search, location.state]);
   // The bar stays still on every screen, Home's feed included, while people
   // get used to the app (the owner, 2026-11-15). It slid away on a scroll
   // from 2026-11-01, on Home's feed only from 2026-11-09.
@@ -184,13 +180,13 @@ export function AppNav() {
       >
         {TABS.map(({ to, label, Icon }) => {
           const isActive = lit === to;
-          // Chat, from another tab: back in the conversation it was left in,
-          // so switching tabs mid-message does not close it (the owner,
-          // 2026-11-10). Every other tab, and Chat when lit: its first
-          // screen (the owner, 2026-11-19: "When I tap on home it should take
-          // me to home, not the last page I was on").
-          const kept = to === '/chat' && !isActive ? tabPlace(to) : undefined;
-          const destination = kept?.path ?? to;
+          // Every tab opens on its first screen (the owner, 2026-11-19: "When
+          // I tap on home it should take me to home, not the last page I was
+          // on"), Chat too ("it should take you to the chat tab, not the last
+          // chat you were in"; from 2026-11-10 it went back to the
+          // conversation it was left in). A message half written is still in
+          // its conversation (lib/chat/drafts.ts).
+          const destination = to;
           return (
             <Link
               key={to}
@@ -204,7 +200,6 @@ export function AppNav() {
                 sayNext('tab');
               }}
               aria-busy={spinning === to ? true : undefined}
-              state={kept?.state}
               aria-current={isActive ? 'page' : undefined}
               // The dot is decorative, so without this the tab is called "Chat"
               // and what it is telling somebody is told only in navy. The label
