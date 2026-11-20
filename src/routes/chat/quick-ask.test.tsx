@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -88,6 +88,32 @@ describe('asking from Home', () => {
     expect(box).not.toHaveFocus();
     expect(screen.queryByRole('button', { name: 'Post' })).toBeNull();
     expect(sessionStorage.length).toBe(0);
+  });
+
+  // The owner, 2026-11-20: tapping Anonymous or "?" in an empty box closed it. A phone does
+  // not focus a tick box or button it taps, so the words lose focus to nothing.
+  it('stays open, explanation and all, when a tap inside does not take focus', async () => {
+    renderAsk();
+    const box = screen.getByRole('textbox', { name: 'Ask or post to the club' });
+    await userEvent.click(box);
+    const help = screen.getByRole('button', { name: 'What Question and Anonymous do' });
+    fireEvent.pointerDown(help);
+    fireEvent.blur(box, { relatedTarget: null });
+    fireEvent.click(help);
+    expect(
+      await screen.findByRole('dialog', { name: 'Question and Anonymous' }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Post' })).toBeInTheDocument();
+    // Closing the sheet is a press inside it: still open.
+    fireEvent.pointerDown(screen.getByRole('button', { name: 'Got it' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Got it' }));
+    expect(screen.getByRole('button', { name: 'Post' })).toBeInTheDocument();
+    // A press anywhere else, taking focus away, folds it, empty.
+    fireEvent.pointerDown(document.body);
+    fireEvent.blur(box, { relatedTarget: null });
+    await waitFor(() => {
+      expect(screen.queryByRole('button', { name: 'Post' })).toBeNull();
+    });
   });
 
   it('posts to General as a question in one tap, and opens it with the way back', async () => {

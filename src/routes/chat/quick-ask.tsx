@@ -73,7 +73,28 @@ export function QuickAsk({
   const [chosenRoom, setChosenRoom] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [focused, setFocused] = useState(false);
+  // Held open by a press inside the box (the owner, 2026-11-20: tapping Anonymous or "?" in an
+  // empty box closed it). A phone does not move focus to a tick box or a button when it is
+  // tapped, so the box read the words losing focus as the member leaving, folded up, and took
+  // the explanation sheet with it. Presses in that sheet count as inside: React passes them up
+  // through the portal. A press anywhere else lets it fold again.
+  const [held, setHeld] = useState(false);
+  const form = useRef<HTMLFormElement>(null);
   const [failure, setFailure] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!held) return;
+    function away(event: PointerEvent) {
+      const target = event.target as Element | null;
+      if (!target || form.current?.contains(target) || target.closest('[data-post-options-sheet]'))
+        return;
+      setHeld(false);
+    }
+    document.addEventListener('pointerdown', away);
+    return () => {
+      document.removeEventListener('pointerdown', away);
+    };
+  }, [held]);
 
   useEffect(() => {
     try {
@@ -93,7 +114,7 @@ export function QuickAsk({
     null;
   const words = text.trim();
   const started = text.length > 0;
-  const expanded = started || focused;
+  const expanded = started || focused || held;
 
   function post() {
     if (!room || !words || saving) return;
@@ -127,6 +148,10 @@ export function QuickAsk({
 
   return (
     <form
+      ref={form}
+      onPointerDown={() => {
+        setHeld(true);
+      }}
       className={`rounded-[17px] border-[1.6px] border-line bg-paper p-3.5 focus-within:border-emphasis ${className ?? ''}`}
       onSubmit={(event) => {
         event.preventDefault();
@@ -166,6 +191,7 @@ export function QuickAsk({
               setText('');
               setFailure(null);
               setFocused(false);
+              setHeld(false);
               box.current?.blur();
             }}
             className="-my-2 -mr-2 grid h-11 w-11 flex-none place-items-center rounded-full text-grey hover:bg-tint hover:text-ink"

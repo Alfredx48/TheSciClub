@@ -178,7 +178,8 @@ function ExplainSheet({ explainers, onClose }: { explainers: Explainer[]; onClos
       : 'Not a question';
 
   return createPortal(
-    <div>
+    // Marks presses here as inside the box that opened it (quick-ask.tsx).
+    <div data-post-options-sheet="">
       <button
         type="button"
         aria-label="Close"
@@ -225,8 +226,9 @@ function ExplainSheet({ explainers, onClose }: { explainers: Explainer[]; onClos
               </p>
               <p className="mt-2">
                 The club’s rules still apply. An administrator can flag an anonymous post: it is
-                hidden, you are told why, and it counts as a strike. After one flag you can’t post
-                anonymously for a month, and after two within 12 months, for three months.
+                hidden, you are told why and can respond, and it counts as a strike. After one flag
+                you can’t post anonymously for a month, and after two within 12 months, for three
+                months.
               </p>
               <p className="mt-2">
                 Three strikes of any kind within 12 months pause your membership for 30 days, and
@@ -259,9 +261,10 @@ function ExplainSheet({ explainers, onClose }: { explainers: Explainer[]; onClos
 
 function Part({ heading, children }: { heading: string | null; children: React.ReactNode }) {
   return (
-    <section className="mt-3 text-[0.9375rem] text-ink2 leading-[1.55]">
+    <section className="mt-4 text-[0.9375rem] text-ink2 leading-[1.55]">
+      {/* Yellow, so it is clear which part is about which box (the owner, 2026-11-20). */}
       {heading ? (
-        <h3 className="mb-1 font-extrabold font-head text-[0.71875rem] text-grey uppercase tracking-[0.13em]">
+        <h3 className="mb-1.5 inline-block rounded-md bg-gold px-2 py-0.5 font-extrabold font-head text-[0.84375rem] text-on-gold">
           {heading}
         </h3>
       ) : null}
