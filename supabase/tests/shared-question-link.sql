@@ -1,6 +1,6 @@
 -- ============================================================================
 -- A question an administrator shares can let people in, for 24 hours
--- (20261116200000), and carries the organization of an admin of only one (20261119160000)
+-- (20261116200000), and carries the organization of an admin of only one (20261119170000)
 -- ============================================================================
 -- With joining closed: only an administrator makes the link's code; asking
 -- again within the hour is the same code; the join screen hears that it lets
@@ -133,7 +133,7 @@ select public.signup_needs_an_invite(jsonb_build_object('user', jsonb_build_obje
     where admin_id = 'aaaaaaaa-5a5a-0000-0000-00000000000c' and made_to_share))))) as no_longer_org_admin;
 
 \echo ''
-\echo '== 9. whose organization the link carries (20261119160000) (expect Probe Share Org for an admin of it alone; none for an admin of two; none for a club administrator; whoever joins through the first joins Probe Share Org) =='
+\echo '== 9. whose organization the link carries (20261119170000) (expect Probe Share Org for an admin of it alone; none for an admin of two; none for a club administrator; whoever joins through the first joins Probe Share Org) =='
 insert into public.organization_representatives (organization_id, member_id)
 values ('bbbbbbbb-5a5a-0000-0000-00000000000a', 'aaaaaaaa-5a5a-0000-0000-00000000000c');
 update public.qr_codes set turned_off_at = now() where admin_id = 'aaaaaaaa-5a5a-0000-0000-00000000000c';

@@ -229,7 +229,7 @@ export async function createQrCode(
  * An administrator's or organization admin's code for sharing a topic
  * (20261116200000, the owner, 2026-11-16): anyone who comes through the link
  * in the next 24 hours may join. Made by an admin of only one organization, it
- * is that organization's, and who joins through it joins it (20261119160000).
+ * is that organization's, and who joins through it joins it (20261119170000).
  * Asked again within the hour, the same code.
  */
 export async function shareTopicCode(

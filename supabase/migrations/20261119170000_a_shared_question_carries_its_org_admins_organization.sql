@@ -92,7 +92,7 @@ end;
 $$;
 
 comment on function public.share_topic_code(uuid) is
-  'An administrator''s or an organization admin''s code for sharing a question or other topic they can read: anyone who comes through the link in the next 24 hours may join. An admin of exactly one organization (not a club administrator) makes it for that organization, so who joins through it joins it. See 20261116200000, 20261119140000 and 20261119160000.';
+  'An administrator''s or an organization admin''s code for sharing a question or other topic they can read: anyone who comes through the link in the next 24 hours may join. An admin of exactly one organization (not a club administrator) makes it for that organization, so who joins through it joins it. See 20261116200000, 20261119140000 and 20261119170000.';
 
 revoke all on function public.share_topic_code(uuid) from public, anon;
 grant execute on function public.share_topic_code(uuid) to authenticated;
