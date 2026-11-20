@@ -10,7 +10,7 @@ export const STAND_IN_PLACE = 'Sacramento, CA';
 export const STAND_IN_DAY = 'June 15';
 export const STAND_IN_MONTH = 'June';
 /** The last name (the owner, 2026-11-20; 20261120130000): only the first name is sent. */
-export const STAND_IN_LAST_NAME = 'Johnson';
+export const STAND_IN_LAST_NAME = 'Smith';
 
 /** Shown blurred; a screen reader hears that it is hidden, not the stand-in. */
 export function Blurred({ children }: { children: string }) {
@@ -24,7 +24,9 @@ export function Blurred({ children }: { children: string }) {
         className="inline-block select-none rounded-[6px] px-1 align-baseline leading-tight [text-shadow:none]"
         style={{ backgroundColor: 'color-mix(in srgb, currentColor 22%, transparent)' }}
       >
-        <span className="inline-block blur-[4px]">{children}</span>
+        {/* In em, so a name drawn large blurs as much as a city drawn small: 4px left the
+            stand-in last name readable at the size of a name. */}
+        <span className="inline-block [filter:blur(0.32em)]">{children}</span>
       </span>
       <span className="sr-only">hidden</span>
     </>

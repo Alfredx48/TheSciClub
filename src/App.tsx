@@ -456,9 +456,10 @@ export function RouteChange() {
     // until the next screen.
     const name = () => {
       // A kept tab hides with display: none, and its h1 is still there.
-      const heading = [...document.querySelectorAll('main h1, h1')]
-        .find((h1) => !hidden(h1))
-        ?.textContent.trim();
+      // A heading with a stand-in in it says what to call it: About us blurs a made-up last
+      // name, which is not the member's ("Hannah Johnsonhidden").
+      const h1 = [...document.querySelectorAll('main h1, h1')].find((h) => !hidden(h));
+      const heading = (h1?.getAttribute('data-title') ?? h1?.textContent)?.trim();
       document.title = heading ? `${heading} · The Sci Club` : 'The Sci Club';
       // And what the line on the next screen calls this one (back-trail.ts).
       nameScreen(heading);

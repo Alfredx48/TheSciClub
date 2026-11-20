@@ -127,7 +127,10 @@ export default function AboutProfilePage() {
                 />
               ) : null}
               <div className="pointer-events-none absolute inset-x-0 bottom-0 px-[18px] pb-3.5">
-                <h1 className="font-extrabold font-display text-[1.875rem] text-white leading-tight tracking-[-0.01em]">
+                <h1
+                  data-title={member.displayName}
+                  className="font-extrabold font-display text-[1.875rem] text-white leading-tight tracking-[-0.01em]"
+                >
                   <TeamName first={member.displayName} lastNameHidden={found.lastNameHidden} />
                 </h1>
                 {member.username ? (
