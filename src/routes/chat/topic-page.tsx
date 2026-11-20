@@ -406,6 +406,7 @@ export default function TopicPage() {
     canEdit: canPost && post.authorId === account.userId,
     editing: edited?.id === post.id,
     onEdit: () => {
+      setReplyingTo(null);
       setEditingId(post.id);
     },
     canReply: canPost,
@@ -484,6 +485,58 @@ export default function TopicPage() {
     openingStands && opening.attachments.length === 0 && opening.body.trim() === topicTitle;
   const skip = openingStands ? 1 : 0;
 
+  // A reply is written right under the post it answers (the owner,
+  // 2026-11-19: "the reply box should be right under the comment to which
+  // they said reply to"), in a box of its own with its own draft. The box at
+  // the bottom stays, hidden, with whatever was being written there. Only
+  // while that post is drawn: one gone from the page leaves nothing to write
+  // under, and the bottom box comes back.
+  const onPage = (list: PostThread[], id: string): boolean =>
+    list.some((t) => t.post.id === id || onPage(t.replies, id));
+  const replyingUnder =
+    canPost && replyingTo && !edited && onPage(threads, replyingTo.id) ? replyingTo : null;
+
+  // Drawn only when the reader can post, which needs the room.
+  const replyFolder = room ? attachmentFolder('room', room.id) : '';
+  const replyTopic = topic.id;
+  function replyBox(to: ChatPost): ReactNode {
+    return (
+      <Suspense
+        key={`reply-${to.id}`}
+        fallback={
+          <p className="py-4 text-center text-[0.8125rem] text-grey" role="status">
+            Loading reply editor…
+          </p>
+        }
+      >
+        <PostComposer
+          draftKey={topicId ? `topic:${topicId}:reply:${to.id}` : undefined}
+          // Plain: the bar over it already names who is answered.
+          placeholder="Write your reply"
+          maxLength={POST_MAX}
+          sendLabel="Post this reply"
+          folder={replyFolder}
+          mentionScope={mentionScope}
+          replyingTo={{
+            id: to.id,
+            name: nameOf(to),
+            onCancel: () => {
+              setReplyingTo(null);
+            },
+          }}
+          onSend={async (body, paths) => {
+            if (!account.userId) return 'You are signed out.';
+            const result = await sendPost(replyTopic, account.userId, body, paths, to.id);
+            if (!result.ok) return result.error;
+            setReplyingTo(null);
+            reload();
+            return null;
+          }}
+        />
+      </Suspense>
+    );
+  }
+
   function renderThread(thread: PostThread, depth: number, index?: number): ReactNode {
     const first = openingStands && depth === 0 && index === 0;
     const onlyTitle = questionOnly && first;
@@ -491,6 +544,7 @@ export default function TopicPage() {
       <Post
         key={thread.post.id}
         {...postProps(thread.post)}
+        composer={replyingUnder?.id === thread.post.id ? replyBox(replyingUnder) : undefined}
         {...(index === undefined || first
           ? {}
           : { number: index + 1 - skip, total: threads.length - skip })}
@@ -663,7 +717,7 @@ export default function TopicPage() {
               </p>
             ) : null}
           </div>
-          <div className="mx-auto w-full max-w-[720px]">
+          <div className="mx-auto w-full max-w-[720px]" hidden={replyingUnder !== null}>
             {canPost ? (
               <Suspense
                 fallback={
@@ -702,31 +756,14 @@ export default function TopicPage() {
                         }
                       : null
                   }
-                  replyingTo={
-                    replyingTo
-                      ? {
-                          id: replyingTo.id,
-                          name: nameOf(replyingTo),
-                          onCancel: () => {
-                            setReplyingTo(null);
-                          },
-                        }
-                      : null
-                  }
                   onSend={async (body, paths) => {
                     if (!account.userId) return 'You are signed out.';
                     // The photographs are up already, under the room's folder,
                     // which is what the read policy checks; a refused row takes
-                    // them back out (post-composer.tsx).
-                    const result = await sendPost(
-                      topic.id,
-                      account.userId,
-                      body,
-                      paths,
-                      replyingTo?.id ?? null,
-                    );
+                    // them back out (post-composer.tsx). A reply to a post is
+                    // written under it (replyBox); this box answers the topic.
+                    const result = await sendPost(topic.id, account.userId, body, paths, null);
                     if (!result.ok) return result.error;
-                    setReplyingTo(null);
                     reload();
                     return null;
                   }}

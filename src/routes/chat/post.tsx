@@ -75,8 +75,11 @@ export function Post({
   hideBody = false,
   opening = false,
   place,
+  composer,
   children,
 }: {
+  /** The box a reply to this post is being written in, drawn under it. */
+  composer?: ReactNode;
   /** Where the author is, in Classifieds (author-places.ts). */
   place?: string | undefined;
   post: ChatPost;
@@ -359,6 +362,10 @@ export function Post({
           {save.failure}
         </p>
       ) : null}
+
+      {/* The reply being written to this post, right under it (the owner,
+        2026-11-19), above the replies it already has. */}
+      {composer ? <div className="mt-2.5">{composer}</div> : null}
 
       {replies > 0 ? (
         <button

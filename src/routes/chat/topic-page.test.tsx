@@ -1060,12 +1060,18 @@ describe('a topic', () => {
       expect(screen.getByRole('button', { name: 'Reply to your post' })).toBeInTheDocument();
     });
 
-    it('files the reply under the post, and says so over the composer until it is sent', async () => {
+    // The owner, 2026-11-19: "the reply box should be right under the comment
+    // to which they said reply to". The box at the bottom waits, hidden.
+    it('opens the reply box under the post, and files the reply there', async () => {
       renderTopic();
       await userEvent.click(screen.getByRole('button', { name: "Reply to Nicole's post" }));
       expect(await screen.findByText(/Replying to/)).toHaveTextContent('Replying to Nicole');
-      const box = await screen.findByLabelText('Reply to this post');
+      const box = await screen.findByLabelText('Write your reply');
+      const question = screen.getAllByRole('article')[0];
+      if (!question) throw new Error('no question');
+      expect(question).toContainElement(box);
       expect(box).toHaveFocus();
+      expect(screen.getByLabelText('Reply to this post')).not.toBeVisible();
       await userEvent.type(box, 'Under the question.');
       await userEvent.click(screen.getByRole('button', { name: 'Post this reply' }));
       await waitFor(() => {
@@ -1074,6 +1080,7 @@ describe('a topic', () => {
       await waitFor(() => {
         expect(screen.queryByText(/Replying to/)).toBeNull();
       });
+      expect(screen.getByLabelText('Reply to this post')).toBeVisible();
     });
 
     // Reply on a reply names and answers that particular reply.
@@ -1081,7 +1088,16 @@ describe('a topic', () => {
       renderTopic();
       await userEvent.click(screen.getByRole('button', { name: "Reply to Jake's post" }));
       expect(await screen.findByText(/Replying to/)).toHaveTextContent('Replying to Jake');
-      await userEvent.type(await screen.findByLabelText('Reply to this post'), 'Under this reply.');
+      const box = await screen.findByLabelText('Write your reply');
+      const reply = screen
+        .getAllByRole('article')
+        .find(
+          (a) =>
+            within(a).queryByRole('button', { name: "Reply to Jake's post" }) &&
+            !within(a).queryByRole('button', { name: "Reply to Nicole's post" }),
+        );
+      expect(reply).toContainElement(box);
+      await userEvent.type(box, 'Under this reply.');
       await userEvent.click(screen.getByRole('button', { name: 'Post this reply' }));
       await waitFor(() => {
         expect(db.sent).toEqual([['Under this reply.', 'r1']]);
