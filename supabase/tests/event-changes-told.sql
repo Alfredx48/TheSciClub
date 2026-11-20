@@ -80,11 +80,11 @@ update public.events set event_format = 'online', location = '', city = null whe
 select * from told;
 
 \echo ''
-\echo '== 5. read, then a new day: a new notice (expect Ana date / Bo date unread, besides the read ones) =='
+\echo '== 5. read, then a new day and hour at once: a new notice, one date however many things changed (20261120170000) (expect Ana date,time 1 / Bo date,time 1) =='
 update public.notifications set read_at = now() where kind = 'event_changed' and member_id::text like '%-1120-%';
-update public.events set start_time = start_time + interval '1 day', end_time = end_time + interval '1 day'
+update public.events set start_time = start_time + interval '1 day 1 hour', end_time = end_time + interval '1 day 1 hour'
  where id = '11201120-0000-0000-0000-000000000001';
-select t.* from told t where t.detail = 'date';
+select t.* from told t where t.detail = 'date,time';
 
 \echo ''
 \echo '== 6. an event that is over: nobody (expect 0 rows) =='
