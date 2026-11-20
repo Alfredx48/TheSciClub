@@ -2,7 +2,8 @@ import { cloneElement, type ReactElement, type ReactNode, useState } from 'react
 import { Link } from 'react-router-dom';
 import { LevelHighlight } from '@/components/injury-stage-pill';
 import {
-  AnonymousAvatar,
+  ANONYMOUS_PAGE,
+  AnonymousAvatarLink,
   AvatarLink,
   FormerMemberAvatar,
   MemberAvatar,
@@ -69,6 +70,8 @@ export function Post({
   canReport,
   reported,
   onReport,
+  canFlag = false,
+  onFlag,
   onBlock,
   share,
   edits,
@@ -87,10 +90,13 @@ export function Post({
   children,
 }: {
   /**
-   * Who wrote an anonymous post, where the reader may know: themselves, or
-   * any of them to an administrator, by name (20261120100000).
+   * Whether the reader wrote this anonymous post: only the writer is told
+   * (20261120110000).
    */
-  writer?: { you: boolean; name: string | null } | undefined;
+  writer?: { you: boolean } | undefined;
+  /** An administrator, on an anonymous post: hide it and count it against its writer. */
+  canFlag?: boolean;
+  onFlag?: () => void;
   /** A question's own post, at the top: its Reply says Answer question. */
   answers?: boolean;
   /** The box a reply to this post is being written in, drawn under it. */
@@ -225,6 +231,16 @@ export function Post({
           Edit
         </button>
       ) : null}
+      {canFlag && onFlag ? (
+        <button
+          type="button"
+          onClick={onFlag}
+          data-target="small"
+          className={`${control} hover:text-destructive`}
+        >
+          Flag and hide
+        </button>
+      ) : null}
       {canRemove ? (
         <button
           type="button"
@@ -282,7 +298,7 @@ export function Post({
       ) : (
         <div className={cn('flex gap-2.5', note ? 'items-start' : 'items-center')}>
           {anonymous ? (
-            <AnonymousAvatar />
+            <AnonymousAvatarLink />
           ) : (
             <AvatarLink memberId={author?.id} hasProfile={author?.hasProfile}>
               {author ? (
@@ -301,7 +317,9 @@ export function Post({
           <span className="min-w-0 flex-1">
             <span className="block font-extrabold font-head text-[0.875rem] text-ink">
               {anonymous ? (
-                name
+                <Link to={ANONYMOUS_PAGE} className="underline-offset-2 hover:underline">
+                  {name}
+                </Link>
               ) : author ? (
                 author.hasProfile ? (
                   <Link to={`/peers/${author.id}`} className="underline-offset-2 hover:underline">
@@ -328,8 +346,7 @@ export function Post({
               ) : null}
             </span>
             {note ? (
-              // The writer and administrators only: chat_anonymous_writers
-              // names the writer to nobody else.
+              // The writer only: chat_anonymous_writers names nobody else's.
               <span className="block text-[0.75rem] text-grey">{note}</span>
             ) : null}
             <PartnerLabel memberId={author?.id} />
@@ -385,7 +402,13 @@ export function Post({
         {likes ? <PostLikes {...likes} what={`${whose} post`} className="text-[0.75rem]" /> : null}
         <ViewCount count={viewCount} postId={post.id} />
         {reactions ? (
-          cloneElement(reactions, { compact: true, actions: controls, reply, share })
+          cloneElement(reactions, {
+            compact: true,
+            actions: controls,
+            actionsTitle: 'Post actions',
+            reply,
+            share,
+          })
         ) : (
           <>
             {reply}

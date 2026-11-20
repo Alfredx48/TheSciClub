@@ -49,20 +49,21 @@ describe('what the card says', () => {
       />,
     );
     expect(screen.getByText('Two strikes')).toBeInTheDocument();
-    expect(screen.getByText('One more ends your membership.')).toBeInTheDocument();
+    expect(screen.getByText('One more pauses your membership for 30 days.')).toBeInTheDocument();
   });
 
-  it('does not claim somebody has been removed, because nothing removes them', () => {
-    // Three strikes flags; an administrator still presses Remove. Saying "you
-    // have been removed" on a screen they are still reading would be untrue.
+  it('says the next three close the account, after a pause for strikes', () => {
+    // 20261120110000: three pause a membership for 30 days; three more after
+    // that close it. A flag on an anonymous post is one of them.
     render(
       <StandingCard
         invitedBy={null}
-        strikes={[strike({ id: 'a' }), strike({ id: 'b' }), strike({ id: 'c' })]}
+        afterPause
+        strikes={[strike({ id: 'a' }), strike({ id: 'b', anonymous: true, reason: 'Rude' })]}
       />,
     );
-    expect(screen.getByText(/under review/i)).toBeInTheDocument();
-    expect(screen.queryByText(/have been removed/i)).not.toBeInTheDocument();
+    expect(screen.getByText('One more closes your account for good.')).toBeInTheDocument();
+    expect(screen.getByText(/Anonymous post flagged/)).toBeInTheDocument();
   });
 
   it('leaves out a withdrawn strike, and one that has aged out', () => {
@@ -95,8 +96,8 @@ describe('standingFor', () => {
     expect(standingFor(0).title).toBe('Good standing');
     expect(standingFor(1).title).toBe('One strike');
     expect(standingFor(2).title).toBe('Two strikes');
-    expect(standingFor(3).title).toMatch(/under review/i);
-    expect(standingFor(9).title).toMatch(/under review/i);
+    expect(standingFor(3).title).toMatch(/paused/i);
+    expect(standingFor(9).title).toMatch(/paused/i);
   });
 });
 

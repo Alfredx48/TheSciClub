@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { anonymousName, useAnonymity } from '@/lib/chat/anonymous';
 import { useChatAuthors } from '@/lib/chat/authors';
 import { useEdits } from '@/lib/chat/edits';
 import { resolveReport } from '@/lib/chat/reports';
@@ -429,12 +430,13 @@ function Where({
   authors: Map<string, ChatAuthor>;
   onGoToMember: (memberId: string) => void;
 }) {
+  const gone = useGone(report);
   return (
     <p className="font-extrabold font-head text-[0.90625rem] text-ink leading-[1.35]">
       <MemberName
         id={report.reportedAuthorId}
         name={report.reportedAuthorName}
-        gone="Deleted member"
+        gone={gone}
         authors={authors}
         onGoToMember={onGoToMember}
       />
@@ -499,6 +501,7 @@ function MemberName({
  * (20260918210000).
  */
 function Snapshot({ report, edits }: { report: ChatReport; edits: ChatEdit[] }) {
+  const gone = useGone(report);
   if (report.profile) {
     return <ReportedProfileCopy profile={report.profile} photoPath={report.profilePhotoPath} />;
   }
@@ -511,10 +514,7 @@ function Snapshot({ report, edits }: { report: ChatReport; edits: ChatEdit[] }) 
       ) : null}
       {report.attachments.length > 0 ? (
         <div className="max-w-[20rem]">
-          <AttachmentGrid
-            paths={report.attachments}
-            from={report.reportedAuthorName ?? 'a deleted member'}
-          />
+          <AttachmentGrid paths={report.attachments} from={report.reportedAuthorName ?? gone} />
           <p className="mt-1 text-[0.71875rem] text-grey leading-[1.45]">
             {report.attachments.length === 1
               ? 'One photograph was'
@@ -525,8 +525,18 @@ function Snapshot({ report, edits }: { report: ChatReport; edits: ChatEdit[] }) 
         </div>
       ) : null}
       {edits.length > 0 ? (
-        <EarlierVersions edits={edits} from={report.reportedAuthorName ?? 'a deleted member'} />
+        <EarlierVersions edits={edits} from={report.reportedAuthorName ?? gone} />
       ) : null}
     </div>
   );
+}
+
+/**
+ * Who wrote a reported post with nobody named: "Anonymous", which administrators are not told
+ * past (20261120110000), or a member who has since left.
+ */
+function useGone(report: ChatReport): string {
+  const asked = report.kind === 'post' && !report.reportedAuthorId ? report.postId : null;
+  const anonymity = useAnonymity('post', asked);
+  return anonymity?.anonymous ? anonymousName(anonymity.byAsker) : 'Deleted member';
 }

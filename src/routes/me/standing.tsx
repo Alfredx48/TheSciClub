@@ -1,5 +1,6 @@
 import { ShieldAlert, ShieldCheck, ShieldX } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { standingRefusal, useAnonymousStanding } from '@/lib/chat/anonymous';
 import { cn } from '@/lib/utils';
 import { LOSING_MEMBERSHIP_ID } from '@/routes/legal/legal-page';
 import { countingStrikes, type MyStrike, STRIKE_MONTHS } from '@/routes/me/standing-api';
@@ -21,12 +22,12 @@ import { countingStrikes, type MyStrike, STRIKE_MONTHS } from '@/routes/me/stand
  * correct course, and it is not a punishment anybody decided to hand down.
  *
  * ---------------------------------------------------------------------------
- * Three does not remove anybody
+ * Three pause, and three more close (20261120110000)
  * ---------------------------------------------------------------------------
- * It says the membership is being reviewed, because that is what is true: an
- * administrator still presses Remove. Saying "you have been removed" on a
- * screen somebody is still reading would be a lie by a few minutes at best,
- * and there is no automatic removal behind it — see the migration header.
+ * The third strike pauses the membership for 30 days by itself, and three
+ * after that close the account for good (the owner, 2026-11-20). A flag on an
+ * anonymous post is a strike like any other, listed here with its reason,
+ * which only the member sees. Strikes from before a pause no longer count.
  *
  * Withdrawn and expired strikes are not listed. They are on the record and an
  * administrator can see them, but a member reading where they stand today is
@@ -49,7 +50,7 @@ interface Standing {
   consequence: string | null;
 }
 
-export function standingFor(counting: number): Standing {
+export function standingFor(counting: number, afterPause = false): Standing {
   if (counting === 0) {
     return { title: 'Good standing', Icon: ShieldCheck, tone: 'text-gold-dp', consequence: null };
   }
@@ -58,7 +59,9 @@ export function standingFor(counting: number): Standing {
       title: 'One strike',
       Icon: ShieldAlert,
       tone: 'text-gold-dp',
-      consequence: `It stops counting ${STRIKE_MONTHS} months after the date shown.`,
+      consequence: afterPause
+        ? `It stops counting ${STRIKE_MONTHS} months after the date shown. Since your pause, three strikes close your account for good.`
+        : `It stops counting ${STRIKE_MONTHS} months after the date shown.`,
     };
   }
   if (counting === 2) {
@@ -66,28 +69,33 @@ export function standingFor(counting: number): Standing {
       title: 'Two strikes',
       Icon: ShieldAlert,
       tone: 'text-destructive',
-      consequence: 'One more ends your membership.',
+      consequence: afterPause
+        ? 'One more closes your account for good.'
+        : 'One more pauses your membership for 30 days.',
     };
   }
   return {
-    title: 'Your membership is under review',
+    title: 'Your membership is paused',
     Icon: ShieldX,
     tone: 'text-destructive',
-    // Not "you have been removed": nothing automatic ends a membership, and an
-    // administrator has still to act.
-    consequence: 'Three strikes. An administrator will decide what happens next.',
+    consequence: 'Three strikes pause a membership for 30 days.',
   };
 }
 
 export function StandingCard({
   invitedBy,
   strikes,
+  afterPause = false,
 }: {
   invitedBy: string | null;
   strikes: MyStrike[] | null;
+  /** Paused for strikes before: the next three close the account. */
+  afterPause?: boolean;
 }) {
   const counting = strikes ? countingStrikes(strikes) : [];
-  const standing = standingFor(counting.length);
+  const standing = standingFor(counting.length, afterPause);
+  // Flagged anonymous posts stop anonymous posting for a while (20261120110000).
+  const anonymous = standingRefusal(useAnonymousStanding());
   const { Icon } = standing;
 
   return (
@@ -118,7 +126,11 @@ export function StandingCard({
                 <p className="font-bold text-[0.8125rem] text-ink leading-[1.45]">
                   {strike.reason}
                 </p>
-                <p className="mt-0.5 text-[0.75rem] text-grey">{whenIssued(strike.issuedAt)}</p>
+                <p className="mt-0.5 text-[0.75rem] text-grey">
+                  {strike.anonymous
+                    ? `Anonymous post flagged · ${whenIssued(strike.issuedAt)}`
+                    : whenIssued(strike.issuedAt)}
+                </p>
               </li>
             ))}
           </ul>
@@ -126,6 +138,9 @@ export function StandingCard({
             <p className="mt-2.5 font-bold text-[0.78125rem] text-ink2 leading-[1.5]">
               {standing.consequence}
             </p>
+          ) : null}
+          {anonymous ? (
+            <p className="mt-1.5 text-[0.78125rem] text-ink2 leading-[1.5]">{anonymous}</p>
           ) : null}
         </>
       ) : null}

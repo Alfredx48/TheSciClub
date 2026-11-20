@@ -146,6 +146,33 @@ export function AnonymousAvatar({ className }: { className?: string | undefined 
   );
 }
 
+/** Where "Anonymous" goes when tapped, as a name goes to a profile (the owner, 2026-11-20). */
+export const ANONYMOUS_PAGE = '/anonymous';
+
+/**
+ * The anonymous tile, opening the page that says what Anonymous is. Out of the tab order and
+ * hidden from a screen reader, as AvatarLink: the name beside it is the link that counts.
+ */
+export function AnonymousAvatarLink({
+  className,
+  state,
+}: {
+  className?: string | undefined;
+  state?: unknown;
+}) {
+  return (
+    <Link
+      to={ANONYMOUS_PAGE}
+      state={state}
+      aria-hidden="true"
+      tabIndex={-1}
+      className="relative z-[1] flex-none"
+    >
+      <AnonymousAvatar className={className} />
+    </Link>
+  );
+}
+
 /**
  * The tile for a group, where a direct conversation would draw a face.
  *

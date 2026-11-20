@@ -7,7 +7,7 @@ import { roomsByCategory, useChatRooms } from '@/lib/chat/rooms';
 import { createTopic } from '@/lib/chat/topics';
 import { describeThrown } from '@/lib/describe-error';
 import { type Shared, sharedBody, sharedTitle, takeShared } from '@/lib/share-target';
-import { QuestionSwitch } from '@/routes/chat/question-switch';
+import { PostOptions } from '@/routes/chat/post-options';
 
 /**
  * Posting what another app shared ("Share to The SCI Club", Android's share
@@ -184,7 +184,10 @@ export default function SharePage() {
               className="mt-1.5 w-full rounded-[12px] border-[1.6px] border-line bg-paper px-3.5 py-2.5 text-[0.9375rem] text-ink leading-[1.5] outline-none focus:border-emphasis"
             />
 
-            <QuestionSwitch checked={isQuestion} onChange={setIsQuestion} />
+            <PostOptions
+              id="share-options"
+              question={{ checked: isQuestion, onChange: setIsQuestion }}
+            />
 
             <label
               htmlFor="share-room"

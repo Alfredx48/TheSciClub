@@ -37,6 +37,8 @@ export interface ReactionBarProps {
   bubble?: ReactNode;
   align?: 'start' | 'end';
   actions?: ReactNode;
+  /** The actions sheet's title: "Post actions" under a post. */
+  actionsTitle?: string;
   reply?: ReactNode;
   /** Share, after Reply (share-post.tsx). */
   share?: ReactNode;
@@ -52,6 +54,7 @@ export function ReactionBar({
   bubble,
   align = 'start',
   actions,
+  actionsTitle,
   reply,
   share,
 }: ReactionBarProps) {
@@ -137,7 +140,11 @@ export function ReactionBar({
         {trigger}
         {reply}
         {share}
-        {compact ? <ItemActions what={words}>{actions}</ItemActions> : null}
+        {compact ? (
+          <ItemActions what={words} title={actionsTitle}>
+            {actions}
+          </ItemActions>
+        ) : null}
       </div>
       {state.error ? (
         <p className="relative text-grey">

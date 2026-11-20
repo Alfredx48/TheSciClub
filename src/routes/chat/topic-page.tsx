@@ -10,14 +10,20 @@ import {
 import { BackLink } from '@/components/back-link';
 import { LinkedText } from '@/components/linked-text';
 import {
-  AnonymousAvatar,
+  ANONYMOUS_PAGE,
+  AnonymousAvatarLink,
   AvatarLink,
   FormerMemberAvatar,
   MemberAvatar,
 } from '@/components/member-avatar';
 import { useAccount } from '@/lib/account';
 import { useMyBlocks } from '@/lib/blocks';
-import { anonymousName, anonymousNote, useAnonymousWriters } from '@/lib/chat/anonymous';
+import {
+  anonymousName,
+  anonymousNote,
+  flagAnonymousPost,
+  useAnonymousWriters,
+} from '@/lib/chat/anonymous';
 import { attachmentFolder, deleteAttachments } from '@/lib/chat/attachments';
 import { useAuthorPlaces } from '@/lib/chat/author-places';
 import { useChatAuthors } from '@/lib/chat/authors';
@@ -52,13 +58,14 @@ import { describeThrown } from '@/lib/describe-error';
 import { useHoldScroll } from '@/lib/hold-scroll';
 import { photoPaths } from '@/lib/markdown';
 import { isNative } from '@/lib/standalone';
-import { AnonymousSwitch } from '@/routes/chat/anonymous-switch';
 import { backFromTopic } from '@/routes/chat/back';
 import { ChatBreadcrumb } from '@/routes/chat/breadcrumb';
+import { FlagSheet } from '@/routes/chat/flag-sheet';
 import { ListingPrice } from '@/routes/chat/listing-price';
 import { MoveTopic } from '@/routes/chat/move-topic';
 import { MuteButton } from '@/routes/chat/mute-button';
 import { Post } from '@/routes/chat/post';
+import { PostOptions } from '@/routes/chat/post-options';
 import { ReactionBar } from '@/routes/chat/reaction-bar';
 import { ReportSheet } from '@/routes/chat/report-sheet';
 import { SaveTopicButton } from '@/routes/chat/save-button';
@@ -147,6 +154,8 @@ export default function TopicPage() {
   // rather than a boolean so that the sheet cannot outlive the post it is
   // about when a removal arrives over the wire mid-decision.
   const [reportingId, setReportingId] = useState<string | null>(null);
+  // The anonymous post an administrator is flagging (20261120110000).
+  const [flaggingId, setFlaggingId] = useState<string | null>(null);
 
   // Live: replies and removals arrive without reloading; the scroll is only on the first load.
   // Anybody who can read the post sees what it said before (20261029240000).
@@ -408,10 +417,7 @@ export default function TopicPage() {
       : anonymousTopic && writerOf(openingPost) === account.userId);
   const openingWriter = anonymousTopic ? writers.get(openingPost.id) : undefined;
   const openingNote = openingWriter
-    ? anonymousNote({
-        you: openingWriter.memberId === account.userId,
-        name: openingWriter.displayName,
-      })
+    ? anonymousNote({ you: openingWriter.memberId === account.userId })
     : null;
   // Not in the Marketplace, where a buyer has to reach the seller.
   const canGoAnonymous = room?.category !== 'Classifieds';
@@ -465,10 +471,10 @@ export default function TopicPage() {
     writerOf(post) === account.userId &&
     !posts.some((p) => p.removedAt === null && writerOf(p) !== account.userId);
 
-  /** An anonymous post's writer: "(you)" to them, the name to an administrator. */
+  /** An anonymous post's writer, as far as the reader knows: only ever themselves. */
   const writerShown = (post: ChatPost) => {
     const known = writers.get(post.id);
-    return known ? { you: known.memberId === account.userId, name: known.displayName } : undefined;
+    return known ? { you: known.memberId === account.userId } : undefined;
   };
 
   /** Controls act on this specific post, including replies to replies. */
@@ -510,6 +516,11 @@ export default function TopicPage() {
     reported: reports.postIds.has(post.id),
     onReport: () => {
       setReportingId(post.id);
+    },
+    // An administrator flags an anonymous post rather than seeing whose it is.
+    canFlag: account.isAdmin && post.anonymous === true && post.removedAt === null,
+    onFlag: () => {
+      setFlaggingId(post.id);
     },
     onBlock: blockOffer(post),
     // Not from a closed room: no member could read what arrived.
@@ -589,12 +600,11 @@ export default function TopicPage() {
         }
       >
         {canGoAnonymous ? (
-          <AnonymousSwitch
-            compact
-            id={`reply-anonymously-${to.id}`}
-            label="Reply anonymously"
-            checked={replyAnonymously}
-            onChange={chooseAnonymous}
+          <PostOptions
+            id={`reply-${to.id}`}
+            className="mt-0"
+            noun="reply"
+            anonymous={{ checked: replyAnonymously, onChange: chooseAnonymous }}
           />
         ) : null}
         <PostComposer
@@ -699,7 +709,7 @@ export default function TopicPage() {
               name links as a post's does: only to a profile Peers will show. */}
             <p className="mt-1.5 flex items-center gap-2 text-[0.78125rem] text-grey leading-[1.45]">
               {anonymousTopic ? (
-                <AnonymousAvatar className="h-[1.75rem] w-[1.75rem] rounded-[9px]" />
+                <AnonymousAvatarLink className="h-[1.75rem] w-[1.75rem] rounded-[9px]" />
               ) : (
                 <AvatarLink memberId={starter?.id} hasProfile={starter?.hasProfile}>
                   {starter ? (
@@ -718,7 +728,12 @@ export default function TopicPage() {
               <span className="min-w-0">
                 {counts ? `${counts} · started by ` : 'Started by '}
                 {anonymousTopic ? (
-                  <span className="font-semibold text-ink2">Anonymous</span>
+                  <Link
+                    to={ANONYMOUS_PAGE}
+                    className="font-semibold text-ink2 underline-offset-2 hover:underline"
+                  >
+                    Anonymous
+                  </Link>
                 ) : starter ? (
                   starter.hasProfile ? (
                     <Link
@@ -845,12 +860,11 @@ export default function TopicPage() {
                 }
               >
                 {canGoAnonymous && !edited ? (
-                  <AnonymousSwitch
-                    compact
-                    id="reply-anonymously"
-                    label="Reply anonymously"
-                    checked={replyAnonymously}
-                    onChange={chooseAnonymous}
+                  <PostOptions
+                    id="reply"
+                    className="mt-0"
+                    noun="reply"
+                    anonymous={{ checked: replyAnonymously, onChange: chooseAnonymous }}
                   />
                 ) : null}
                 <PostComposer
@@ -931,6 +945,22 @@ export default function TopicPage() {
             setBlockedCount((n) => n + 1);
             blocks.reload();
             reload();
+          }}
+        />
+      ) : null}
+
+      {flaggingId ? (
+        <FlagSheet
+          onCancel={() => {
+            setFlaggingId(null);
+          }}
+          onSend={async (reason) => {
+            const result = await flagAnonymousPost(flaggingId, reason);
+            if (!result.ok) return result.error;
+            if (result.value.length > 0) void deleteAttachments(result.value);
+            setFlaggingId(null);
+            reload();
+            return null;
           }}
         />
       ) : null}

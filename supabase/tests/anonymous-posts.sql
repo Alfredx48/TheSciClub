@@ -1,6 +1,8 @@
--- Anonymous topics and posts (20261120100000): nobody but the writer and an
--- administrator learns who wrote one; the writer still edits it and hears
--- about replies; a block still hides it; the Marketplace stays named.
+-- Anonymous topics and posts (20261120100000, 20261120110000): nobody but the
+-- writer learns who wrote one, administrators included; administrators flag
+-- them, and a flag is a strike that also pauses anonymous posting; the third
+-- strike pauses the membership for 30 days, and three after that close it; the
+-- writer still edits it and hears about replies; a block still hides it; the Marketplace stays named.
 -- Run in one transaction that is rolled back.
 
 insert into public.members (id, type, status, display_name, phone, birth_date, level_range, state, city, is_admin)
@@ -65,6 +67,8 @@ with p as (
   returning id)
 insert into probe select 'followup', p.id from p;
 reset role;
+-- One transaction gives every row the same created_at; the follow-up comes after the question.
+update public.chat_posts set created_at = created_at + interval '1 second' where id = (select id from probe where key = 'followup');
 select author_id is null as no_author, anonymous, by_asker from public.chat_posts where id = (select id from probe where key = 'followup');
 select public.notifications_record('post', jsonb_build_object('id', (select id from probe where key = 'followup')));
 select member_id = 'aaaaaaaa-a90a-0000-0000-00000000000b' as to_replier, kind, actor_id is null as no_actor
@@ -78,13 +82,13 @@ set local role authenticated;
 select kind, actor_id is null as no_actor, actor_name from public.my_notifications() where kind like 'reply%' limit 1;
 reset role;
 
-\echo '5. who wrote them: expect 2 rows (own) and their 1 topic to the asker, 2 rows with the name to an administrator'
+\echo '5. who wrote them: expect 2 rows (own) and their 1 topic to the asker, 0 rows to an administrator'
 select set_config('request.jwt.claims', '{"sub":"aaaaaaaa-a90a-0000-0000-00000000000a","role":"authenticated"}', true) is not null as ok;
 set local role authenticated;
 select count(*) as own from public.chat_anonymous_writers((select id from probe where key = 'topic'));
 select array_agg(id) = array[(select id from probe where key = 'topic')] as my_topic from public.my_anonymous_topic_ids() id;
 select set_config('request.jwt.claims', '{"sub":"aaaaaaaa-a90a-0000-0000-00000000000c","role":"authenticated"}', true) is not null as ok;
-select count(*) as all_rows, min(display_name) as name from public.chat_anonymous_writers((select id from probe where key = 'topic'));
+select count(*) as admin_rows from public.chat_anonymous_writers((select id from probe where key = 'topic'));
 reset role;
 
 \echo '6. the asker edits their own; the history does not name them; the replier cannot: expect true, then ERROR'
@@ -120,12 +124,12 @@ select count(*) as anonymous_posts from public.chat_posts where topic_id = (sele
 select count(*) as listed from public.chat_topics_page('general', 40, null, null) where id = (select id from probe where key = 'topic');
 reset role;
 
-\echo '9. reporting: the replier reports it and an administrator sees the writer; the asker cannot report their own: expect true, then ERROR'
+\echo '9. reporting: the replier reports it and the report names nobody; the asker cannot report their own: expect true, then ERROR'
 select set_config('request.jwt.claims', '{"sub":"aaaaaaaa-a90a-0000-0000-00000000000b","role":"authenticated"}', true) is not null as ok;
 set local role authenticated;
 select public.chat_report_post((select id from probe where key = 'followup'), 'probe') is not null as reported;
 reset role;
-select reported_author_id = 'aaaaaaaa-a90a-0000-0000-00000000000a' as admin_sees_writer
+select reported_author_id is null as names_nobody
   from public.chat_reports where post_id = (select id from probe where key = 'followup');
 select set_config('request.jwt.claims', '{"sub":"aaaaaaaa-a90a-0000-0000-00000000000a","role":"authenticated"}', true) is not null as ok;
 set local role authenticated;
@@ -185,3 +189,79 @@ begin
 end $$;
 select refused_at from burst;
 reset role;
+
+\echo '14. flags: the replier cannot flag, nor anybody a named post (ERROR twice); the first flag hides the post, tells the asker month:reason and pauses anonymous posting about a month (ERROR to post); the second says three_months'
+create temporary table flaggable as
+  select p.id, row_number() over (order by p.created_at, p.id) as n
+    from public.chat_posts p
+    join private.chat_anonymous_posts a on a.post_id = p.id
+   where a.member_id = 'aaaaaaaa-a90a-0000-0000-00000000000a' and p.removed_at is null
+     and p.topic_id = (select id from probe where key = 'topic') and p.body like 'burst %';
+grant select on flaggable to authenticated;
+select count(*) >= 3 as enough from flaggable;
+select set_config('request.jwt.claims', '{"sub":"aaaaaaaa-a90a-0000-0000-00000000000b","role":"authenticated"}', true) is not null as ok;
+set local role authenticated;
+savepoint s14;
+select public.chat_flag_anonymous_post((select id from flaggable where n = 1), 'not mine to flag');
+rollback to savepoint s14;
+reset role;
+select set_config('request.jwt.claims', '{"sub":"aaaaaaaa-a90a-0000-0000-00000000000c","role":"authenticated"}', true) is not null as ok;
+set local role authenticated;
+savepoint s14b;
+select public.chat_flag_anonymous_post((select id from probe where key = 'named'), 'named');
+rollback to savepoint s14b;
+select public.chat_flag_anonymous_post((select id from flaggable where n = 1), 'probe reason 1') is not null as flagged;
+reset role;
+select p.removed_at is not null and p.removed_by_admin as hidden from public.chat_posts p where p.id = (select id from flaggable where n = 1);
+select set_config('request.jwt.claims', '{"sub":"aaaaaaaa-a90a-0000-0000-00000000000a","role":"authenticated"}', true) is not null as ok;
+set local role authenticated;
+select kind, place, excerpt like 'burst %' as own_words, detail = 'month:probe reason 1' as detail, url like '/chat/rooms/general/topics/%' as to_topic, actor_name is null as nobody_named
+  from public.my_notifications() where kind = 'anonymous_flagged';
+select state, paused_until between now() + interval '27 days' and now() + interval '32 days' as a_month, flags from public.my_anonymous_standing();
+savepoint s14c;
+select public.chat_create_topic_anonymously('general', 'While paused', 'x', '{}', false);
+rollback to savepoint s14c;
+select count(*) as told_their_own from public.my_anonymous_strikes();
+reset role;
+select set_config('request.jwt.claims', '{"sub":"aaaaaaaa-a90a-0000-0000-00000000000c","role":"authenticated"}', true) is not null as ok;
+set local role authenticated;
+select public.chat_flag_anonymous_post((select id from flaggable where n = 2), 'probe reason 2') is not null as flagged;
+reset role;
+select split_part(detail, ':', 1) as second_costs from public.notifications where post_id = (select id from flaggable where n = 2);
+select state, paused_until > now() + interval '85 days' as three_months from private.anonymous_standing('aaaaaaaa-a90a-0000-0000-00000000000a');
+
+\echo '15. an administrator never sees flags as strikes (expect 0, 0); one named strike makes three: (1, paused, ~30 days), the asker is paused, anonymous posting ended'
+select set_config('request.jwt.claims', '{"sub":"aaaaaaaa-a90a-0000-0000-00000000000c","role":"authenticated"}', true) is not null as ok;
+set local role authenticated;
+select public.active_strike_count('aaaaaaaa-a90a-0000-0000-00000000000a') as named_only, (select strikes from public.admin_members where id = 'aaaaaaaa-a90a-0000-0000-00000000000a') as roster;
+select strikes, outcome, paused_until between now() + interval '29 days' and now() + interval '31 days' as thirty_days
+  from public.admin_strike_member('aaaaaaaa-a90a-0000-0000-00000000000a', 'probe named strike');
+reset role;
+select status from public.members where id = 'aaaaaaaa-a90a-0000-0000-00000000000a';
+select state from private.anonymous_standing('aaaaaaaa-a90a-0000-0000-00000000000a');
+
+\echo '16. thirty days on, the pause lifts by itself: (1 lifted, active, 0 strikes counting), and anonymous posting stays gone (ERROR)'
+update public.member_strikes set issued_at = issued_at - interval '40 days' where member_id = 'aaaaaaaa-a90a-0000-0000-00000000000a';
+update private.chat_anonymous_flags set flagged_at = flagged_at - interval '40 days' where member_id = 'aaaaaaaa-a90a-0000-0000-00000000000a';
+update public.member_strike_pauses set paused_at = now() - interval '31 days', ends_at = now() - interval '1 day' where member_id = 'aaaaaaaa-a90a-0000-0000-00000000000a';
+select private.lift_strike_pauses() as lifted;
+select status, private.strike_total('aaaaaaaa-a90a-0000-0000-00000000000a') as counting from public.members where id = 'aaaaaaaa-a90a-0000-0000-00000000000a';
+select set_config('request.jwt.claims', '{"sub":"aaaaaaaa-a90a-0000-0000-00000000000a","role":"authenticated"}', true) is not null as ok;
+set local role authenticated;
+savepoint s16;
+select public.chat_create_topic_anonymously('general', 'After the pause', 'x', '{}', false);
+rollback to savepoint s16;
+reset role;
+
+\echo '17. after the pause, three more close the account: a flag (ended:), a named strike (none), another (closed); the member is gone'
+select set_config('request.jwt.claims', '{"sub":"aaaaaaaa-a90a-0000-0000-00000000000c","role":"authenticated"}', true) is not null as ok;
+set local role authenticated;
+select public.chat_flag_anonymous_post((select id from flaggable where n = 3), 'probe reason 3') is not null as flagged;
+reset role;
+select split_part(detail, ':', 1) as third_costs from public.notifications where post_id = (select id from flaggable where n = 3);
+select set_config('request.jwt.claims', '{"sub":"aaaaaaaa-a90a-0000-0000-00000000000c","role":"authenticated"}', true) is not null as ok;
+set local role authenticated;
+select strikes, outcome from public.admin_strike_member('aaaaaaaa-a90a-0000-0000-00000000000a', 'probe named two');
+select strikes, outcome from public.admin_strike_member('aaaaaaaa-a90a-0000-0000-00000000000a', 'probe named three');
+reset role;
+select count(*) as still_a_member from public.members where id = 'aaaaaaaa-a90a-0000-0000-00000000000a';

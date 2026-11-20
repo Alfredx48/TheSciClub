@@ -1,16 +1,18 @@
 import { useEffect, useState } from 'react';
 import type { ChatPost } from '@/lib/chat/types';
-import type { Failure } from '@/lib/describe-error';
+import { describeError, type Failure } from '@/lib/describe-error';
 import { getSupabase } from '@/lib/supabase';
 
 /**
- * Anonymous topics and posts (20261120100000).
+ * Anonymous topics and posts (20261120100000, 20261120110000).
  *
  * The owner, 2026-11-20: "Can we add an option to ask questions and reply
- * anonymously?" Other members see "Anonymous"; an administrator can see who
- * wrote it; the asker answering under their own anonymous question is
- * "Anonymous · Asker". Not in the Marketplace, where a buyer has to reach the
- * seller.
+ * anonymously?" Other members see "Anonymous", and so do administrators: only
+ * the writer knows it is them. The asker answering under their own anonymous
+ * question is "Anonymous · Asker". Not in the Marketplace, where a buyer has
+ * to reach the seller. Administrators flag an anonymous post instead of
+ * seeing whose it is. A flag is a strike, and pauses the writer's anonymous
+ * posting for a month, then three; a pause for strikes ends it for good.
  *
  * An anonymous row has no author at all, the same as a member who has left,
  * so a screen that only has the author id cannot tell the two apart. The
@@ -25,13 +27,9 @@ export function anonymousName(byAsker: boolean | undefined): string {
   return byAsker ? 'Anonymous · Asker' : ANONYMOUS;
 }
 
-/**
- * Under an anonymous name, to the two who know who wrote it: the writer, and
- * an administrator. Nobody else is told anything.
- */
-export function anonymousNote(writer: { you: boolean; name: string | null } | undefined) {
-  if (writer?.you) return 'You · administrators can still see it is you';
-  return writer?.name ? `By ${writer.name} · hidden from other members` : null;
+/** Under an anonymous name, to the only one who knows who wrote it: the writer. */
+export function anonymousNote(writer: { you: boolean } | undefined) {
+  return writer?.you ? 'You · nobody else can see it is you' : null;
 }
 
 interface Result<T> {
@@ -42,13 +40,12 @@ interface Result<T> {
 /** Who wrote an anonymous post, as far as the reader may know. */
 export interface AnonymousWriter {
   memberId: string;
-  /** Only to an administrator; the writer knows it is them. */
   displayName: string | null;
 }
 
 /**
- * The reader's own anonymous posts in a topic, or every one of them for an
- * administrator, by post id. Empty when the topic has none, without asking.
+ * The reader's own anonymous posts in a topic, by post id: nobody is told
+ * anybody else's (20261120110000). Empty when the topic has none, without asking.
  */
 export function useAnonymousWriters(
   topicId: string | undefined,
@@ -189,4 +186,124 @@ export function forgetAnonymity(): void {
   asked.clear();
   queued.topic.clear();
   queued.post.clear();
+}
+
+// ---------------------------------------------------------------- flags
+
+/** Whether the member may post anonymously (my_anonymous_standing, 20261120110000). */
+export interface AnonymousStanding {
+  state: 'ok' | 'paused' | 'ended';
+  /** When a pause ends. */
+  pausedUntil: string | null;
+  /** Their flags in the last year. */
+  flags: number;
+}
+
+const STANDING_CHANGED = 'sciclub:anonymous-standing';
+let standing: AnonymousStanding | null = null;
+let standingAsked: Promise<void> | null = null;
+
+function askStanding(): Promise<void> {
+  standingAsked ??= (async () => {
+    const { data } = (await getSupabase().rpc('my_anonymous_standing')) as Result<
+      { state: AnonymousStanding['state']; paused_until: string | null; flags: number }[]
+    >;
+    const row = data?.[0];
+    // Unknown is allowed: the database refuses in a sentence if it is not.
+    standing = row
+      ? { state: row.state, pausedUntil: row.paused_until, flags: row.flags }
+      : { state: 'ok', pausedUntil: null, flags: 0 };
+    window.dispatchEvent(new Event(STANDING_CHANGED));
+  })().finally(() => {
+    standingAsked = null;
+  });
+  return standingAsked;
+}
+
+/** Asked again: after the database refused an anonymous post, say. */
+export function forgetAnonymousStanding(): void {
+  standing = null;
+  void askStanding();
+}
+
+/** The reader's standing, asked once a session; null until known. */
+export function useAnonymousStanding(): AnonymousStanding | null {
+  const [known, setKnown] = useState(standing);
+  useEffect(() => {
+    const changed = () => {
+      setKnown(standing);
+    };
+    window.addEventListener(STANDING_CHANGED, changed);
+    if (standing === null) void askStanding();
+    else changed();
+    return () => {
+      window.removeEventListener(STANDING_CHANGED, changed);
+    };
+  }, []);
+  return known;
+}
+
+/** "May 20, 2027", the day a pause ends, as the database says it. */
+export function pauseEnds(at: string): string {
+  return new Date(at).toLocaleDateString('en-US', {
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric',
+    timeZone: 'America/Los_Angeles',
+  });
+}
+
+/** Why the member cannot post anonymously now, or null when they can. */
+export function standingRefusal(known: AnonymousStanding | null): string | null {
+  if (known?.state === 'paused' && known.pausedUntil) {
+    return `You can post anonymously again on ${pauseEnds(known.pausedUntil)}.`;
+  }
+  if (known?.state === 'ended') {
+    return 'You can no longer post anonymously: your membership was paused for strikes.';
+  }
+  return null;
+}
+
+/**
+ * An administrator flags an anonymous post: hidden, a strike against its
+ * writer, who is told the reason. Returns the files to delete, as a removal.
+ */
+export async function flagAnonymousPost(
+  postId: string,
+  reason: string,
+): Promise<{ ok: true; value: string[] } | { ok: false; error: string }> {
+  const { data, error } = (await getSupabase().rpc('chat_flag_anonymous_post', {
+    post: postId,
+    reason,
+  })) as Result<string[]>;
+  if (error) return { ok: false, error: describeError(error, 'The post was not flagged.') };
+  return { ok: true, value: data ?? [] };
+}
+
+/** What a flag cost its writer (chat_flag_anonymous_post). */
+export type FlagCost = 'month' | 'three_months' | 'paused' | 'ended';
+
+const COSTS: readonly string[] = ['month', 'three_months', 'paused', 'ended'];
+
+/** A flag notice's detail: what it cost, a colon, the reason. */
+export function readFlag(detail: string | null): { cost: FlagCost | null; reason: string } {
+  const text = detail ?? '';
+  const at = text.indexOf(':');
+  const cost = at > 0 ? text.slice(0, at) : '';
+  if (!COSTS.includes(cost)) return { cost: null, reason: text };
+  return { cost: cost as FlagCost, reason: text.slice(at + 1) };
+}
+
+/** What follows a flag, in the writer's notice. */
+export function flagConsequence(cost: FlagCost | null): string {
+  switch (cost) {
+    case 'month':
+      return 'It counts as a strike, and you can’t post anonymously for a month.';
+    case 'three_months':
+      return 'It counts as a strike, and you can’t post anonymously for three months.';
+    case 'paused':
+      return 'It was your third strike, so your membership is paused for 30 days, and you can no longer post anonymously.';
+    default:
+      return 'It counts as a strike.';
+  }
 }

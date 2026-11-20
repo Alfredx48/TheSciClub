@@ -10,10 +10,9 @@ import { createTopic } from '@/lib/chat/topics';
 import { describeThrown } from '@/lib/describe-error';
 import { type PhotoTarget, pastePhotos } from '@/lib/paste-photos';
 import { noteSent } from '@/lib/push/notifications';
-import { AnonymousSwitch } from '@/routes/chat/anonymous-switch';
 import { PhotoPicker, PhotoStrip } from '@/routes/chat/photo-picker';
 import { PlaceAsk } from '@/routes/chat/place-ask';
-import { QuestionSwitch } from '@/routes/chat/question-switch';
+import { PostOptions } from '@/routes/chat/post-options';
 import { DescriptionEditor } from '@/routes/events/description-editor';
 import { backToHome } from '@/routes/home/back';
 import { appFeedbackRoom } from '@/routes/home/feedback-card';
@@ -359,11 +358,12 @@ export default function NewTopicPage() {
 
         {/* Feedback is not asked as a question of the club. */}
         {/* Nor is a listing. */}
-        {sharing || feedback || listing ? null : (
-          <QuestionSwitch checked={isQuestion} onChange={setIsQuestion} />
-        )}
         {feedback || listing ? null : (
-          <AnonymousSwitch checked={anonymous} onChange={setAnonymous} />
+          <PostOptions
+            id="new-topic-options"
+            question={sharing ? undefined : { checked: isQuestion, onChange: setIsQuestion }}
+            anonymous={{ checked: anonymous, onChange: setAnonymous }}
+          />
         )}
 
         {sharing || listing ? null : photos}

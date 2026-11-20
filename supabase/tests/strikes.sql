@@ -137,7 +137,7 @@ select public.admin_add_strike('cccccccc-2222-0000-0000-00000000000c', 'I do not
 rollback to savepoint peer_strikes;
 
 -- ---------------------------------------------------------------------------
--- The limit. 20260917000000.
+-- The limit. 20260917000000, and since 20261120110000 the pause.
 -- ---------------------------------------------------------------------------
 -- Struck is back to zero counting strikes by now: one was withdrawn at step 6
 -- and the other aged out at step 8. Both rows are still on the record, which
@@ -154,36 +154,66 @@ select count(*) as rows_still_on_the_record from public.admin_strikes
  where member_id = 'cccccccc-2222-0000-0000-00000000000c';
 
 \echo ''
-\echo '== 15. each strike reports the new count (expect 1, 2, 3) =='
-\echo '   /admin acts on this: the strike that returns strike_limit() is the one'
-\echo '   that opens the question of what happens to the membership. If this'
-\echo '   ever returns null, the page has stopped asking and nobody notices.'
-select public.admin_add_strike('cccccccc-2222-0000-0000-00000000000c', 'Sold supplements') as counting;
-select public.admin_add_strike('cccccccc-2222-0000-0000-00000000000c', 'Repeated a room') as counting;
-select public.admin_add_strike('cccccccc-2222-0000-0000-00000000000c', 'Medical advice as fact') as counting;
+\echo '== 15. each strike reports the new count, and the third pauses (expect 1 none, 2 none, 3 paused) =='
+\echo '   20261120110000: the third strike pauses the membership for 30 days by'
+\echo '   itself, where 20260917000000 refused a fourth and asked an administrator.'
+select strikes, outcome from public.admin_strike_member('cccccccc-2222-0000-0000-00000000000c', 'Sold supplements');
+select strikes, outcome from public.admin_strike_member('cccccccc-2222-0000-0000-00000000000c', 'Repeated a room');
+select strikes, outcome, paused_until > now() + interval '29 days' as thirty_days
+  from public.admin_strike_member('cccccccc-2222-0000-0000-00000000000c', 'Medical advice as fact');
+select status from public.admin_members where id = 'cccccccc-2222-0000-0000-00000000000c';
 
 \echo ''
-\echo '== 16. a fourth is refused (expect ERROR naming pause and remove) =='
-\echo '   This is the bug the migration exists for: five strikes could be given,'
-\echo '   which made "one more ends your membership" on the members card false.'
-savepoint fourth;
-select public.admin_add_strike('cccccccc-2222-0000-0000-00000000000c', 'And another');
-rollback to savepoint fourth;
+\echo '== 16. the pause is theirs and the administrators to read, nobody else''s (expect 1, 1, 0) =='
+select count(*) as admin_reads from public.member_strike_pauses where member_id = 'cccccccc-2222-0000-0000-00000000000c';
+select set_config('request.jwt.claims',
+  '{"sub":"cccccccc-2222-0000-0000-00000000000c","role":"authenticated"}', true) is not null as ok;
+select count(*) as own_reads from public.member_strike_pauses;
+select set_config('request.jwt.claims',
+  '{"sub":"dddddddd-2222-0000-0000-00000000000d","role":"authenticated"}', true) is not null as ok;
+select count(*) as stranger_reads from public.member_strike_pauses;
 
 \echo ''
-\echo '== 17. withdrawing one makes room again (expect 2, then 3) =='
-\echo '   The cap counts, so undoing a mistake is not a permanent ceiling.'
-select public.admin_withdraw_strike(
-  (select id from public.admin_strikes
-    where member_id = 'cccccccc-2222-0000-0000-00000000000c' and withdrawn_at is null
-    order by issued_at desc limit 1),
-  'Wrong member — meant somebody else');
-select public.active_strike_count('cccccccc-2222-0000-0000-00000000000c') as counting_now;
-select public.admin_add_strike('cccccccc-2222-0000-0000-00000000000c', 'A real third') as counting;
+\echo '== 17. nobody writes a pause by hand (expect ERROR twice) =='
+savepoint pause_by_hand;
+insert into public.member_strike_pauses (member_id, ends_at) values ('dddddddd-2222-0000-0000-00000000000d', now());
+rollback to savepoint pause_by_hand;
+select set_config('request.jwt.claims',
+  '{"sub":"aaaaaaaa-2222-0000-0000-00000000000a","role":"authenticated"}', true) is not null as ok;
+savepoint admin_pause_by_hand;
+insert into public.member_strike_pauses (member_id, ends_at) values ('dddddddd-2222-0000-0000-00000000000d', now());
+rollback to savepoint admin_pause_by_hand;
 
 \echo ''
-\echo '== 18. the roster agrees with the cap (expect 3, and the limit is 3) =='
-select strikes from public.admin_members where id = 'cccccccc-2222-0000-0000-00000000000c';
-select public.strike_limit() as the_limit;
+\echo '== 18. Resume ends it early, and the count starts again (expect active, 0) =='
+select public.admin_set_member_status('cccccccc-2222-0000-0000-00000000000c', 'active');
+set local role postgres;
+-- The strikes were given in this transaction, before the pause; put them a
+-- day before it, as they would be.
+update public.member_strikes set issued_at = now() - interval '2 days' where member_id = 'cccccccc-2222-0000-0000-00000000000c';
+update public.member_strike_pauses set paused_at = now() - interval '1 day' where member_id = 'cccccccc-2222-0000-0000-00000000000c';
+set local role authenticated;
+select status, public.active_strike_count(id) as counting from public.admin_members where id = 'cccccccc-2222-0000-0000-00000000000c';
+
+\echo ''
+\echo '== 19. after a pause, three more close the account for good (expect none, none, closed, then 0 rows) =='
+select outcome from public.admin_strike_member('cccccccc-2222-0000-0000-00000000000c', 'Again one');
+select outcome from public.admin_strike_member('cccccccc-2222-0000-0000-00000000000c', 'Again two');
+select outcome from public.admin_strike_member('cccccccc-2222-0000-0000-00000000000c', 'Again three');
+select count(*) as still_there from public.admin_members where id = 'cccccccc-2222-0000-0000-00000000000c';
+
+\echo ''
+\echo '== 20. the explanations shown once: a member marks their own and reads only their own (expect 1, ERROR, 1) =='
+select set_config('request.jwt.claims',
+  '{"sub":"dddddddd-2222-0000-0000-00000000000d","role":"authenticated"}', true) is not null as ok;
+insert into public.member_seen_explainers (explainer) values ('anonymous');
+select count(*) as mine from public.member_seen_explainers;
+savepoint someone_elses;
+insert into public.member_seen_explainers (member_id, explainer) values ('aaaaaaaa-2222-0000-0000-00000000000a', 'anonymous');
+rollback to savepoint someone_elses;
+select set_config('request.jwt.claims',
+  '{"sub":"aaaaaaaa-2222-0000-0000-00000000000a","role":"authenticated"}', true) is not null as ok;
+insert into public.member_seen_explainers (explainer) values ('not_a_question');
+select count(*) as only_their_own from public.member_seen_explainers;
 
 rollback;

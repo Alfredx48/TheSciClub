@@ -26,6 +26,8 @@ import { getSupabase } from '@/lib/supabase';
  */
 export interface MyStrike {
   id: string;
+  /** A flag on one of their anonymous posts (20261120110000): a strike like any other. */
+  anonymous?: boolean;
   reason: string;
   issuedAt: string;
   withdrawnAt: string | null;
@@ -40,38 +42,64 @@ interface MyStrikeRow {
   withdrawn_reason: string | null;
 }
 
+/**
+ * The member's strikes that can still count: named ones and flags on their anonymous posts,
+ * since their latest pause for strikes (20261120110000), newest first. afterPause says there has
+ * been one, so the next three close the account rather than pause it.
+ *
+ * A database without the flags or pauses (before 20261120110000) reads as having none.
+ */
 export async function loadMyStrikes(
   memberId: string,
-): Promise<{ ok: true; strikes: MyStrike[] } | { ok: false; error: string }> {
-  const result = await getSupabase()
-    .from('member_strikes')
-    .select('id, reason, issued_at, withdrawn_at, withdrawn_reason')
-    .eq('member_id', memberId)
-    .order('issued_at', { ascending: false });
-  if (result.error)
-    return { ok: false, error: describeError(result.error, 'Could not load your standing.') };
-  return {
-    ok: true,
-    strikes: (result.data as MyStrikeRow[]).map((row) => ({
+): Promise<{ ok: true; strikes: MyStrike[]; afterPause: boolean } | { ok: false; error: string }> {
+  const supabase = getSupabase();
+  const [named, flagged, paused] = await Promise.all([
+    supabase
+      .from('member_strikes')
+      .select('id, reason, issued_at, withdrawn_at, withdrawn_reason')
+      .eq('member_id', memberId)
+      .order('issued_at', { ascending: false }),
+    supabase.rpc('my_anonymous_strikes'),
+    supabase
+      .from('member_strike_pauses')
+      .select('paused_at')
+      .eq('member_id', memberId)
+      .order('paused_at', { ascending: false })
+      .limit(1),
+  ]);
+  if (named.error)
+    return { ok: false, error: describeError(named.error, 'Could not load your standing.') };
+  const pauses: { paused_at: string }[] | null = paused.data;
+  const since = pauses?.[0]?.paused_at ?? null;
+  const strikes: MyStrike[] = [
+    ...(named.data as MyStrikeRow[]).map((row) => ({
       id: row.id,
       reason: row.reason,
       issuedAt: row.issued_at,
       withdrawnAt: row.withdrawn_at,
       withdrawnReason: row.withdrawn_reason,
     })),
-  };
+    ...((flagged.data as { reason: string; flagged_at: string }[] | null) ?? []).map((row) => ({
+      id: `flag:${row.flagged_at}`,
+      anonymous: true,
+      reason: row.reason,
+      issuedAt: row.flagged_at,
+      withdrawnAt: null,
+      withdrawnReason: null,
+    })),
+  ]
+    .filter((strike) => since === null || strike.issuedAt > since)
+    .sort((a, b) => (a.issuedAt < b.issuedAt ? 1 : -1));
+  return { ok: true, strikes, afterPause: since !== null };
 }
 
 /** How long a strike counts for. Mirrors `strike_window()` in the database. */
 export const STRIKE_MONTHS = 12;
 
 /**
- * How many strikes a membership survives. Mirrors `strike_limit()`.
- *
- * The database refuses a fourth — see 20260917000000 — so this is not the
- * client's own rule about when to stop offering the button. It is the same
- * number said on this side, so the card can read "one more" at two without
- * counting to three by hand.
+ * How many strikes pause a membership: the third pauses it for 30 days, and
+ * the third after that closes it (20261120110000). Mirrors `strike_limit()`,
+ * so the card can read "one more" at two without counting to three by hand.
  */
 export const STRIKE_LIMIT = 3;
 

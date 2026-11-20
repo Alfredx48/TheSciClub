@@ -490,7 +490,7 @@ beforeEach(() => {
   calls.invited = true;
   calls.joiningOpen = false;
   // Agreed already, so the other tests open at the first question.
-  calls.termsAgreed = '2026-11-06';
+  calls.termsAgreed = '2026-11-20';
   calls.agreedTo = [];
   calls.agreeError = false;
   calls.qrDetails = null;
@@ -2251,11 +2251,11 @@ describe('before you join', () => {
     expect(screen.queryByRole('checkbox')).toBeNull();
     await userEvent.click(screen.getByRole('button', { name: 'Continue' }));
     expect(await screen.findByText('What is your name?')).toBeInTheDocument();
-    expect(calls.agreedTo).toEqual(['2026-11-06']);
+    expect(calls.agreedTo).toEqual(['2026-11-20']);
   });
 
   it('is not shown again once agreed', async () => {
-    calls.termsAgreed = '2026-11-06';
+    calls.termsAgreed = '2026-11-20';
     renderJoin();
     expect(await screen.findByText('What is your name?')).toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: 'Before you join' })).toBeNull();

@@ -3,7 +3,8 @@ import { Link } from 'react-router-dom';
 import { LevelHighlight } from '@/components/injury-stage-pill';
 import { LinkedText } from '@/components/linked-text';
 import {
-  AnonymousAvatar,
+  ANONYMOUS_PAGE,
+  AnonymousAvatarLink,
   AvatarLink,
   FormerMemberAvatar,
   MemberAvatar,
@@ -144,7 +145,10 @@ export function TopicCard({
       <p className="mt-2 flex items-center gap-[9px] text-[0.8125rem] text-ink2 leading-[1.42]">
         {/* Above the title's stretched link, so a tap on it opens their profile. */}
         {asking?.anonymous ? (
-          <AnonymousAvatar className="h-[1.75rem] w-[1.75rem] rounded-[9px]" />
+          <AnonymousAvatarLink
+            className="h-[1.75rem] w-[1.75rem] rounded-[9px]"
+            state={linkState}
+          />
         ) : (
           <AvatarLink
             memberId={starter?.id}
@@ -262,7 +266,10 @@ function QuotedReply({
     <div className="mt-[11px] border-tint border-l-[2.5px] py-0.5 pl-3">
       <p className="flex items-center gap-[9px]">
         {anonymity?.anonymous ? (
-          <AnonymousAvatar className="h-[1.75rem] w-[1.75rem] rounded-[9px]" />
+          <AnonymousAvatarLink
+            className="h-[1.75rem] w-[1.75rem] rounded-[9px]"
+            state={linkState}
+          />
         ) : (
           <AvatarLink
             memberId={replier?.id}
@@ -364,6 +371,19 @@ function BylineName({
   linkState: unknown;
 }) {
   const name = byline(authorId, author, anonymity);
+  // What Anonymous is, as a name opens a profile (the owner, 2026-11-20).
+  if (!author && anonymity?.anonymous) {
+    return (
+      <Link
+        to={ANONYMOUS_PAGE}
+        state={linkState}
+        data-target="small"
+        className="relative z-[1] underline-offset-2 hover:underline"
+      >
+        {name}
+      </Link>
+    );
+  }
   if (!author?.hasProfile) return name;
   return (
     <Link

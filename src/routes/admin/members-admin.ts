@@ -941,33 +941,34 @@ export async function fetchStrikes(): Promise<
 }
 
 /**
- * Give somebody a strike, and report how many now count.
- *
- * The count comes back from `admin_add_strike` rather than being worked out
- * here, because /admin acts on it: the strike that reaches `strike_limit()` is
- * the one that opens the question of what happens to the membership. Counting
- * on this side would be a second implementation of `active_strike_count()`,
- * free to drift from the one the database refuses a fourth strike on.
- *
- * `strikes` is undefined on a database that predates 20260917000000, where the
- * function returned void. Nothing is offered on that reading — an absent count
- * is not a third strike.
+ * Give somebody a strike, and report how many named strikes now count and
+ * what it did (admin_strike_member, 20261120110000): nothing more, a pause of
+ * 30 days on the third, or, on the third after a pause, the account closed
+ * and its address blocked. A closed account's photographs go as Remove's do.
  */
 export async function addStrike(
   target: string,
   reason: string,
-): Promise<{ ok: boolean; error?: string; strikes?: number }> {
-  // Not destructured: the client types rpc data as `any`, and taking it out
-  // by name would spread that through the return. A number is what this
-  // function gives back; anything else is a database that does not report it.
-  const result = await getSupabase().rpc('admin_add_strike', {
+): Promise<{
+  ok: boolean;
+  error?: string;
+  strikes?: number;
+  outcome?: 'none' | 'paused' | 'closed';
+  pausedUntil?: string | null;
+}> {
+  const result = await getSupabase().rpc('admin_strike_member', {
     target,
     strike_reason: reason,
   });
   if (result.error)
     return { ok: false, error: describeError(result.error, 'The strike was not added.') };
-  const count: unknown = result.data;
-  return typeof count === 'number' ? { ok: true, strikes: count } : { ok: true };
+  const rows = result.data as
+    | { strikes: number; outcome: 'none' | 'paused' | 'closed'; paused_until: string | null }[]
+    | null;
+  const row = rows?.[0];
+  if (!row) return { ok: true };
+  if (row.outcome === 'closed') await clearPhotoFolder(target);
+  return { ok: true, strikes: row.strikes, outcome: row.outcome, pausedUntil: row.paused_until };
 }
 
 export async function withdrawStrike(

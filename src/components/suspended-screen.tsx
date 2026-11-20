@@ -1,7 +1,36 @@
 import { PauseCircle } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { signOut, useAccount } from '@/lib/account';
+import { pauseEnds } from '@/lib/chat/anonymous';
 import { useOwnMember } from '@/lib/members';
+import { getSupabase } from '@/lib/supabase';
+
+/**
+ * When a pause for strikes ends (member_strike_pauses, 20261120110000), or null for a pause an
+ * administrator made by hand, which has no end date.
+ */
+function useStrikePauseEnd(memberId: string | null): string | null {
+  const [ends, setEnds] = useState<string | null>(null);
+  useEffect(() => {
+    if (!memberId) return;
+    const run = { live: true };
+    void (async () => {
+      // A database before 20261120110000, or none: the screen for a pause by hand.
+      const { data } = (await getSupabase()
+        .from('member_strike_pauses')
+        .select('ends_at')
+        .eq('member_id', memberId)
+        .is('lifted_at', null)
+        .order('paused_at', { ascending: false })
+        .limit(1)) as { data: { ends_at: string }[] | null };
+      if (run.live) setEnds(data?.[0]?.ends_at ?? null);
+    })().catch(() => undefined);
+    return () => {
+      run.live = false;
+    };
+  }, [memberId]);
+  return ends;
+}
 
 /**
  * The membership is paused, and the person it belongs to is told so.
@@ -28,6 +57,7 @@ export function SuspendedScreen() {
   const { userId } = useAccount();
   const { invitedBy } = useOwnMember(userId);
   const [busy, setBusy] = useState(false);
+  const strikeEnds = useStrikePauseEnd(userId);
 
   return (
     <div className="mx-auto flex h-dvh w-full max-w-[480px] flex-col bg-canvas">
@@ -42,13 +72,29 @@ export function SuspendedScreen() {
             membership" reads for a moment as though Dana were the
             administrator, which is the wrong sentence to have to re-read on
             this screen. */}
-        <p className="mt-2.5 text-[0.8875rem] text-ink2 leading-[1.52]">
-          An administrator has paused your membership of The SCI Club. While it is paused you cannot
-          see other members, and they cannot see you.
-        </p>
-        <p className="mt-2.5 text-[0.8875rem] text-ink2 leading-[1.52]">
-          This can be lifted. Nothing on your profile has been deleted.
-        </p>
+        {strikeEnds ? (
+          <>
+            <p className="mt-2.5 text-[0.8875rem] text-ink2 leading-[1.52]">
+              Your membership of The SCI Club is paused for 30 days, after three strikes. While it
+              is paused you cannot see other members, and they cannot see you.
+            </p>
+            <p className="mt-2.5 text-[0.8875rem] text-ink2 leading-[1.52]">
+              It comes back on its own on {pauseEnds(strikeEnds)}, and your strikes start again from
+              zero. Nothing on your profile has been deleted. You can no longer post anonymously.
+              Three more strikes after that close your account for good.
+            </p>
+          </>
+        ) : (
+          <>
+            <p className="mt-2.5 text-[0.8875rem] text-ink2 leading-[1.52]">
+              An administrator has paused your membership of The SCI Club. While it is paused you
+              cannot see other members, and they cannot see you.
+            </p>
+            <p className="mt-2.5 text-[0.8875rem] text-ink2 leading-[1.52]">
+              This can be lifted. Nothing on your profile has been deleted.
+            </p>
+          </>
+        )}
 
         {invitedBy ? (
           <div className="mt-4 rounded-[17px] border border-line bg-paper px-3.5 py-3.5">

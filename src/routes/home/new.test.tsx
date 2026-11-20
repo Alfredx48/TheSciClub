@@ -148,7 +148,7 @@ describe('asking', () => {
     const user = userEvent.setup();
     renderPage();
     await user.type(screen.getByRole('textbox', { name: 'Your question' }), 'Best cushion?');
-    expect(screen.getByRole('checkbox', { name: /This is a question/ })).toBeChecked();
+    expect(screen.getByRole('checkbox', { name: 'Question' })).toBeChecked();
     await user.click(screen.getByRole('button', { name: 'Post your question' }));
     await waitFor(() => {
       expect(db.created).toEqual([['general', 'Best cushion?', 'Best cushion?', [], true, false]]);
@@ -162,7 +162,7 @@ describe('asking', () => {
     const user = userEvent.setup();
     renderPage();
     await user.type(screen.getByRole('textbox', { name: 'Your question' }), 'My new chair');
-    await user.click(screen.getByRole('checkbox', { name: /This is a question/ }));
+    await user.click(screen.getByRole('checkbox', { name: 'Question' }));
     await user.type(screen.getByRole('textbox', { name: /More detail/ }), 'It arrived today.');
     await user.selectOptions(roomSelect(), 'equip');
     await user.click(screen.getByRole('button', { name: 'Post your question' }));

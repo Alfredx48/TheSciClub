@@ -7,9 +7,8 @@ import { roomsByCategory, useChatRooms } from '@/lib/chat/rooms';
 import { createTopic } from '@/lib/chat/topics';
 import type { ChatRoom } from '@/lib/chat/types';
 import { describeThrown } from '@/lib/describe-error';
-import { AnonymousSwitch } from '@/routes/chat/anonymous-switch';
 import { useMentionSuggestions } from '@/routes/chat/mention-suggestions';
-import { QuestionSwitch } from '@/routes/chat/question-switch';
+import { PostOptions } from '@/routes/chat/post-options';
 import { SimilarTopics } from '@/routes/chat/similar-topics';
 import { backToHome } from '@/routes/home/back';
 
@@ -229,10 +228,15 @@ export default function HomeNewPage() {
             </p>
             <SimilarTopics text={question} linkState={location.state as unknown} />
 
-            <QuestionSwitch checked={isQuestion} onChange={setIsQuestion} />
-            {room?.category === 'Classifieds' ? null : (
-              <AnonymousSwitch checked={anonymous} onChange={setAnonymous} />
-            )}
+            <PostOptions
+              id="ask-options"
+              question={{ checked: isQuestion, onChange: setIsQuestion }}
+              anonymous={
+                room?.category === 'Classifieds'
+                  ? undefined
+                  : { checked: anonymous, onChange: setAnonymous }
+              }
+            />
 
             <label
               htmlFor="ask-details"

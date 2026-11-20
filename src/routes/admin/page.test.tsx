@@ -44,14 +44,12 @@ const api = vi.hoisted(() => ({
   reinvited: [] as [string, string][],
   failWith: null as string | null,
   /**
-   * Whether admin_add_strike reports the new count.
-   *
-   * It does, since 20260917000000, and that is what tells the page the strike
-   * it just issued was the last one. False stands in for a database still on
-   * the void-returning version, where nothing should be offered — an absent
-   * count is not a third strike.
+   * Whether admin_strike_member says what the strike did (20261120110000).
+   * False stands in for a database that does not, where nothing is said.
    */
   reportsStrikeCount: true,
+  /** Paused for strikes before: the third closes the account (20261120110000). */
+  pausedBefore: false,
   /** Open reports, for the count in the Reports tab's label. */
   openReports: 0,
   /** member id → professional title (20261029100000). */
@@ -288,7 +286,17 @@ vi.mock('@/routes/admin/members-admin', async (importOriginal) => ({
       counting = m.strikes + 1;
       return { ...m, strikes: counting };
     });
-    return Promise.resolve(api.reportsStrikeCount ? { ok: true, strikes: counting } : { ok: true });
+    // As admin_strike_member: the third pauses, or after a pause closes.
+    const outcome = counting >= 3 ? (api.pausedBefore ? 'closed' : 'paused') : 'none';
+    if (outcome === 'paused') {
+      api.members = api.members.map((m) => (m.id === id ? { ...m, status: 'suspended' } : m));
+    }
+    if (outcome === 'closed') api.members = api.members.filter((m) => m.id !== id);
+    return Promise.resolve(
+      api.reportsStrikeCount
+        ? { ok: true, strikes: counting, outcome, pausedUntil: '2026-12-20T18:00:00Z' }
+        : { ok: true },
+    );
   },
   fetchStrikes: () => Promise.resolve({ ok: true as const, strikes: api.strikeRows }),
   withdrawStrike: (id: string, reason: string) => {
@@ -408,6 +416,7 @@ beforeEach(() => {
   api.strikes = [];
   api.withdrawn = [];
   api.reportsStrikeCount = true;
+  api.pausedBefore = false;
   api.strikeRows = [];
   api.typeCalls = [];
   api.created = [];
@@ -1426,125 +1435,54 @@ describe('giving somebody a strike', () => {
   });
 });
 
-describe('three strikes is the limit', () => {
+// 20261120110000: the third strike pauses the membership for 30 days by
+// itself, and the third after a pause closes the account. The page says what
+// happened; it no longer asks.
+describe('three strikes pause, and three more close', () => {
   const onTwo = () => {
     api.members = [member({ id: 'm1', displayName: 'Ordinary', strikes: 2 })];
   };
-
-  it('offers no fourth, which the database refuses anyway', async () => {
-    api.members = [member({ id: 'm1', displayName: 'Ordinary', strikes: 3 })];
-    renderAdmin();
-    await screen.findByText('Ordinary');
+  async function strikeOnce(why: string) {
     await manage();
-    expect(screen.queryByRole('button', { name: 'Strike' })).not.toBeInTheDocument();
-    // The other two ways of ending a membership stay: the point of the limit
-    // is that it hands the question over, not that the row goes quiet.
-    expect(screen.getByRole('button', { name: 'Pause' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Remove' })).toBeInTheDocument();
-  });
+    await userEvent.click(await screen.findByRole('button', { name: 'Strike' }));
+    await userEvent.type(screen.getByLabelText('What happened?'), why);
+    await userEvent.click(screen.getByRole('button', { name: 'Give the strike' }));
+  }
 
-  it('says so where the count is opened, so the missing button is explained', async () => {
-    api.members = [member({ id: 'm1', displayName: 'Ordinary', strikes: 3 })];
-    api.strikeRows = [
-      {
-        id: 's1',
-        memberId: 'm1',
-        reason: 'Sold supplements',
-        issuedAt: '2026-09-01T10:00:00Z',
-        issuedByName: 'Admin',
-        withdrawnAt: null,
-        withdrawnReason: null,
-        counts: true,
-      },
-    ];
-    renderAdmin();
-    await userEvent.click(await screen.findByRole('button', { name: '3 strikes' }));
-    expect(screen.getByText(/at the limit/)).toBeInTheDocument();
-  });
-
-  it('asks what to do with the membership on the strike that reaches it', async () => {
+  it('says the third paused them, and asks nothing', async () => {
     onTwo();
     renderAdmin();
-    await manage();
-    await userEvent.click(await screen.findByRole('button', { name: 'Strike' }));
-    await userEvent.type(screen.getByLabelText('What happened?'), 'Third thing');
-    await userEvent.click(screen.getByRole('button', { name: 'Give the strike' }));
-    expect(await screen.findByText('Ordinary is on 3 strikes.')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Pause their membership' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Remove them from the club' })).toBeInTheDocument();
-  });
-
-  it('asks nothing on the first two', async () => {
-    api.members = [member({ id: 'm1', displayName: 'Ordinary', strikes: 1 })];
-    renderAdmin();
-    await manage();
-    await userEvent.click(await screen.findByRole('button', { name: 'Strike' }));
-    await userEvent.type(screen.getByLabelText('What happened?'), 'Second thing');
-    await userEvent.click(screen.getByRole('button', { name: 'Give the strike' }));
-    await screen.findByText('2 strikes');
+    await strikeOnce('Third thing');
     expect(
-      screen.queryByRole('button', { name: 'Pause their membership' }),
-    ).not.toBeInTheDocument();
-  });
-
-  it('pauses them from the panel', async () => {
-    onTwo();
-    renderAdmin();
-    await manage();
-    await userEvent.click(await screen.findByRole('button', { name: 'Strike' }));
-    await userEvent.type(screen.getByLabelText('What happened?'), 'Third thing');
-    await userEvent.click(screen.getByRole('button', { name: 'Give the strike' }));
-    await userEvent.click(await screen.findByRole('button', { name: 'Pause their membership' }));
-    expect(api.statusCalls).toEqual([['m1', 'suspended']]);
-  });
-
-  it('goes to the ordinary remove panel, which is where blocking is asked', async () => {
-    // Not a second confirmation of its own: the cascade warning and the "block
-    // this number too" tick are the whole of what removing has to ask, and a
-    // ban is that tick.
-    onTwo();
-    renderAdmin();
-    await manage();
-    await userEvent.click(await screen.findByRole('button', { name: 'Strike' }));
-    await userEvent.type(screen.getByLabelText('What happened?'), 'Third thing');
-    await userEvent.click(screen.getByRole('button', { name: 'Give the strike' }));
-    await userEvent.click(await screen.findByRole('button', { name: 'Remove them from the club' }));
-    expect(screen.getByText('Remove Ordinary from the club?')).toBeInTheDocument();
-    expect(screen.getByLabelText(/Block this email address too/)).toBeInTheDocument();
-    expect(api.deleted).toEqual([]);
-  });
-
-  it('takes "Not now" for an answer and does nothing', async () => {
-    // Nothing in the database ends a membership, and this panel is a prompt
-    // rather than a consequence — closing it has to leave the strike standing
-    // and the member where they were.
-    onTwo();
-    renderAdmin();
-    await manage();
-    await userEvent.click(await screen.findByRole('button', { name: 'Strike' }));
-    await userEvent.type(screen.getByLabelText('What happened?'), 'Third thing');
-    await userEvent.click(screen.getByRole('button', { name: 'Give the strike' }));
-    await userEvent.click(await screen.findByRole('button', { name: 'Not now' }));
-    expect(screen.queryByText('Ordinary is on 3 strikes.')).not.toBeInTheDocument();
+      await screen.findByText(/third strike, so their membership is paused for 30 days/),
+    ).toBeInTheDocument();
     expect(api.statusCalls).toEqual([]);
     expect(api.deleted).toEqual([]);
-    expect(api.strikes).toEqual([['m1', 'Third thing']]);
   });
 
-  it('asks nothing where the database does not report the count', async () => {
-    // A deployment ahead of its migrations. An absent count is not a third
-    // strike, and inventing one would put a removal prompt on a first offence.
+  it('says the third after a pause closed the account', async () => {
+    onTwo();
+    api.pausedBefore = true;
+    renderAdmin();
+    await strikeOnce('Third thing');
+    expect(await screen.findByText(/account is closed for good/)).toBeInTheDocument();
+  });
+
+  it('says nothing on the first two', async () => {
+    api.members = [member({ id: 'm1', displayName: 'Ordinary', strikes: 1 })];
+    renderAdmin();
+    await strikeOnce('Second thing');
+    await screen.findByText('2 strikes');
+    expect(screen.queryByText(/third strike/)).not.toBeInTheDocument();
+  });
+
+  it('says nothing where the database does not report what happened', async () => {
     api.reportsStrikeCount = false;
     onTwo();
     renderAdmin();
-    await manage();
-    await userEvent.click(await screen.findByRole('button', { name: 'Strike' }));
-    await userEvent.type(screen.getByLabelText('What happened?'), 'Third thing');
-    await userEvent.click(screen.getByRole('button', { name: 'Give the strike' }));
+    await strikeOnce('Third thing');
     await screen.findByText('3 strikes');
-    expect(
-      screen.queryByRole('button', { name: 'Pause their membership' }),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByText(/third strike/)).not.toBeInTheDocument();
   });
 });
 

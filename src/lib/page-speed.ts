@@ -16,6 +16,7 @@ import { debugCards, debugRequest, debugScreen } from '@/lib/debug-log';
 const SCREENS = [
   '/',
   '/admin',
+  '/anonymous',
   '/app-sign-in',
   '/chat',
   '/chat/new',

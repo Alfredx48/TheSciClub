@@ -114,6 +114,21 @@ export default function TermsPage() {
           terms, give a strike (it shows on your Standing card, on Me), pause a membership, or end
           it.
         </P>
+        <P>
+          <b>Strikes.</b> A strike counts for 12 months, unless it is withdrawn. Three strikes
+          within 12 months pause your membership for 30 days. It comes back on its own, and the
+          strikes from before the pause stop counting. Three more strikes after a pause close your
+          account for good, and the email address and phone number it used are blocked from joining
+          again.
+        </P>
+        <P>
+          <b>Anonymous posts.</b> An administrator can flag an anonymous post that breaks these
+          terms. It is hidden, you are told why, and it counts as a strike. It also stops you
+          posting anonymously: for a month after one flag, and for three months after a second
+          within 12 months. Once your membership has been paused for strikes, you can no longer post
+          anonymously. Nobody in the app, administrators included, can see who wrote an anonymous
+          post, but the club’s database records it, so that replies and flags reach you.
+        </P>
         <P>If your membership is ended, do not join again under another name or email address.</P>
       </Section>
 
@@ -124,10 +139,11 @@ export default function TermsPage() {
         <List>
           <li>
             <b>To report</b> a message, a post or a reply, press the <b>•••</b> beside it and choose{' '}
-            <b>Report</b>. Administrators see only that one message, with who wrote it and when. The
-            person reported is not told. To report a member’s profile, press the <b>•••</b> on it
-            and choose <b>Report</b>: administrators see a copy of it as it was then, photograph
-            included, and the member is not told. To report anything else, email <ContactEmail />.
+            <b>Report</b>. Administrators see only that one message, with who wrote it (unless it
+            was posted anonymously) and when. The person reported is not told. To report a member’s
+            profile, press the <b>•••</b> on it and choose <b>Report</b>: administrators see a copy
+            of it as it was then, photograph included, and the member is not told. To report
+            anything else, email <ContactEmail />.
           </li>
           <li>
             <b>To block</b> a member, press the <b>•••</b> on their profile, or beside anything they

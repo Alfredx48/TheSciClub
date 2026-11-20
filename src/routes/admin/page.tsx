@@ -83,7 +83,6 @@ import { todayIso, useAppleHealth } from '@/routes/admin/sign-in-health';
 import { SignInSection } from '@/routes/admin/sign-in-section';
 import { StatsSection } from '@/routes/admin/stats-section';
 import { MENTOR_ALLOWANCE } from '@/routes/invites/mentor-invites';
-import { STRIKE_LIMIT } from '@/routes/me/standing-api';
 import { ReportedReviews } from '@/routes/reviews/reported-reviews';
 
 const ADMIN_TAB_VALUES = [
@@ -187,11 +186,10 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
-  // Whose membership is waiting on an answer, by member id. Set by the strike
-  // that reaches the limit and cleared by whatever the administrator chooses,
-  // "Not now" included — it is a question asked at the moment it is owed, not
-  // a state the row is stuck in.
-  const [deciding, setDeciding] = useState<string | null>(null);
+  // What a strike did by itself (20261120110000): the third pauses the
+  // membership for 30 days, and the third after a pause closes the account.
+  // Said at the top of the page, since a closed account's row is gone.
+  const [notice, setNotice] = useState<string | null>(null);
   const [reach, setReach] = useState<Map<string, MemberReach> | null>(null);
   const [partners, setPartners] = useState<PartnerTitles>(new Map());
   const [staffOrganizations, setStaffOrganizations] = useState<StaffOrganizations>(new Map());
@@ -528,6 +526,14 @@ export default function AdminPage() {
       />
 
       <div className={cn('mx-auto w-full flex-none px-4 pt-3.5 pb-8', ADMIN_MEASURE)}>
+        {notice ? (
+          <p
+            role="status"
+            className="mb-3 rounded-[11px] border border-line bg-paper px-3 py-2.5 text-[0.8125rem] text-ink leading-[1.45]"
+          >
+            {notice}
+          </p>
+        ) : null}
         {error ? (
           <p
             role="alert"
@@ -887,15 +893,12 @@ export default function AdminPage() {
                     act(m.id, () => (block ? removeAndBlock(m, reason) : deleteMember(m.id)));
                   }}
                   onStrike={(reason) => {
+                    setNotice(null);
                     act(
                       m.id,
                       () => addStrike(m.id, reason),
-                      // The strike that reaches the limit is the last one
-                      // there is, so it is also the moment the membership
-                      // itself has to be answered for. Asked here rather than
-                      // left for somebody to notice a red count later.
                       (result) => {
-                        if ((result.strikes ?? 0) >= STRIKE_LIMIT) setDeciding(m.id);
+                        setNotice(strikeNotice(m.displayName, result));
                       },
                     );
                   }}
@@ -904,10 +907,6 @@ export default function AdminPage() {
                   profile={progress?.get(m.id)}
                   onWithdrawStrike={(id, reason) => {
                     act(m.id, () => withdrawStrike(id, reason));
-                  }}
-                  deciding={deciding === m.id}
-                  onCloseDecision={() => {
-                    setDeciding(null);
                   }}
                   expanded={openMember === m.id}
                   onToggle={() => {
@@ -957,15 +956,12 @@ export default function AdminPage() {
                     act(m.id, () => (block ? removeAndBlock(m, reason) : deleteMember(m.id)));
                   }}
                   onStrike={(reason) => {
+                    setNotice(null);
                     act(
                       m.id,
                       () => addStrike(m.id, reason),
-                      // The strike that reaches the limit is the last one
-                      // there is, so it is also the moment the membership
-                      // itself has to be answered for. Asked here rather than
-                      // left for somebody to notice a red count later.
                       (result) => {
-                        if ((result.strikes ?? 0) >= STRIKE_LIMIT) setDeciding(m.id);
+                        setNotice(strikeNotice(m.displayName, result));
                       },
                     );
                   }}
@@ -973,10 +969,6 @@ export default function AdminPage() {
                   reach={reach?.get(m.id)}
                   onWithdrawStrike={(id, reason) => {
                     act(m.id, () => withdrawStrike(id, reason));
-                  }}
-                  deciding={deciding === m.id}
-                  onCloseDecision={() => {
-                    setDeciding(null);
                   }}
                   expanded={openMember === m.id}
                   onToggle={() => {
@@ -1101,8 +1093,6 @@ function Row({
   reach,
   profile,
   onWithdrawStrike,
-  deciding,
-  onCloseDecision,
   expanded,
   onToggle,
 }: {
@@ -1140,9 +1130,6 @@ function Row({
   /** Their profile percentage and next step; absent for a directory row or until read. */
   profile?: ProfileProgress | undefined;
   onWithdrawStrike: (id: string, reason: string) => void;
-  /** Whether the strike just issued was the last one, and the membership is owed an answer. */
-  deciding: boolean;
-  onCloseDecision: () => void;
   /** Whether this row's controls are showing. */
   expanded: boolean;
   onToggle: () => void;
@@ -1163,10 +1150,6 @@ function Row({
   // Which role an organization is being chosen for, in the row's panel.
   const [choosing, setChoosing] = useState<'mentor' | 'staff' | null>(null);
   const [unpartnering, setUnpartnering] = useState(false);
-  // The database refuses a fourth (20260917000000), so the button that would
-  // ask for one is not offered. The count beside the name is already saying
-  // why, in red, and it opens the list where the sentence about it lives.
-  const atLimit = member.strikes >= STRIKE_LIMIT;
 
   return (
     <div
@@ -1374,15 +1357,13 @@ function Row({
               ) : (
                 <SmallButton onClick={onResume}>Resume</SmallButton>
               )}
-              {atLimit ? null : (
-                <SmallButton
-                  onClick={() => {
-                    setStriking(true);
-                  }}
-                >
-                  Strike
-                </SmallButton>
-              )}
+              <SmallButton
+                onClick={() => {
+                  setStriking(true);
+                }}
+              >
+                Strike
+              </SmallButton>
               <SmallButton
                 destructive
                 onClick={() => {
@@ -1395,59 +1376,6 @@ function Row({
           </fieldset>
         </div>
       )}
-
-      {deciding ? (
-        /* The question the third strike asks, at the moment it asks it.
-           
-           Nothing in the database ends a membership — see the header of
-           20260916040000, which is unchanged: removing cascades through
-           event_rsvps and event_dismissals and would silently destroy a
-           member's whole "Been to" record, and the club's shape is that
-           membership is taken by a person who can be asked why. So this is a
-           prompt and not a consequence, and "Not now" is one of the answers.
-           
-           What it fixes is the gap between a limit and a decision. The count
-           went red on the roster and then waited for somebody to notice it,
-           which is exactly the shape of thing that does not get noticed. */
-        <Panel
-          title={`${member.displayName} is on ${STRIKE_LIMIT} strikes.`}
-          buttons={
-            <>
-              <PanelButton
-                onClick={() => {
-                  onCloseDecision();
-                  onPause();
-                }}
-              >
-                Pause their membership
-              </PanelButton>
-              <PanelButton
-                destructive
-                onClick={() => {
-                  // Straight into the panel Remove already opens, rather than
-                  // a second one asking the same things: the cascade warning
-                  // and the "block this number too" tick are the whole of what
-                  // removing needs to ask, and a ban is that tick.
-                  onCloseDecision();
-                  setConfirming(true);
-                }}
-              >
-                Remove them from the club
-              </PanelButton>
-              <PanelButton onClick={onCloseDecision}>Not now</PanelButton>
-            </>
-          }
-        >
-          <p>
-            That is the last strike there is — no more can be given. Nothing has happened to their
-            membership; that is yours to decide.
-          </p>
-          <p className="mt-1.5">
-            Pausing keeps their profile and their record of what they have been to, and is undone
-            with Resume. Removing deletes both, and can also block their email address.
-          </p>
-        </Panel>
-      ) : null}
 
       {listingStrikes && strikes.length > 0 ? (
         <div className="mt-2 w-full rounded-[12px] border border-line bg-canvas p-3">
@@ -1485,9 +1413,6 @@ function Row({
               a button beside it would be offering nothing. */}
           <p className="mt-2.5 text-[0.75rem] text-grey leading-[1.5]">
             Withdrawing keeps the strike on the record and stops it counting.
-            {atLimit
-              ? ' They are at the limit — no more can be given. Pause or remove them, or withdraw one.'
-              : ''}
           </p>
         </div>
       ) : null}
@@ -2142,4 +2067,25 @@ export function reachInWords(reach: MemberReach): string {
           ? `iPhone app, last opened ${day(reach.iPhoneApp.lastSeen)}`
           : 'iPhone app';
   return [notifications, app, iPhone].filter(Boolean).join(' · ');
+}
+
+/** What a strike did by itself, or null when it only counted (20261120110000). */
+function strikeNotice(
+  name: string,
+  result: { outcome?: 'none' | 'paused' | 'closed'; pausedUntil?: string | null },
+): string | null {
+  if (result.outcome === 'paused') {
+    const until = result.pausedUntil
+      ? new Date(result.pausedUntil).toLocaleDateString(undefined, {
+          month: 'long',
+          day: 'numeric',
+          year: 'numeric',
+        })
+      : null;
+    return `That was ${name}’s third strike, so their membership is paused for 30 days${until ? `, until ${until}` : ''}. It comes back on its own; three more strikes after that close their account.`;
+  }
+  if (result.outcome === 'closed') {
+    return `That was ${name}’s third strike since their pause, so their account is closed for good and their address blocked.`;
+  }
+  return null;
 }

@@ -98,7 +98,7 @@ describe('asking from Home', () => {
       'Best cushion?',
     );
     expect(screen.getByRole('combobox')).toHaveValue('general');
-    expect(screen.getByRole('checkbox', { name: /This is a question/ })).toBeChecked();
+    expect(screen.getByRole('checkbox', { name: 'Question' })).toBeChecked();
     await user.click(screen.getByRole('button', { name: 'Post' }));
     await waitFor(() => {
       expect(db.created).toEqual([['general', 'Best cushion?', 'Best cushion?', [], true, false]]);
@@ -116,7 +116,7 @@ describe('asking from Home', () => {
     const box = screen.getByRole('textbox', { name: 'Ask or post to the club' });
     await user.type(box, 'My new chair');
     await user.selectOptions(screen.getByRole('combobox'), 'equip');
-    await user.click(screen.getByRole('checkbox', { name: /This is a question/ }));
+    await user.click(screen.getByRole('checkbox', { name: 'Question' }));
     await user.type(box, '{Enter}');
     await waitFor(() => {
       expect(db.created).toEqual([['equip', 'My new chair', 'My new chair', [], false, false]]);

@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { LevelHighlight } from '@/components/injury-stage-pill';
 import { LinkedText } from '@/components/linked-text';
 import {
-  AnonymousAvatar,
+  AnonymousAvatarLink,
   AvatarLink,
   FormerMemberAvatar,
   MemberAvatar,
@@ -73,7 +73,7 @@ export function PhotoCard({
     <article ref={seenRef} className="relative rounded-[17px] border border-line bg-paper p-3.5">
       <div className="flex items-center gap-3">
         {anonymity?.anonymous ? (
-          <AnonymousAvatar />
+          <AnonymousAvatarLink state={linkState} />
         ) : (
           <AvatarLink
             memberId={author?.id}

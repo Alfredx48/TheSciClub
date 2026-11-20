@@ -6,9 +6,8 @@ import { createTopic } from '@/lib/chat/topics';
 import type { ChatRoom } from '@/lib/chat/types';
 import { describeThrown } from '@/lib/describe-error';
 import { noteSent } from '@/lib/push/notifications';
-import { AnonymousSwitch } from '@/routes/chat/anonymous-switch';
 import { useMentionSuggestions } from '@/routes/chat/mention-suggestions';
-import { QuestionSwitch } from '@/routes/chat/question-switch';
+import { PostOptions } from '@/routes/chat/post-options';
 import { SimilarTopics } from '@/routes/chat/similar-topics';
 
 /**
@@ -212,20 +211,16 @@ export function QuickAsk({
               Up to {LIMIT} characters.
             </span>
           )}
-          <QuestionSwitch
-            id={`${id}-question`}
-            compact
-            checked={isQuestion}
-            onChange={setIsQuestion}
+          <PostOptions
+            id={id}
+            className="mt-0"
+            question={{ checked: isQuestion, onChange: setIsQuestion }}
+            anonymous={
+              room?.category === 'Classifieds'
+                ? undefined
+                : { checked: anonymous, onChange: setAnonymous }
+            }
           />
-          {room?.category === 'Classifieds' ? null : (
-            <AnonymousSwitch
-              id={`${id}-anonymous`}
-              compact
-              checked={anonymous}
-              onChange={setAnonymous}
-            />
-          )}
           {fixedRoom ? null : (
             <label className="mt-1 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[0.875rem] text-ink">
               <span className="font-bold">Room</span>

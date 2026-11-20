@@ -151,7 +151,7 @@ describe('asking, from a room', () => {
   it('starts from the words carried over from the quick box', () => {
     renderPage({ draft: 'Which side guards last?', question: true });
     expect(screen.getByLabelText('What is it about?')).toHaveValue('Which side guards last?');
-    expect(screen.getByRole('checkbox', { name: /This is a question/ })).toBeChecked();
+    expect(screen.getByRole('checkbox', { name: 'Question' })).toBeChecked();
   });
 
   it('opens the topic with no state for Home', async () => {
@@ -287,7 +287,7 @@ describe('asking whether it is a question', () => {
   it('asks, unticked in a room, and sends what was chosen', async () => {
     const user = userEvent.setup();
     renderPage();
-    const box = screen.getByRole('checkbox', { name: /This is a question/ });
+    const box = screen.getByRole('checkbox', { name: 'Question' });
     expect(box).not.toBeChecked();
     await user.type(screen.getByLabelText('What is it about?'), 'Side guards');
     await user.type(screen.getByLabelText(/^Details/), 'Which ones last?');
@@ -300,7 +300,7 @@ describe('asking whether it is a question', () => {
 
   it('is not asked of a photograph being shared', () => {
     renderPage({ from: 'home', segment: 'photos', kind: 'share' });
-    expect(screen.queryByRole('checkbox', { name: /This is a question/ })).toBeNull();
+    expect(screen.queryByRole('checkbox', { name: 'Question' })).toBeNull();
   });
 });
 
@@ -319,7 +319,7 @@ describe('app feedback', () => {
       'The map is hard to zoom on my phone',
     );
     expect(screen.getByRole('button', { name: 'Add a screenshot' })).toBeInTheDocument();
-    expect(screen.queryByRole('checkbox', { name: /This is a question/ })).toBeNull();
+    expect(screen.queryByRole('checkbox', { name: 'Question' })).toBeNull();
     expect(screen.getByRole('link', { name: 'Me' })).toHaveAttribute('href', '/me');
     await user.type(screen.getByLabelText('In a few words, what is it about?'), 'Map zoom');
     await user.click(screen.getByRole('button', { name: 'Send feedback' }));

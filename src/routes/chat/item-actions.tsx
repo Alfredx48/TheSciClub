@@ -15,7 +15,7 @@ export function ItemActions({
   what: string;
   children: ReactNode;
   /** The sheet's heading. */
-  title?: string;
+  title?: string | undefined;
   /** Colour of the ••• button, for one drawn over a photograph. */
   buttonClassName?: string;
   /** For a screen that puts focus back on the ••• after a sheet it opened closes. */

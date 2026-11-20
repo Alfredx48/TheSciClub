@@ -1,4 +1,5 @@
 import { badgesChanged, NOTIFICATIONS_CHANGED, useBadgeCounts } from '@/lib/badges';
+import { flagConsequence, readFlag } from '@/lib/chat/anonymous';
 import { describeError, describeThrown, type Failure } from '@/lib/describe-error';
 import { familyAs } from '@/lib/family';
 import { californiaToday, grantDay } from '@/lib/grants';
@@ -60,7 +61,8 @@ export type NotificationKind =
   | 'event_notice'
   | 'family_link'
   | 'checked_in'
-  | 'important';
+  | 'important'
+  | 'anonymous_flagged';
 
 interface Row {
   id: string;
@@ -396,6 +398,12 @@ export function notificationSentence(n: AppNotification): string {
       return blocked === 1
         ? '1 member was blocked this week'
         : `${blocked} members were blocked this week`;
+    }
+    // An administrator flagged the reader's anonymous post (20261120110000):
+    // detail is what it cost them and the reason.
+    case 'anonymous_flagged': {
+      const { cost, reason } = readFlag(n.detail);
+      return `An administrator flagged and hid your anonymous post in ${quoted(n.place)}: “${reason}”. ${flagConsequence(cost)}`;
     }
     default:
       return 'Something new in the club';
