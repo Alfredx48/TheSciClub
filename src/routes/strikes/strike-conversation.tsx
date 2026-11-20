@@ -9,10 +9,10 @@ import {
   type StrikeMessage,
   type StrikeSummary,
   withdrawFlag,
+  withdrawNamedStrike,
 } from '@/lib/strike-conversations';
 import { strikeRule } from '@/lib/strike-rules';
 import { cn } from '@/lib/utils';
-import { withdrawStrike } from '@/routes/admin/members-admin';
 
 function day(iso: string): string {
   return new Date(iso).toLocaleDateString(undefined, {
@@ -338,11 +338,13 @@ function WithdrawPanel({ kind, id, onDone }: { kind: StrikeKind; id: string; onD
             setBusy(true);
             setFailure(null);
             const done =
-              kind === 'flag' ? withdrawFlag(id, reason.trim()) : withdrawStrike(id, reason.trim());
+              kind === 'flag'
+                ? withdrawFlag(id, reason.trim())
+                : withdrawNamedStrike(id, reason.trim());
             void done
               .then((result) => {
                 if (!result.ok) {
-                  setFailure(result.error ?? 'That did not work.');
+                  setFailure(result.error);
                   return;
                 }
                 setOpen(false);

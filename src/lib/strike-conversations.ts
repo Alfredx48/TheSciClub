@@ -135,6 +135,23 @@ export async function withdrawFlag(
     : { ok: true };
 }
 
+/**
+ * As withdrawStrike in members-admin.ts, here so that the paused screen, which shows this
+ * conversation, does not load the administrators' module.
+ */
+export async function withdrawNamedStrike(
+  strike: string,
+  reason: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const { error } = await getSupabase().rpc('admin_withdraw_strike', {
+    strike,
+    withdraw_reason: reason,
+  });
+  return error
+    ? { ok: false, error: describeError(error, 'The strike was not withdrawn.') }
+    : { ok: true };
+}
+
 export interface StrikeThreadListing {
   kind: StrikeKind;
   id: string;
