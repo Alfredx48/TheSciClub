@@ -35,8 +35,8 @@ export default function AboutPage() {
             injuries. These are the members working on the app.
           </p>
           <p className="mt-1.5 text-[0.8125rem] text-grey leading-[1.5]">
-            Ages, cities and the month and day of each injury are blurred here. Members see them
-            inside the club.
+            Last names, ages, cities and the month and day of each injury are blurred here. Members
+            see them inside the club.
           </p>
         </div>
       </header>
@@ -49,11 +49,12 @@ export default function AboutPage() {
             </p>
           ) : team ? (
             <div className="grid grid-cols-1 gap-3.5 md:grid-cols-[repeat(auto-fill,minmax(300px,1fr))]">
-              {team.map(({ member }, index) => (
+              {team.map(({ member, lastNameHidden }, index) => (
                 <MemberCard
                   key={member.id}
                   member={member}
                   publicView
+                  lastNameHidden={lastNameHidden}
                   priority={index < 2}
                   onOpen={() => {
                     void navigate(`/about/${member.id}`);

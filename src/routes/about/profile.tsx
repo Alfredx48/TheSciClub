@@ -5,7 +5,7 @@ import { InjuryStageNote } from '@/components/injury-stage-pill';
 import { LinkedText } from '@/components/linked-text';
 import { PhotoViewer } from '@/components/photo-viewer';
 import { usePhoto } from '@/lib/use-photo';
-import { Blurred, InjuredIn, STAND_IN_AGE, STAND_IN_PLACE } from '@/routes/about/blurred';
+import { Blurred, InjuredIn, STAND_IN_AGE, STAND_IN_PLACE, TeamName } from '@/routes/about/blurred';
 import { JoinTheClub } from '@/routes/about/page';
 import { useTeam } from '@/routes/about/team';
 import { gradientFor, initialsOf, levelPart } from '@/routes/peers/member-card';
@@ -128,7 +128,7 @@ export default function AboutProfilePage() {
               ) : null}
               <div className="pointer-events-none absolute inset-x-0 bottom-0 px-[18px] pb-3.5">
                 <h1 className="font-extrabold font-display text-[1.875rem] text-white leading-tight tracking-[-0.01em]">
-                  {member.displayName}
+                  <TeamName first={member.displayName} lastNameHidden={found.lastNameHidden} />
                 </h1>
                 {member.username ? (
                   <p className="mt-0.5 font-semibold text-[0.9375rem] text-white">

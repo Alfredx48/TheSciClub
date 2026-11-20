@@ -5,14 +5,20 @@ import type { BrowseMember } from '@/types/domain';
 
 /**
  * The members on About us (about_us_team, 20261115150000), as Peers draws
- * them. City, state, age and injury date are null; the year comes alone.
+ * them. City, state, age and injury date are null; the year comes alone. The
+ * name is the first name only, and there is no username (20261120130000).
  */
 export interface TeamMember {
   member: BrowseMember;
   injuryYear: number | null;
+  /** A last name was left off, to be shown blurred. */
+  lastNameHidden: boolean;
 }
 
-type TeamRow = BrowseMemberRow & { injury_year: number | null };
+type TeamRow = BrowseMemberRow & {
+  injury_year: number | null;
+  last_name_hidden?: boolean | null;
+};
 
 export interface TeamState {
   team: TeamMember[] | null;
@@ -28,6 +34,7 @@ function readTeam(): Promise<TeamMember[]> {
     return ((data as TeamRow[] | null) ?? []).map((row) => ({
       member: toMember(row),
       injuryYear: row.injury_year,
+      lastNameHidden: row.last_name_hidden === true,
     }));
   });
   kept.catch(() => {

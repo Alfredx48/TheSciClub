@@ -9,6 +9,8 @@ export const STAND_IN_AGE = '35';
 export const STAND_IN_PLACE = 'Sacramento, CA';
 export const STAND_IN_DAY = 'June 15';
 export const STAND_IN_MONTH = 'June';
+/** The last name (the owner, 2026-11-20; 20261120130000): only the first name is sent. */
+export const STAND_IN_LAST_NAME = 'Johnson';
 
 /** Shown blurred; a screen reader hears that it is hidden, not the stand-in. */
 export function Blurred({ children }: { children: string }) {
@@ -25,6 +27,21 @@ export function Blurred({ children }: { children: string }) {
         <span className="inline-block blur-[4px]">{children}</span>
       </span>
       <span className="sr-only">hidden</span>
+    </>
+  );
+}
+
+/** "Hannah ▒▒▒": the first name, and a blurred last name when there is one. */
+export function TeamName({ first, lastNameHidden }: { first: string; lastNameHidden: boolean }) {
+  return (
+    <>
+      {first}
+      {lastNameHidden ? (
+        <>
+          {' '}
+          <Blurred>{STAND_IN_LAST_NAME}</Blurred>
+        </>
+      ) : null}
     </>
   );
 }

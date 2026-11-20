@@ -5,7 +5,7 @@ import { organizationByName, useOrganizations } from '@/lib/organizations';
 import { usePhotoUrl } from '@/lib/photos';
 import { usePhoto } from '@/lib/use-photo';
 import { cn } from '@/lib/utils';
-import { Blurred, STAND_IN_AGE, STAND_IN_PLACE } from '@/routes/about/blurred';
+import { Blurred, STAND_IN_AGE, STAND_IN_PLACE, TeamName } from '@/routes/about/blurred';
 import { OrganizationBadge } from '@/routes/events/organization-badge';
 import { isAdminOfAny, isMentor, RolePill } from '@/routes/peers/role-pill';
 import { asksCompleteness, type BrowseMember, cityAndState, injuryLabel } from '@/types/domain';
@@ -117,6 +117,8 @@ export interface MemberCardProps {
   priority?: boolean;
   /** About us, for anybody: the age and city blurred (routes/about/blurred.tsx). */
   publicView?: boolean;
+  /** About us: a last name was left off, and is drawn blurred after the first. */
+  lastNameHidden?: boolean;
   /** What the deck is sorted by, for this member ("12 mi away"). */
   sortNote?: string | null;
 }
@@ -133,6 +135,7 @@ export function MemberCard({
   onOpen,
   priority = false,
   publicView = false,
+  lastNameHidden = false,
   sortNote = null,
 }: MemberCardProps) {
   return (
@@ -141,6 +144,7 @@ export function MemberCard({
       onOpen={onOpen}
       priority={priority}
       publicView={publicView}
+      lastNameHidden={lastNameHidden}
       sortNote={sortNote}
     />
   );
@@ -151,6 +155,7 @@ function PersonCard({
   onOpen,
   priority = false,
   publicView = false,
+  lastNameHidden = false,
   sortNote = null,
 }: MemberCardProps) {
   const { organizations } = useOrganizations();
@@ -262,7 +267,7 @@ function PersonCard({
         )}
       >
         <span className="block font-extrabold font-display text-[1.75rem] text-white leading-tight tracking-[-0.01em] [text-shadow:0_1px_12px_rgba(0,0,0,.75)]">
-          {member.displayName}
+          <TeamName first={member.displayName} lastNameHidden={lastNameHidden} />
         </span>
         {member.username ? (
           <span className="mt-0.5 block font-semibold text-[0.84375rem] text-white leading-[1.35] [text-shadow:0_1px_10px_rgba(0,0,0,.8)]">
