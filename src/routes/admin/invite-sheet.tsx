@@ -114,7 +114,7 @@ export function InviteSheet({ onCreated }: { onCreated: () => void }) {
     const mentors = mentorCount;
     if (
       !window.confirm(
-        `Send ${count} invite email${count === 1 ? '' : 's'} from you${organizationName ? `, with ${organizationName}` : ''}${mentors === 0 ? '' : mentors === count ? ', all as mentors' : `, ${mentors} of them as mentors`}?`,
+        `Send ${count} invite email${count === 1 ? '' : 's'} from you${organizationName ? `, with ${organizationName}` : ''}${mentors === 0 ? '' : count === 1 ? ', as a mentor' : mentors === count ? ', all as mentors' : mentors === 1 ? ', 1 of them as a mentor' : `, ${mentors} of them as mentors`}?`,
       )
     )
       return;
@@ -265,10 +265,10 @@ export function InviteSheet({ onCreated }: { onCreated: () => void }) {
 }
 
 /**
- * The list as read, every column of it (the owner, 2026-11-19: "open a table
- * with all the data and check boxes next to each user"), with a Mentor box on
- * each row once there is an organization to mentor for. It scrolls both ways
- * in its own box, the boxes kept in view at the left.
+ * The people read, by name and address, with a Mentor box on each row once
+ * there is an organization to mentor for (the owner, 2026-11-19: "open a table
+ * with all the data and check boxes next to each user", then "Just parse out
+ * the name").
  */
 function PeopleTable({
   read,
@@ -283,20 +283,7 @@ function PeopleTable({
   mentors: number;
   onMentor: (email: string, mentor: boolean) => void;
 }) {
-  // The address first after the box: it is what is checked before sending,
-  // and on a phone the columns after it scroll out of view.
-  const header = read.columns ?? ['Email', 'Name'];
-  const emailAt = read.columns
-    ? Math.max(
-        0,
-        header.findIndex((c) => /e-?mail/i.test(c)),
-      )
-    : 0;
-  const order = [emailAt, ...header.map((_, i) => i).filter((i) => i !== emailAt)];
-  const columns = order.map((i) => header[i] ?? '');
   const cell = 'px-2.5 py-2 align-middle';
-  // A line at the box's edge, so cells scrolled under it are plainly behind it.
-  const edge = 'sticky left-0 z-[1] shadow-[inset_-1px_0_0_var(--color-line)]';
   return (
     <>
       <div className="mt-1.5 max-h-[24rem] overflow-auto rounded-[11px] border border-line">
@@ -307,59 +294,42 @@ function PeopleTable({
           <thead className="sticky top-0 z-[1] bg-tint">
             <tr>
               {mentorFor ? (
-                <th scope="col" className={`${cell} ${edge} bg-tint font-bold text-ink`}>
+                <th scope="col" className={`${cell} w-14 text-center font-bold text-ink`}>
                   Mentor
                 </th>
               ) : null}
-              {columns.map((column, index) => (
-                <th
-                  // Columns never move: the index is their place.
-                  // biome-ignore lint/suspicious/noArrayIndexKey: see above.
-                  key={index}
-                  scope="col"
-                  className={`${cell} whitespace-nowrap font-bold text-ink`}
-                >
-                  {column || `Column ${index + 1}`}
-                </th>
-              ))}
+              <th scope="col" className={`${cell} font-bold text-ink`}>
+                Name
+              </th>
+              <th scope="col" className={`${cell} font-bold text-ink`}>
+                Email
+              </th>
             </tr>
           </thead>
           <tbody>
-            {read.people.map((person, row) => {
-              const values = read.columns
-                ? (read.rows?.[row] ?? [])
-                : [person.email, person.name ?? ''];
-              const cells = order.map((i) => values[i] ?? '');
-              const who = person.name ?? person.email;
-              return (
-                <tr key={person.email} className="border-line border-t">
-                  {mentorFor ? (
-                    <td className={`${edge} bg-paper p-0`}>
-                      <label className="grid h-11 w-14 cursor-pointer place-items-center">
-                        <input
-                          type="checkbox"
-                          aria-label={`${who} as a mentor`}
-                          checked={isMentor(person.email)}
-                          onChange={(event) => {
-                            onMentor(person.email, event.target.checked);
-                          }}
-                          className="h-[1.15em] w-[1.15em] accent-emphasis"
-                        />
-                      </label>
-                    </td>
-                  ) : null}
-                  {cells.map((value, index) => (
-                    <td
-                      // biome-ignore lint/suspicious/noArrayIndexKey: see above.
-                      key={index}
-                      className={`${cell} whitespace-nowrap text-ink2`}
-                    >
-                      {value}
-                    </td>
-                  ))}
-                </tr>
-              );
-            })}
+            {read.people.map((person) => (
+              <tr key={person.email} className="border-line border-t">
+                {mentorFor ? (
+                  <td className="p-0">
+                    <label className="grid h-11 w-14 cursor-pointer place-items-center">
+                      <input
+                        type="checkbox"
+                        aria-label={`${person.name ?? person.email} as a mentor`}
+                        checked={isMentor(person.email)}
+                        onChange={(event) => {
+                          onMentor(person.email, event.target.checked);
+                        }}
+                        className="h-[1.15em] w-[1.15em] accent-emphasis"
+                      />
+                    </label>
+                  </td>
+                ) : null}
+                <td className={`${cell} text-ink2 [overflow-wrap:anywhere]`}>
+                  {person.name ?? <span className="text-grey">No name</span>}
+                </td>
+                <td className={`${cell} text-ink2 [overflow-wrap:anywhere]`}>{person.email}</td>
+              </tr>
+            ))}
           </tbody>
         </table>
       </div>
