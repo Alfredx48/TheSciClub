@@ -789,7 +789,7 @@ export interface ClubEvent {
   registrationUrl: string | null;
   /** The video call its organizer gave (20261106070000); read only for one event's own page. */
   meetingUrl?: string | null;
-  /** Its ZIP code (20261121030000); read only for one event's own page. */
+  /** Its ZIP code (20261121040000); read only for one event's own page. */
   postalCode?: string | null;
   /** The address after thesciclub.com/e/; read only for one event's own page. */
   shortLink?: string | null;

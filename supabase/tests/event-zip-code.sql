@@ -1,5 +1,5 @@
 -- ============================================================================
--- An event has a ZIP code (20261121030000)
+-- An event has a ZIP code (20261121040000)
 -- ============================================================================
 -- set_event_postal_code: who may, five digits or ZIP+4, a date of a series and
 -- every later one, the template, a date the series makes later, and clearing.

@@ -35,7 +35,7 @@ export interface EventDraft {
   registrationUrl: string;
   /** The video call to join, for an online or hybrid event (20261106070000). */
   meetingUrl: string;
-  /** Optional, as typed; a picked address fills it (20261121030000). */
+  /** Optional, as typed; a picked address fills it (20261121040000). */
   postalCode: string;
   /** Only offered when adding an event; a date already made is changed alone. */
   repeat: RepeatChoice;

@@ -850,7 +850,7 @@ export async function setEventMeetingLink(
 }
 
 /**
- * An event's ZIP code (20261121030000), set on its own after the event is
+ * An event's ZIP code (20261121040000), set on its own after the event is
  * saved, as the video call link is; '' clears it. A repeating event's later
  * dates take it too.
  */
