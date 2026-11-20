@@ -230,15 +230,17 @@ export async function createQrCode(
  * (20261116200000, the owner, 2026-11-16): anyone who comes through the link
  * in the next 24 hours may join. Made by an admin of only one organization, it
  * is that organization's, and who joins through it joins it (20261119170000).
+ * The share sheet names the organization (20261119190000): null for none.
  * Asked again within the hour, the same code.
  */
 export async function shareTopicCode(
   topicId: string,
+  organizationId: string | null,
 ): Promise<{ ok: true; id: string; code: string; expiresAt: Date } | { ok: false; error: string }> {
   const attempt = 'The invite link was not made.';
   try {
     const { data, error } = await getSupabase()
-      .rpc('share_topic_code', { p_topic: topicId })
+      .rpc('share_topic_code', { p_topic: topicId, p_organization: organizationId })
       .single();
     if (error) return { ok: false, error: describeError(error, attempt) };
     const row = data as { id?: unknown; code?: unknown; expires_at?: unknown } | null;

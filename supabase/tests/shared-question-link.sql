@@ -165,4 +165,24 @@ select o.name as joined, om.joined_via
   from public.organization_members om join public.organizations o on o.id = om.organization_id
  where om.member_id = 'aaaaaaaa-5a5a-0000-0000-00000000000d';
 
+\echo ''
+\echo '== 10. the organization chosen in the share sheet (20261119190000) (expect Probe Second Org for the club administrator; then ERROR: Only that organization''s admins can make a link for it.) =='
+select set_config('request.jwt.claims',
+  '{"sub":"aaaaaaaa-5a5a-0000-0000-00000000000a","role":"authenticated"}', true) is not null as ok;
+set local role authenticated;
+select code is not null as made
+  from public.share_topic_code('5a5a0000-0000-0000-0000-000000000001', 'bbbbbbbb-5a5a-0000-0000-00000000000b');
+reset role;
+select o.name from public.qr_codes q join public.organizations o on o.id = q.organization_id
+ where q.admin_id = 'aaaaaaaa-5a5a-0000-0000-00000000000a' and q.made_to_share;
+select set_config('request.jwt.claims',
+  '{"sub":"aaaaaaaa-5a5a-0000-0000-00000000000b","role":"authenticated"}', true) is not null as ok;
+insert into public.organization_representatives (organization_id, member_id)
+values ('bbbbbbbb-5a5a-0000-0000-00000000000a', 'aaaaaaaa-5a5a-0000-0000-00000000000b');
+set local role authenticated;
+savepoint not_theirs;
+select * from public.share_topic_code('5a5a0000-0000-0000-0000-000000000001', 'bbbbbbbb-5a5a-0000-0000-00000000000b');
+rollback to savepoint not_theirs;
+reset role;
+
 rollback;

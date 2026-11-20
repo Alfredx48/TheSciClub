@@ -13,6 +13,7 @@ import { useDialogFocus } from '@/lib/dialog-focus';
 import { markdownToPlain } from '@/lib/markdown';
 import { useBrowseMembers } from '@/lib/members';
 import { useMyOrganizations } from '@/lib/organization-representatives';
+import { useOrganizations } from '@/lib/organizations';
 import { linkWithCode, shareTopicCode, turnOffQrCode } from '@/lib/qr-codes';
 import { matchesSearch } from '@/lib/search';
 import { canShareElsewhere, copyLink, shareLink } from '@/lib/share-link';
@@ -112,16 +113,21 @@ function SharePostSheet({
   isAdmin: boolean;
   onClose: () => void;
 }) {
-  const mine = useMyOrganizations(isAdmin ? null : memberId);
+  const mine = useMyOrganizations(memberId);
   const admin = isAdmin || mine.ids.size > 0;
   const outside = admin ? link : undefined;
   const invites = admin && topicId ? topicId : null;
+  const choices: InviteChoices = {
+    mine: [...mine.ids],
+    loading: mine.loading,
+    anyOrganization: isAdmin,
+  };
   return (
     <ShareSheet
       heading="Share post"
       what={what}
       {...(outside ? { link: outside } : {})}
-      {...(invites ? { inviteTopic: invites } : {})}
+      {...(invites ? { inviteTopic: invites, inviteChoices: choices } : {})}
       linkHeading="Link, for admins"
       linkNote="Send it only in a private message. Never post it anywhere. Only members can open it."
       sendNote="Only members who can read the post will see it."
@@ -157,6 +163,7 @@ function ShareOutside({
   note,
   elsewhere: offerElsewhere,
   inviteTopic,
+  inviteChoices = NO_CHOICES,
 }: {
   link: string;
   /** What the section is, where only some members see it. */
@@ -165,11 +172,28 @@ function ShareOutside({
   elsewhere: boolean;
   /** An administrator sharing a topic, who can make the link an invite. */
   inviteTopic?: string | undefined;
+  /** Which organizations the invite may join people to. */
+  inviteChoices?: InviteChoices | undefined;
 }) {
   const announce = useAnnounce();
   const [said, setSaid] = useState<string | null>(null);
-  const [invite, setInvite] = useState<{ id: string; code: string; until: Date } | null>(null);
+  const [invite, setInvite] = useState<{
+    id: string;
+    code: string;
+    until: Date;
+    organization: string | null;
+  } | null>(null);
   const [making, setMaking] = useState(false);
+  const { byId } = useOrganizations();
+  // The owner, 2026-11-19: their organization when they have one, none when
+  // they have several. Until they choose, the default follows the read.
+  const [picked, setPicked] = useState<InviteOrganization | null>(null);
+  const choice: InviteOrganization = picked ?? {
+    organization: inviteChoices.mine.length === 1 ? (inviteChoices.mine[0] ?? null) : null,
+    other: false,
+  };
+  const ready = !inviteChoices.loading;
+  const nameOf = (id: string | null) => (id ? (byId.get(id)?.name ?? 'the organization') : null);
   const switchId = useId();
   const plain = link.startsWith('/') ? `${siteOrigin()}${link}` : link;
   const url = invite ? linkWithCode(plain, invite.code) : plain;
@@ -191,19 +215,58 @@ function ShareOutside({
         return;
       }
       setInvite(null);
+      // A search left open goes with it: turned on again, the choice is plain.
+      setPicked((was) => (was?.other ? null : was));
       announce('The link no longer lets people join, wherever it was sent.');
       return;
     }
-    if (!inviteTopic) return;
+    if (!inviteTopic || !ready) return;
     setMaking(true);
-    const made = await shareTopicCode(inviteTopic);
+    const made = await shareTopicCode(inviteTopic, choice.organization);
     setMaking(false);
     if (!made.ok) {
       setSaid(made.error);
       return;
     }
-    setInvite({ id: made.id, code: made.code, until: made.expiresAt });
+    setInvite({
+      id: made.id,
+      code: made.code,
+      until: made.expiresAt,
+      organization: choice.organization,
+    });
     announce(`Anyone with the link can join the club until ${untilWords(made.expiresAt)}.`);
+  }
+
+  // Another organization while the link lets people in: a new link for it,
+  // and the one before stops, so one link is live and it says what it does.
+  async function choose(next: InviteOrganization) {
+    setPicked(next);
+    setSaid(null);
+    if (!invite || !inviteTopic) return;
+    if (next.other && next.organization === null) return;
+    if (next.organization === invite.organization) return;
+    setMaking(true);
+    const made = await shareTopicCode(inviteTopic, next.organization);
+    if (!made.ok) {
+      setMaking(false);
+      setSaid(made.error);
+      return;
+    }
+    if (made.id !== invite.id) {
+      const off = await turnOffQrCode(invite.id);
+      if (!off.ok) setSaid(off.error);
+    }
+    setMaking(false);
+    setInvite({
+      id: made.id,
+      code: made.code,
+      until: made.expiresAt,
+      organization: next.organization,
+    });
+    const joins = nameOf(next.organization);
+    announce(
+      `A new link${joins ? ` that also joins people to ${joins}` : ' for the club only'}. The link before no longer lets people join. Copy it again.`,
+    );
   }
 
   async function copy() {
@@ -256,7 +319,7 @@ function ShareOutside({
             aria-labelledby={`${switchId}-label`}
             aria-describedby={`${switchId}-about`}
             data-target="small"
-            disabled={making}
+            disabled={making || (invite === null && !ready)}
             onClick={() => {
               void toggleInvite(invite === null);
             }}
@@ -271,6 +334,18 @@ function ShareOutside({
             />
           </button>
         </div>
+      ) : null}
+      {/* Once the link lets people join (the owner: "when the user says to
+          let people join through a link"), with the default already made. */}
+      {inviteTopic && invite ? (
+        <InviteOrganizationField
+          choices={inviteChoices}
+          choice={choice}
+          disabled={making}
+          onChoose={(next) => {
+            void choose(next);
+          }}
+        />
       ) : null}
       <div className="flex gap-2">
         <button
@@ -310,6 +385,154 @@ function ShareOutside({
   );
 }
 
+/** Which organizations a topic's invite link may join people to. */
+export interface InviteChoices {
+  /** The organizations the member is an admin of. */
+  mine: string[];
+  loading: boolean;
+  /** A club administrator: any organization in the directory. */
+  anyOrganization: boolean;
+}
+
+const NO_CHOICES: InviteChoices = { mine: [], loading: false, anyOrganization: false };
+
+/** The organization chosen, null for none; `other` while the directory's search is open. */
+interface InviteOrganization {
+  organization: string | null;
+  other: boolean;
+}
+
+/**
+ * Who joins through the link also joins this organization (the owner,
+ * 2026-11-19: "an org selector when the user says to let people join through
+ * a link"). Their own organizations and None; a club administrator also gets
+ * Another organization, which opens a search of the whole directory.
+ */
+function InviteOrganizationField({
+  choices,
+  choice,
+  disabled,
+  onChoose,
+}: {
+  choices: InviteChoices;
+  choice: InviteOrganization;
+  disabled: boolean;
+  onChoose: (next: InviteOrganization) => void;
+}) {
+  const id = useId();
+  const { organizations, byId } = useOrganizations();
+  const [find, setFind] = useState('');
+  const mine = choices.mine
+    .map((orgId) => byId.get(orgId))
+    .filter((org) => org !== undefined)
+    .sort((a, b) => a.name.localeCompare(b.name));
+  // One found in the directory shows in the select once chosen.
+  const foundOne =
+    choice.organization && !choices.mine.includes(choice.organization)
+      ? byId.get(choice.organization)
+      : undefined;
+  const value = choice.other ? 'other' : (choice.organization ?? 'none');
+  const needle = find.trim();
+  const found = organizations.filter((org) => matchesSearch([org.name, org.city], needle));
+  const chosenName = choice.organization ? byId.get(choice.organization)?.name : null;
+  const field =
+    'min-h-[44px] w-full rounded-[12px] border-[1.6px] border-line bg-paper px-3.5 py-2.5 text-[1rem] text-ink outline-none focus:border-emphasis';
+
+  return (
+    <div className="mb-3 rounded-xl bg-paper p-3">
+      <label htmlFor={`${id}-org`} className="block font-bold text-[0.875rem] text-ink">
+        Organization they join
+      </label>
+      <p id={`${id}-org-about`} className="mt-0.5 text-[0.8125rem] text-ink2 leading-[1.4]">
+        {chosenName
+          ? `Whoever joins through the link also joins ${chosenName}.`
+          : choice.other
+            ? 'Find the organization below. Until you choose one, the link stays as it was.'
+            : 'Whoever joins through the link joins the club only.'}
+      </p>
+      <select
+        id={`${id}-org`}
+        value={value}
+        disabled={disabled || choices.loading}
+        aria-describedby={`${id}-org-about`}
+        onChange={(event) => {
+          const next = event.target.value;
+          if (next === 'other') {
+            setFind('');
+            onChoose({ organization: null, other: true });
+          } else {
+            onChoose({ organization: next === 'none' ? null : next, other: false });
+          }
+        }}
+        className={`${field} mt-2`}
+      >
+        {mine.map((org) => (
+          <option key={org.id} value={org.id}>
+            {org.name}
+          </option>
+        ))}
+        {foundOne ? <option value={foundOne.id}>{foundOne.name}</option> : null}
+        <option value="none">None, the club only</option>
+        {choices.anyOrganization ? <option value="other">Another organization…</option> : null}
+      </select>
+      {choice.other ? (
+        <fieldset className="mt-3">
+          <legend className="sr-only">Another organization</legend>
+          <label htmlFor={`${id}-find`} className="block font-bold text-[0.875rem] text-ink">
+            Find an organization
+          </label>
+          <input
+            id={`${id}-find`}
+            type="search"
+            autoComplete="off"
+            value={find}
+            placeholder="Name or city"
+            onChange={(event) => {
+              setFind(event.target.value);
+            }}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') event.preventDefault();
+            }}
+            className={`${field} mt-1.5`}
+          />
+          {found.length === 0 ? (
+            <p className="py-3 text-[0.875rem] text-grey">{`Nothing matches “${needle}”.`}</p>
+          ) : (
+            <div className="mt-2 max-h-[14em] overflow-y-auto rounded-[12px] border border-line px-3">
+              {found.map((org) => (
+                <label
+                  key={org.id}
+                  className="flex min-h-[48px] w-full cursor-pointer items-center gap-3 border-line border-b py-2 last:border-b-0"
+                >
+                  <input
+                    type="radio"
+                    name={`${id}-other`}
+                    value={org.id}
+                    checked={false}
+                    disabled={disabled}
+                    onChange={() => {
+                      onChoose({ organization: org.id, other: false });
+                    }}
+                    className="h-[22px] w-[22px] flex-none accent-emphasis"
+                  />
+                  <span className="min-w-0 flex-1">
+                    <span className="block font-bold text-[0.875rem] text-ink [overflow-wrap:anywhere]">
+                      {org.name}
+                    </span>
+                    {org.city ? (
+                      <span className="block text-[0.75rem] text-grey">{org.city}</span>
+                    ) : null}
+                  </span>
+                </label>
+              ))}
+            </div>
+          )}
+        </fieldset>
+      ) : null}
+    </div>
+  );
+}
+
 /** "3:00 PM tomorrow", or "Tuesday at 3:00 PM", for when an invite link stops letting people in. */
 function untilWords(when: Date, now: Date = new Date()): string {
   const time = new Intl.DateTimeFormat(undefined, { hour: 'numeric', minute: '2-digit' }).format(
@@ -336,6 +559,7 @@ export function ShareSheet({
   linkNote,
   elsewhere = false,
   inviteTopic,
+  inviteChoices,
   sendNote,
   send: deliver,
   onClose,
@@ -348,6 +572,8 @@ export function ShareSheet({
   elsewhere?: boolean;
   /** The topic an administrator can make the link an invite to (ShareOutside). */
   inviteTopic?: string | undefined;
+  /** The organizations that invite may join people to. */
+  inviteChoices?: InviteChoices | undefined;
   /** A heading over the link, where only some members see it. */
   linkHeading?: string;
   linkNote: string;
@@ -656,6 +882,7 @@ export function ShareSheet({
             note={linkNote}
             elsewhere={elsewhere}
             inviteTopic={inviteTopic}
+            inviteChoices={inviteChoices}
           />
         ) : null}
       </div>
