@@ -12,6 +12,11 @@ export interface SheetPerson {
   email: string;
   /** What the email greets them as; null when the sheet has no name for them. */
   name: string | null;
+  /**
+   * Their whole name, for the table checked before sending, when the sheet
+   * has more than the greeting (a Last Name column). Never sent.
+   */
+  fullName?: string | null;
 }
 
 export interface ReadSheet {
@@ -94,7 +99,8 @@ function nameFrom(value: string | undefined): string | null {
  * The people in a table. With a header row naming an email column, that
  * column, and the name: a Name column, else First name and Last name put
  * together (the owner, 2026-11-19: "There could be a name column or a 'First
- * Name' and 'Last Name' column").
+ * Name' and 'Last Name' column"). The email greets them by the first name when
+ * there is one ("keeping the first name is better").
  * Without one, every cell holding an address is a person, named by the words
  * around the address ("Ana Ruiz <ana@example.com>") or, when the row has only
  * the one address, by the row's first other cell.
@@ -114,16 +120,19 @@ export function peopleIn(table: string[][]): ReadSheet {
     const nameAt = header.findIndex(
       (c, i) => i !== firstAt && i !== lastAt && i !== emailAt && /name/i.test(c.trim()),
     );
-    const named = (row: string[]) =>
-      (nameAt >= 0 ? nameFrom(row[nameAt]) : null) ??
-      nameFrom([row[firstAt] ?? '', row[lastAt] ?? ''].join(' '));
+    const named = (row: string[]) => {
+      const fullName =
+        (nameAt >= 0 ? nameFrom(row[nameAt]) : null) ??
+        nameFrom([row[firstAt] ?? '', row[lastAt] ?? ''].join(' '));
+      return { name: (firstAt >= 0 ? nameFrom(row[firstAt]) : null) ?? fullName, fullName };
+    };
     for (const row of rows.slice(1)) {
       const email = EMAIL.exec(row[emailAt] ?? '')?.[0];
       if (!email) {
         skipped.push(row.join(' ').trim());
         continue;
       }
-      found.push({ email, name: named(row) });
+      found.push({ email, ...named(row) });
     }
   } else {
     for (const row of rows) {

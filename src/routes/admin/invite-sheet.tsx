@@ -314,7 +314,7 @@ function PeopleTable({
                     <label className="grid h-11 w-14 cursor-pointer place-items-center">
                       <input
                         type="checkbox"
-                        aria-label={`${person.name ?? person.email} as a mentor`}
+                        aria-label={`${person.fullName ?? person.name ?? person.email} as a mentor`}
                         checked={isMentor(person.email)}
                         onChange={(event) => {
                           onMentor(person.email, event.target.checked);
@@ -325,7 +325,7 @@ function PeopleTable({
                   </td>
                 ) : null}
                 <td className={`${cell} text-ink2 [overflow-wrap:anywhere]`}>
-                  {person.name ?? <span className="text-grey">No name</span>}
+                  {person.fullName ?? person.name ?? <span className="text-grey">No name</span>}
                 </td>
                 <td className={`${cell} text-ink2 [overflow-wrap:anywhere]`}>{person.email}</td>
               </tr>

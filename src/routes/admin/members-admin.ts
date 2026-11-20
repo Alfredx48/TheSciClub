@@ -508,7 +508,7 @@ export async function inviteList(input: {
   message: string | null;
 }): Promise<{ ok: true; entries: ListEntry[] } | { ok: false; error: string }> {
   const result = await getSupabase().rpc('admin_invite_list', {
-    p_people: input.people,
+    p_people: input.people.map(({ email, name }) => ({ email, name })),
     p_organization: input.organizationId,
     p_message: input.message,
   });

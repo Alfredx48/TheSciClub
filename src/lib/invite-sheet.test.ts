@@ -3,7 +3,7 @@ import { readSheet, sheetCsvUrl } from '@/lib/invite-sheet';
 
 // The owner's 2026-11-14 board list, as a sheet, a paste and an email's To line.
 describe('reading people to invite out of a spreadsheet', () => {
-  it('uses a header row, a name column, and copes with quotes and repeats', () => {
+  it('uses a header row, greets by first name, and copes with quotes and repeats', () => {
     const csv = [
       'Full name,First name,Email address,Role',
       '"Li, Suet Fei",Suet Fei,suetfei@example.com,Board',
@@ -13,8 +13,8 @@ describe('reading people to invite out of a spreadsheet', () => {
     ].join('\r\n');
     const read = readSheet(csv);
     expect(read.people).toEqual([
-      { email: 'suetfei@example.com', name: 'Li, Suet Fei' },
-      { email: 'MATT.beadon@example.com', name: 'Matt Beadon' },
+      { email: 'suetfei@example.com', name: 'Suet Fei', fullName: 'Li, Suet Fei' },
+      { email: 'MATT.beadon@example.com', name: 'Matt', fullName: 'Matt Beadon' },
     ]);
     // Without a Name column, First name and Last name together (2026-11-19).
     expect(
@@ -22,9 +22,9 @@ describe('reading people to invite out of a spreadsheet', () => {
         'First Name,Last Name,E-mail\nAna,Ruiz,ana@example.com\nBo,,bo@example.com\n,,cy@example.com',
       ).people,
     ).toEqual([
-      { email: 'ana@example.com', name: 'Ana Ruiz' },
-      { email: 'bo@example.com', name: 'Bo' },
-      { email: 'cy@example.com', name: null },
+      { email: 'ana@example.com', name: 'Ana', fullName: 'Ana Ruiz' },
+      { email: 'bo@example.com', name: 'Bo', fullName: 'Bo' },
+      { email: 'cy@example.com', name: null, fullName: null },
     ]);
     expect(read.skipped).toEqual(['Nobody']);
     expect(read.repeats).toBe(1);
