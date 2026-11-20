@@ -6,7 +6,7 @@ import { chatDayHeading } from '@/lib/chat/time';
 import { describeError } from '@/lib/describe-error';
 import { getSupabase } from '@/lib/supabase';
 import { methodLabel } from '@/routes/admin/sign-in-methods';
-import { firstName, mentorAskMailto } from '@/routes/peers/mentor-ask-email';
+import { firstName, mentorAskMailto, profileComplete } from '@/routes/peers/mentor-ask-email';
 import { DetailRow, Section } from '@/routes/peers/profile-parts';
 
 /**
@@ -432,18 +432,28 @@ function MentorAskCard({ memberId, name }: { memberId: string; name: string }) {
     const controller = new AbortController();
     setTo(undefined);
     void (async () => {
-      const { data, error } = (await getSupabase()
-        .rpc('admin_member_email', { p_member: memberId })
-        .abortSignal(controller.signal)) as { data: string | null; error: unknown };
+      const supabase = getSupabase();
+      const [email, answered] = (await Promise.all([
+        supabase.rpc('admin_member_email', { p_member: memberId }).abortSignal(controller.signal),
+        supabase
+          .rpc('admin_member_answered', { p_member: memberId })
+          .abortSignal(controller.signal),
+      ])) as [
+        { data: string | null; error: unknown },
+        { data: Record<string, unknown> | null; error: unknown },
+      ];
       if (controller.signal.aborted) return;
-      setTo(error ? null : (data ?? null));
+      // A complete profile has nothing to ask for. If whether it is cannot be
+      // read (a database before 20261121020000), the button stays.
+      const complete = !answered.error && answered.data ? profileComplete(answered.data) : false;
+      setTo(email.error || complete ? null : (email.data ?? null));
     })();
     return () => {
       controller.abort();
     };
   }, [memberId]);
 
-  // Not there yet, or no address to write to: nothing to offer.
+  // Not there yet, no address to write to, or a complete profile: nothing to offer.
   if (!to) return null;
   return (
     <div className="mb-4 rounded-[17px] border border-line bg-paper p-3.5">

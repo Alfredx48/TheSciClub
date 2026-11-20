@@ -7,10 +7,26 @@
  * each link is written out, on its own line, and the mail app links it.
  */
 
+import { answersFrom } from '@/routes/profile/profile-api';
+import { progressOf } from '@/routes/profile/questions';
+
 export const MENTOR_ASK_SUBJECT = 'Completing your profile and helping us grow';
 export const ME_TAB_URL = 'https://thesciclub.com/me';
 /** The short form; Apple sends it on to the app's page. */
 export const APP_STORE_URL = 'https://apps.apple.com/app/id6825594961';
+
+/**
+ * Whether the member's profile is complete, as their own Me tab says "Profile
+ * complete": every question that applies answered or declined. From
+ * admin_member_answered (20261121020000), which says whether each answer is
+ * there and never what it is; the same code as the Me tab works out the rest.
+ * Once it is, there is nothing to ask and no Create email (the owner,
+ * 2026-11-20: "If a user has completed their profile, then remove that button").
+ */
+export function profileComplete(answered: Record<string, unknown>): boolean {
+  const { answers, declined } = answersFrom(answered);
+  return progressOf(answers, declined).percent === 100;
+}
 
 /** "Lake" from "Lake Thompson". */
 export function firstName(displayName: string | null | undefined): string {
