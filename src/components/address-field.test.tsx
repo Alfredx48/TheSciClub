@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { AddressField, revealAboveKeyboard } from '@/components/address-field';
-import type { AddressSuggestion } from '@/lib/address-suggestions';
+import { type AddressSuggestion, forgetSuggestions } from '@/lib/address-suggestions';
 
 const place = (housenumber: string, name?: string) => ({
   type: 'Feature',
@@ -65,6 +65,7 @@ beforeEach(() => {
   vi.useFakeTimers({ shouldAdvanceTime: true });
   asks = [];
   picked = [];
+  forgetSuggestions();
   vi.stubGlobal('fetch', (input: string, { signal }: { signal: AbortSignal }) => {
     return new Promise<Response>((resolve, reject) => {
       signal.addEventListener('abort', () => {
@@ -93,7 +94,7 @@ describe('the street address box', () => {
     await wait(1000);
     expect(asks).toHaveLength(0);
     await u.type(box(), '0 P');
-    await wait(250);
+    await wait(100);
     expect(asks).toHaveLength(0);
     await wait(50);
     expect(asks).toHaveLength(1);
@@ -108,6 +109,34 @@ describe('the street address box', () => {
     expect(screen.queryByRole('listbox')).toBeNull();
     await answer([place('800', 'Berkeley Ironworks'), place('801')]);
     expect(screen.getAllByRole('option')).toHaveLength(2);
+  });
+
+  // The owner, 2026-11-20: "Can we have it suggest faster?"
+  it('narrows what it shows at once as typing goes on, and shows an answer it has had without asking again', async () => {
+    render(<Field />);
+    const u = user();
+    await u.type(box(), '80');
+    await u.type(box(), '0');
+    await wait(150);
+    const street = (housenumber: string, road: string) => ({
+      ...place(housenumber),
+      properties: { ...place(housenumber).properties, street: road },
+    });
+    await answer([street('800', 'Potter Street'), street('800', 'Pine Street')]);
+    expect(screen.getAllByRole('option')).toHaveLength(2);
+
+    // Before Photon answers "800 Pot", only Potter is left.
+    await u.type(box(), ' Pot');
+    expect(screen.getAllByRole('option').map((o) => o.textContent)).toEqual([
+      '800 Potter Street, Berkeley, CA 94710',
+    ]);
+
+    // Back to "800": the answer had, at once, and Photon not asked again.
+    const asked = asks.length;
+    await u.type(box(), '{Backspace}{Backspace}{Backspace}{Backspace}');
+    expect(screen.getAllByRole('option')).toHaveLength(2);
+    await wait(300);
+    expect(asks).toHaveLength(asked);
   });
 
   it('is a combobox that says how many it found, and is moved through with the arrows', async () => {

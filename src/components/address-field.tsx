@@ -1,6 +1,8 @@
 import { type KeyboardEvent, type ReactNode, useEffect, useId, useRef, useState } from 'react';
 import {
   type AddressSuggestion,
+  narrowSuggestions,
+  rememberedSuggestions,
   SUGGEST_AFTER,
   SUGGEST_DELAY_MS,
   type SuggestionKind,
@@ -110,21 +112,29 @@ export function AddressField({
       setSaid('');
       return;
     }
+    const show = (list: AddressSuggestion[]) => {
+      setSuggestions(list);
+      const shown = list.length > 0 && document.activeElement === input.current;
+      setOpen(shown);
+      setSaid(
+        shown ? `${list.length} ${noun(list.length)} suggested. Up and down arrows to choose.` : '',
+      );
+    };
+    // Already answered: at once, nothing asked.
+    const known = rememberedSuggestions(typed, kind);
+    if (known) {
+      show(known);
+      return;
+    }
+    // Meanwhile, those shown that still fit, so typing on narrows at once.
+    setSuggestions((shown) => narrowSuggestions(shown, typed));
     timer.current = setTimeout(() => {
       const controller = new AbortController();
       asking.current = controller;
       void suggestAddresses(typed, controller.signal, kind).then((found) => {
         if (asking.current !== controller) return;
         asking.current = null;
-        const list = found ?? [];
-        setSuggestions(list);
-        const shown = list.length > 0 && document.activeElement === input.current;
-        setOpen(shown);
-        setSaid(
-          shown
-            ? `${list.length} ${noun(list.length)} suggested. Up and down arrows to choose.`
-            : '',
-        );
+        show(found ?? []);
       });
     }, SUGGEST_DELAY_MS);
   };

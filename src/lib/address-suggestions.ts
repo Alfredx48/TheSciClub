@@ -8,9 +8,13 @@ import { stateCodeForName } from '@/types/domain';
  */
 export const PHOTON_ORIGIN = 'https://photon.komoot.io';
 
-/** Characters typed before asking, and the pause after the last one. */
+/**
+ * Characters typed before asking, and the pause after the last one. 150ms,
+ * not 300 (the owner, 2026-11-20: "Can we have it suggest faster?"): Photon
+ * itself takes most of a second, so the pause was a quarter of the wait.
+ */
 export const SUGGEST_AFTER = 3;
-export const SUGGEST_DELAY_MS = 300;
+export const SUGGEST_DELAY_MS = 150;
 export const SUGGESTIONS_SHOWN = 5;
 
 export interface AddressSuggestion {
@@ -120,6 +124,45 @@ export function toSuggestions(body: unknown): AddressSuggestion[] {
     .map(({ numbered: _, ...suggestion }) => suggestion);
 }
 
+// Answers already had, for a backspace or the same words typed again: shown
+// at once, Photon not asked. For the page's life; the oldest goes first.
+const REMEMBERED_MAX = 100;
+const remembered = new Map<string, AddressSuggestion[]>();
+const rememberKey = (query: string, kind: SuggestionKind) =>
+  `${kind}|${query.trim().toLowerCase().replace(/\s+/g, ' ')}`;
+
+/** What Photon already answered to these words, or null. */
+export function rememberedSuggestions(
+  query: string,
+  kind: SuggestionKind = 'address',
+): AddressSuggestion[] | null {
+  return remembered.get(rememberKey(query, kind)) ?? null;
+}
+
+/** For tests: forget every answer. */
+export function forgetSuggestions(): void {
+  remembered.clear();
+}
+
+/**
+ * Those shown that still fit what is typed now, while Photon is asked: each
+ * typed word starts a word of the suggestion ("800 Pott" keeps 800 Potter
+ * Street). Shown at once, so typing on narrows the list without a wait.
+ */
+export function narrowSuggestions(
+  shown: readonly AddressSuggestion[],
+  typed: string,
+): AddressSuggestion[] {
+  const words = typed
+    .toLowerCase()
+    .split(/[\s,]+/)
+    .filter(Boolean);
+  return shown.filter((suggestion) => {
+    const own = `${suggestion.name ?? ''} ${suggestion.line}`.toLowerCase().split(/[\s,]+/);
+    return words.every((word) => own.some((w) => w.startsWith(word)));
+  });
+}
+
 /** Null when Photon is slow, down, blocked or the ask was dropped: the box stays as it is. */
 export async function suggestAddresses(
   query: string,
@@ -133,7 +176,15 @@ export async function suggestAddresses(
     });
     if (!answer.ok) return null;
     const body: unknown = await answer.json();
-    return kind === 'city' ? toCitySuggestions(body) : toSuggestions(body);
+    const found = kind === 'city' ? toCitySuggestions(body) : toSuggestions(body);
+    const key = rememberKey(query, kind);
+    remembered.delete(key);
+    remembered.set(key, found);
+    if (remembered.size > REMEMBERED_MAX) {
+      const oldest = remembered.keys().next().value;
+      if (oldest !== undefined) remembered.delete(oldest);
+    }
+    return found;
   } catch {
     return null;
   }
