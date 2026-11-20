@@ -44,6 +44,7 @@ import { usePostViews } from '@/lib/chat/views';
 import { describeThrown } from '@/lib/describe-error';
 import { useHoldScroll } from '@/lib/hold-scroll';
 import { photoPaths } from '@/lib/markdown';
+import { isNative } from '@/lib/standalone';
 import { backFromTopic } from '@/routes/chat/back';
 import { ChatBreadcrumb } from '@/routes/chat/breadcrumb';
 import { ListingPrice } from '@/routes/chat/listing-price';
@@ -193,6 +194,24 @@ export default function TopicPage() {
   const list = useRef<HTMLDivElement | null>(null);
   const drawn = !loading && !roomsLoading && topic !== null;
   const place = useHoldScroll(scroller, list, drawn);
+  useEffect(() => {
+    const frame = scroller.current;
+    if (!drawn || !frame || !isNative() || typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver(() => {
+      const field = document.activeElement;
+      if (
+        document.documentElement.hasAttribute('data-keyboard') &&
+        field?.matches('textarea, [contenteditable="true"]') &&
+        frame.contains(field)
+      ) {
+        place.release();
+        // Reply focused the box before the keyboard shortened the scroll area.
+        field.scrollIntoView({ block: 'nearest' });
+      }
+    });
+    observer.observe(frame);
+    return () => observer.disconnect();
+  }, [drawn, place]);
   useEffect(() => {
     if (!drawn || threads.length === 0 || scrolledFor.current === wantedNavigation) return;
     const first = scrolledFor.current === undefined;

@@ -1,3 +1,4 @@
+import { Capacitor } from '@capacitor/core';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { type PropsWithChildren, useImperativeHandle, useRef } from 'react';
@@ -519,6 +520,41 @@ describe('opening on the post a notification was about', () => {
     expect(spy).not.toHaveBeenCalled();
     Reflect.deleteProperty(Element.prototype, 'scrollIntoView');
   });
+});
+
+it('scrolls the focused reply back into view after the native keyboard shrinks the page', async () => {
+  const native = vi.spyOn(Capacitor, 'isNativePlatform').mockReturnValue(true);
+  const scroll = vi.fn();
+  const resize: Array<() => void> = [];
+  vi.stubGlobal(
+    'ResizeObserver',
+    class {
+      constructor(private callback: ResizeObserverCallback) {}
+      observe(target: Element) {
+        if (target.classList.contains('overflow-y-auto')) {
+          resize.push(() => this.callback([], this as unknown as ResizeObserver));
+        }
+      }
+      disconnect() {}
+    },
+  );
+  try {
+    Element.prototype.scrollIntoView = scroll;
+    renderTopic();
+    const box = await screen.findByRole('textbox', { name: 'Reply to this post' });
+    box.focus();
+    expect(resize).toHaveLength(1);
+    resize[0]?.();
+    expect(scroll).not.toHaveBeenCalled();
+    document.documentElement.dataset.keyboard = '';
+    resize[0]?.();
+    expect(scroll.mock.contexts).toContain(box);
+  } finally {
+    delete document.documentElement.dataset.keyboard;
+    Reflect.deleteProperty(Element.prototype, 'scrollIntoView');
+    vi.unstubAllGlobals();
+    native.mockRestore();
+  }
 });
 
 describe('likes', () => {
