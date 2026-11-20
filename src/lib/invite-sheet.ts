@@ -17,6 +17,11 @@ export interface SheetPerson {
    * has more than the greeting (a Last Name column). Never sent.
    */
   fullName?: string | null;
+  /**
+   * A Phone column's number, as typed: filled in when they join
+   * (20261119210000). Not shown.
+   */
+  phone?: string | null;
 }
 
 export interface ReadSheet {
@@ -117,6 +122,8 @@ export function peopleIn(table: string[][]): ReadSheet {
     const emailAt = at(/e-?mail/i);
     const firstAt = at(/^(first|given|preferred)\b|^first ?name$/i);
     const lastAt = at(/^(last|family|sur)\b|^last ?name$|^surname$/i);
+    // The owner, 2026-11-19: "also pull the phone column if it exists".
+    const phoneAt = at(/phone|mobile|\bcell\b/i);
     const nameAt = header.findIndex(
       (c, i) => i !== firstAt && i !== lastAt && i !== emailAt && /name/i.test(c.trim()),
     );
@@ -132,7 +139,9 @@ export function peopleIn(table: string[][]): ReadSheet {
         skipped.push(row.join(' ').trim());
         continue;
       }
-      found.push({ email, ...named(row) });
+      const phone =
+        phoneAt >= 0 ? (row[phoneAt] ?? '').replace(/\s+/g, ' ').trim().slice(0, 32) || null : null;
+      found.push({ email, ...named(row), ...(phone ? { phone } : {}) });
     }
   } else {
     for (const row of rows) {

@@ -16,13 +16,14 @@ describe('reading people to invite out of a spreadsheet', () => {
       { email: 'suetfei@example.com', name: 'Suet Fei', fullName: 'Li, Suet Fei' },
       { email: 'MATT.beadon@example.com', name: 'Matt', fullName: 'Matt Beadon' },
     ]);
-    // Without a Name column, First name and Last name together (2026-11-19).
+    // Without a Name column, First name and Last name together, and a phone
+    // column's number as typed (2026-11-19).
     expect(
       readSheet(
-        'First Name,Last Name,E-mail\nAna,Ruiz,ana@example.com\nBo,,bo@example.com\n,,cy@example.com',
+        'First Name,Last Name,E-mail,Mobile phone\nAna,Ruiz,ana@example.com,(555) 010-1234\nBo,,bo@example.com,\n,,cy@example.com,',
       ).people,
     ).toEqual([
-      { email: 'ana@example.com', name: 'Ana', fullName: 'Ana Ruiz' },
+      { email: 'ana@example.com', name: 'Ana', fullName: 'Ana Ruiz', phone: '(555) 010-1234' },
       { email: 'bo@example.com', name: 'Bo', fullName: 'Bo' },
       { email: 'cy@example.com', name: null, fullName: null },
     ]);

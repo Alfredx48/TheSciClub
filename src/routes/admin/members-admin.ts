@@ -499,16 +499,17 @@ export interface ListEntry {
 /**
  * Puts a list on the club's list in one go (admin_invite_list,
  * 20261114010000), each invite from this administrator, for the organization
- * chosen, with their message. Says what became of each address; the emails go
+ * chosen, with their message, and a phone number to fill in when they join
+ * (20261119210000). Says what became of each address; the emails go
  * afterwards, one at a time, through sendInvite.
  */
 export async function inviteList(input: {
-  people: { email: string; name: string | null }[];
+  people: { email: string; name: string | null; phone?: string | null }[];
   organizationId: string | null;
   message: string | null;
 }): Promise<{ ok: true; entries: ListEntry[] } | { ok: false; error: string }> {
   const result = await getSupabase().rpc('admin_invite_list', {
-    p_people: input.people.map(({ email, name }) => ({ email, name })),
+    p_people: input.people.map(({ email, name, phone }) => ({ email, name, phone: phone ?? null })),
     p_organization: input.organizationId,
     p_message: input.message,
   });

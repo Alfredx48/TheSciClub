@@ -265,10 +265,10 @@ export function InviteSheet({ onCreated }: { onCreated: () => void }) {
 }
 
 /**
- * The people read, by name and address, with a Mentor box on each row once
- * there is an organization to mentor for (the owner, 2026-11-19: "open a table
- * with all the data and check boxes next to each user", then "Just parse out
- * the name").
+ * The people read, by name, with a Mentor box on each row once there is an
+ * organization to mentor for (the owner, 2026-11-19: "open a table with all
+ * the data and check boxes next to each user", then "Just name and checkbox if
+ * a mentor").
  */
 function PeopleTable({
   read,
@@ -301,9 +301,6 @@ function PeopleTable({
               <th scope="col" className={`${cell} font-bold text-ink`}>
                 Name
               </th>
-              <th scope="col" className={`${cell} font-bold text-ink`}>
-                Email
-              </th>
             </tr>
           </thead>
           <tbody>
@@ -325,9 +322,11 @@ function PeopleTable({
                   </td>
                 ) : null}
                 <td className={`${cell} text-ink2 [overflow-wrap:anywhere]`}>
-                  {person.fullName ?? person.name ?? <span className="text-grey">No name</span>}
+                  {/* Without a name in the sheet, the address says who it is. */}
+                  {person.fullName ?? person.name ?? (
+                    <span className="text-grey italic">{person.email}</span>
+                  )}
                 </td>
-                <td className={`${cell} text-ink2 [overflow-wrap:anywhere]`}>{person.email}</td>
               </tr>
             ))}
           </tbody>
