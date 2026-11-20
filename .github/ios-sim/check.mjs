@@ -156,14 +156,15 @@ try {
     'The software keyboard did not open',
   );
   const keyboard = await ofType('XCUIElementTypeKeyboard');
-  assert(
-    await waitFor(async () => {
-      const keyboardTop = (await keyboard.getLocation()).y;
-      const boxBottom = (await box.getLocation()).y + (await box.getSize()).height;
-      return boxBottom <= keyboardTop + 2;
-    }, 5000),
-    'The reply editor is under the keyboard',
-  );
+  let bounds;
+  const visibleEditor = await waitFor(async () => {
+    const keyboardTop = (await keyboard.getLocation()).y;
+    const boxBottom = (await box.getLocation()).y + (await box.getSize()).height;
+    bounds = { keyboardTop, boxBottom };
+    return boxBottom <= keyboardTop + 2;
+  }, 5000);
+  note(`Editor and keyboard bounds: ${JSON.stringify(bounds)}`);
+  assert(visibleEditor, 'The reply editor is under the keyboard');
   note(
     `Reply editor above keyboard (bot opened keyboard by ${keyboardOnReply ? 'Reply' : 'tapping the editor'})`,
   );
@@ -174,7 +175,8 @@ try {
     await waitFor(async () => (await screenText()).includes(marker), 10000),
     'Typing did not reach the reply editor',
   );
-  const homeLink = await home();
+  await driver.execute('mobile: tap', { x: 10, y: 140 });
+  const homeLink = await waitFor(home, 15000);
   assert(homeLink, 'The Home tab is missing');
   await homeLink.click();
   assert(

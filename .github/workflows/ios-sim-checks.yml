@@ -21,12 +21,23 @@ jobs:
     if: github.repository == 'Alfredx48/TheSciClub'
     runs-on: macos-26
     timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        build: [baseline, candidate]
 
     steps:
       - uses: actions/checkout@v5
+        with:
+          ref: ${{ matrix.build == 'baseline' && 'f6670cecf9ae52db7a18b57f50282404d53b2b84' || github.sha }}
 
-      - name: Identify app revision
-        run: git rev-parse HEAD
+      - name: Load the same automation for both builds
+        env:
+          ROBOT_SHA: ${{ github.sha }}
+        run: |
+          git fetch --depth=1 origin "$ROBOT_SHA"
+          git checkout FETCH_HEAD -- .github/ios-sim
+          git rev-parse HEAD
 
       - name: Pick Xcode
         run: |
@@ -121,7 +132,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: ios-reply-release-check
+          name: ios-reply-release-check-${{ matrix.build }}
           path: |
             .github/ios-sim/out/report.json
           if-no-files-found: warn
