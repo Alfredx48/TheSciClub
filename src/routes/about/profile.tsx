@@ -139,9 +139,10 @@ export default function AboutProfilePage() {
                   </p>
                 ) : null}
                 <p className="mt-1 text-[0.875rem] text-white">
-                  {levelPart(member)}{' '}
+                  {/* The dot stays with what is before it (the owner, 2026-11-20). */}
+                  <span className="whitespace-nowrap">{levelPart(member)} ·</span>{' '}
                   <span className="whitespace-nowrap">
-                    · <Blurred>{STAND_IN_AGE}</Blurred> · <Blurred>{STAND_IN_PLACE}</Blurred>
+                    <Blurred>{STAND_IN_AGE}</Blurred> · <Blurred>{STAND_IN_PLACE}</Blurred>
                   </span>
                 </p>
                 <InjuryStageNote member={member} className="mt-1.5" />
