@@ -40,7 +40,11 @@ export default function OrganizationManagementPage() {
     <div className="flex-1 overflow-y-auto p-4">
       <div className="mx-auto max-w-[720px]">
         <BackLink to="/me" label="Me" />
-        <OrganizationsSection administrator={account.isAdmin} ids={own.ids} />
+        <OrganizationsSection
+          administrator={account.isAdmin}
+          memberId={account.userId}
+          ids={own.ids}
+        />
       </div>
     </div>
   );

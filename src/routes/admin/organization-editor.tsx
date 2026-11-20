@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { motionReduced } from '@/lib/accessibility';
 import { useAnnounce } from '@/lib/announce';
+import { useFormDraft } from '@/lib/form-draft';
 import { ORGANIZATION_CATEGORIES, type OrganizationCategory } from '@/lib/organization-categories';
 import {
   type OrganizationDraft,
@@ -18,10 +19,10 @@ import { OrganizationGrantsEditor } from '@/routes/admin/organization-grants-edi
 import {
   newPlace,
   OrganizationLocations,
-  type PlaceDraft,
   placesToSave,
   toDrafts,
 } from '@/routes/admin/organization-locations';
+import { DraftStatus } from '@/routes/chat/draft-status';
 import { placesOf } from '@/routes/events/organization-places';
 import type { Organization } from '@/types/domain';
 
@@ -39,12 +40,14 @@ const field =
  */
 export function OrganizationEditor({
   organization,
+  draftKey,
   administrator,
   request,
   onSaved,
   onCancel,
 }: {
   organization: Organization | null;
+  draftKey?: string | undefined;
   administrator: boolean;
   request?: OrganizationRequest;
   /** `warning` when the organization saved and its new logo did not. */
@@ -52,26 +55,39 @@ export function OrganizationEditor({
   onCancel: () => void;
 }) {
   const asking = !organization && !administrator;
-  const [draft, setDraft] = useState<OrganizationDraft>(
-    organization ??
-      request?.draft ?? {
-        name: '',
-        shortCode: '',
-        city: '',
-        description: '',
-        tags: [],
-        canInvite: true,
-      },
+  const {
+    value: { fields: draft, tags, places },
+    setValue: setForm,
+    storage,
+    restored,
+    finish,
+  } = useFormDraft(
+    organization || request ? undefined : draftKey,
+    () => {
+      const fields: OrganizationDraft = organization ??
+        request?.draft ?? {
+          name: '',
+          shortCode: '',
+          city: '',
+          description: '',
+          tags: [],
+          canInvite: true,
+        };
+      return {
+        fields,
+        tags: fields.tags.join(', '),
+        places: organization
+          ? toDrafts(placesOf(organization))
+          : request?.places.length
+            ? toDrafts(request.places)
+            : [newPlace()],
+      };
+    },
+    (saved) => ({ ...saved, places: toDrafts(saved.places) }),
   );
-  const [tags, setTags] = useState(draft.tags.join(', '));
-  // Its confirmed places, main first.
-  const [places, setPlaces] = useState<PlaceDraft[]>(() =>
-    organization
-      ? toDrafts(placesOf(organization))
-      : request?.places.length
-        ? toDrafts(request.places)
-        : [newPlace()],
-  );
+  function setDraft(fields: OrganizationDraft) {
+    setForm((current) => ({ ...current, fields }));
+  }
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [logo, setLogo] = useState<LogoChange>({ kind: 'keep' });
@@ -128,6 +144,7 @@ export function OrganizationEditor({
         setError(sent.error);
         return;
       }
+      finish();
       announce('Sent to the administrators.');
       onSaved();
       return;
@@ -137,6 +154,7 @@ export function OrganizationEditor({
       setError(result.error);
       return;
     }
+    finish();
     const placed = await saveOrganizationPlaces(result.id, toSave);
     if (!placed.ok) {
       onSaved(`${draft.name.trim()} was saved, but its locations were not: ${placed.error}`);
@@ -185,6 +203,7 @@ export function OrganizationEditor({
               ? 'Review this organization'
               : 'Add organization'}
         </h3>
+        <DraftStatus storage={storage} restored={restored} className="mt-1" />
         {asking ? (
           <p className="mt-1 text-[0.8125rem] text-ink2 leading-[1.45]">
             An administrator checks it before it is listed, and you will be told.
@@ -326,7 +345,12 @@ export function OrganizationEditor({
           <p id="organization-city-hint" className="-mt-2 text-[0.75rem] text-grey">
             Empty when its own site names no place.
           </p>
-          <OrganizationLocations places={places} onChange={setPlaces} />
+          <OrganizationLocations
+            places={places}
+            onChange={(next) => {
+              setForm((current) => ({ ...current, places: next }));
+            }}
+          />
           <label className="text-ink">
             Description
             <textarea
@@ -350,7 +374,8 @@ export function OrganizationEditor({
               maxLength={972}
               value={tags}
               onChange={(event) => {
-                setTags(event.target.value);
+                const next = event.target.value;
+                setForm((current) => ({ ...current, tags: next }));
               }}
             />
             <span className="text-[0.8125rem] text-grey">
@@ -389,10 +414,13 @@ export function OrganizationEditor({
             </button>
             <button
               type="button"
-              onClick={onCancel}
+              onClick={() => {
+                finish();
+                onCancel();
+              }}
               className="min-h-[44px] rounded-lg border border-line px-4 font-bold text-ink"
             >
-              Cancel
+              {storage ? 'Discard draft' : 'Cancel'}
             </button>
           </div>
         </fieldset>

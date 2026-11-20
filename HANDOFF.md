@@ -600,8 +600,9 @@ All live. Migration headers and the files named say how and why.
   links, bigger tap targets, reduce motion; per device (`lib/accessibility.tsx`).
   Built in place of an overlay widget like accessiBe, on purpose.
 - **Drafts**: Home and room ask boxes, topic replies and chat messages
-  recover text from device storage per member. Signing out clears them.
-  Unsent photos remain in memory. Recovery makes no network requests.
+  recover text from device storage per member. New event and organization
+  forms also keep fields and selections. Signing out clears drafts.
+  Unsent photos and logos remain in memory. Recovery makes no network requests.
 - **Privacy at the API**: events, series, tag links and RSVP counts are
   members-only; `chat_authors` keeps its security barrier; organizations stay
   readable for the closed door.

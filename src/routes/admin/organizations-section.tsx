@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useAnnounce } from '@/lib/announce';
+import { memberDraftKey } from '@/lib/chat/drafts';
 import { removeOrganization } from '@/lib/organization-management';
 import {
   decideOrganizationRequest,
@@ -34,10 +35,12 @@ export function matchesOrganizationSearch(organization: Organization, search: st
  * linked entries; the database checks the same scope independently. */
 export function OrganizationsSection({
   administrator = true,
+  memberId,
   ids,
   onChange,
 }: {
   administrator?: boolean;
+  memberId?: string | null;
   ids?: ReadonlySet<string>;
   onChange?: () => void;
 }) {
@@ -128,7 +131,8 @@ export function OrganizationsSection({
       ) : null}
       {editing ? (
         <OrganizationEditor
-          key={editing === 'new' ? 'new' : editing.id}
+          key={editing === 'new' ? `${memberId}:new` : editing.id}
+          draftKey={editing === 'new' ? memberDraftKey(memberId, 'new-organization') : undefined}
           organization={editingOrganization}
           {...(reviewing ? { request: reviewing } : {})}
           administrator={administrator}

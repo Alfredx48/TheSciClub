@@ -13,7 +13,9 @@ export function memberDraftKey(member: string | null | undefined, place: string)
   return member ? `${member}:${place}` : undefined;
 }
 
-export function readKeptDraft(key: string | undefined): Draft | null {
+export function readKeptDraft(
+  key: string | undefined,
+): (Draft & { storage: 'device' | 'session' }) | null {
   if (!key) return null;
   // The session copy also works when persistent browser storage is disabled.
   for (const storage of ['sessionStorage', 'localStorage'] as const) {
@@ -21,7 +23,8 @@ export function readKeptDraft(key: string | undefined): Draft | null {
       const raw = window[storage].getItem(LOCAL_PREFIX + key);
       if (!raw) continue;
       const draft = JSON.parse(raw) as Draft | null;
-      if (typeof draft?.text === 'string') return draft;
+      if (typeof draft?.text === 'string')
+        return { ...draft, storage: storage === 'localStorage' ? 'device' : 'session' };
     } catch {
       // A browser can refuse storage.
     }

@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { makeEvent, makeOrganization } from '@/test/factory';
 import type { ClubEvent } from '@/types/domain';
 
@@ -40,7 +40,7 @@ vi.mock('@/lib/photos', () => ({ usePhotoUrl: () => null }));
 const { default: EventFormPage } = await import('@/routes/events/event-form');
 
 function renderForm(path = '/events/new') {
-  render(
+  return render(
     <MemoryRouter initialEntries={[path]}>
       <Routes>
         <Route path="/events/new" element={<EventFormPage />} />
@@ -49,6 +49,32 @@ function renderForm(path = '/events/new') {
     </MemoryRouter>,
   );
 }
+
+beforeEach(() => {
+  localStorage.clear();
+  sessionStorage.clear();
+});
+
+it('restores a new event with its restricted audience until the draft is discarded', async () => {
+  const user = userEvent.setup();
+  const first = renderForm();
+  await user.type(screen.getByLabelText('What is it called?'), 'Quiet meetup');
+  await user.type(screen.getByLabelText('Accessibility (optional)'), 'Step-free entrance');
+  await user.click(screen.getByRole('radio', { name: /Invite only/ }));
+  first.unmount();
+  sessionStorage.clear();
+
+  const second = renderForm();
+  expect(screen.getByLabelText('What is it called?')).toHaveValue('Quiet meetup');
+  expect(screen.getByLabelText('Accessibility (optional)')).toHaveValue('Step-free entrance');
+  expect(screen.getByRole('radio', { name: /Invite only/ })).toBeChecked();
+  await user.click(screen.getByRole('button', { name: 'Discard draft' }));
+  second.unmount();
+
+  renderForm();
+  expect(screen.getByLabelText('What is it called?')).toHaveValue('');
+  expect(screen.getByRole('radio', { name: /Everyone in the club/ })).toBeChecked();
+});
 
 describe("an event's state on its form", () => {
   it("follows the host's state until somebody chooses one", async () => {
