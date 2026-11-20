@@ -37,6 +37,7 @@ import { Chips, childrenLabel, DetailRow, Section } from '@/routes/peers/profile
 
 export { childrenLabel };
 
+import { WheelBadge } from '@/components/wheel-badge';
 import { type Role, RoleOrganizations } from '@/routes/peers/representation-tags';
 import { isAdminOfAny, isMentor, RolePill } from '@/routes/peers/role-pill';
 import { type BrowseMember, cityAndState, type RepresentedOrganization } from '@/types/domain';
@@ -820,7 +821,14 @@ function MemberProfile({ onBlocked }: { onBlocked: () => void }) {
                 <p className="mt-1 text-[0.875rem] text-white">
                   <SummaryLine member={member} />
                 </p>
-                <InjuryStageNote member={member} className="mt-1.5" />
+                <span className="mt-1.5 flex items-center gap-1.5">
+                  <InjuryStageNote member={member} />
+                  <WheelBadge
+                    memberId={member.id}
+                    name={member.displayName}
+                    className="pointer-events-auto h-[1.375rem] w-[1.375rem]"
+                  />
+                </span>
                 {injury ? <p className="mt-1 text-[0.78125rem] text-white/90">{injury}</p> : null}
               </div>
             </div>

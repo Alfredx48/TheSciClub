@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { LevelHighlight } from '@/components/injury-stage-pill';
 import { FormerMemberAvatar, GroupAvatar, MemberAvatar } from '@/components/member-avatar';
+import { WheelBadge } from '@/components/wheel-badge';
 import { noticeText, threadTitle } from '@/lib/chat/threads';
 import { chatTime } from '@/lib/chat/time';
 import type { ChatAuthor, ChatThread } from '@/lib/chat/types';
@@ -130,6 +131,7 @@ export function ThreadRow({
                   injuryType={other.injuryType}
                 />
               ) : null}
+              {other ? <WheelBadge memberId={other.id} still className="ml-1.5" /> : null}
             </>
           )}
         </span>

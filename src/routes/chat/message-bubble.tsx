@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { LevelHighlight } from '@/components/injury-stage-pill';
 import { LinkedText } from '@/components/linked-text';
 import { AvatarLink, FormerMemberAvatar, MemberAvatar } from '@/components/member-avatar';
+import { WheelBadge } from '@/components/wheel-badge';
 import { firstClubLink } from '@/lib/chat/club-links';
 import type { SharedPost } from '@/lib/chat/shared-posts';
 import { chatTimeLong, messageTime } from '@/lib/chat/time';
@@ -367,6 +368,9 @@ export function MessageBubble({
                 injuryType={author.injuryType}
               />
             </>
+          ) : null}
+          {author ? (
+            <WheelBadge memberId={author.id} name={author.displayName} className="ml-1.5" />
           ) : null}
         </p>
         {content}

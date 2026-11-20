@@ -2,6 +2,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import App, { preloadPublicPage, preloadScreen } from '@/App';
+import { startActiveDay } from '@/lib/active-day';
 import { startDeviceCheck } from '@/lib/device-check';
 import { takeHandoff } from '@/lib/home-screen-handoff';
 import { startPageSpeed } from '@/lib/page-speed';
@@ -30,6 +31,8 @@ window.addEventListener('vite:preloadError', (event) => {
 
 registerWorker();
 startDeviceCheck();
+// Each day a member uses the club, for Wheelie points' streaks.
+startActiveDay();
 // How long this load and each request take, for administrators (page-speed.ts).
 startPageSpeed((samples) => Promise.resolve(getSupabase().rpc('log_page_speed', { samples })));
 

@@ -12,6 +12,7 @@ import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'reac
 import { BackLink } from '@/components/back-link';
 import { LevelHighlight } from '@/components/injury-stage-pill';
 import { FormerMemberAvatar, GroupAvatar, MemberAvatar } from '@/components/member-avatar';
+import { WheelBadge } from '@/components/wheel-badge';
 import { motionReduced } from '@/lib/accessibility';
 import { useAccount } from '@/lib/account';
 import { useMyBlocks } from '@/lib/blocks';
@@ -528,6 +529,9 @@ function ThreadScreen({ threadId }: { threadId: string | undefined }) {
                       band={other.band}
                       injuryType={other.injuryType}
                     />
+                  ) : null}
+                  {other ? (
+                    <WheelBadge memberId={other.id} name={other.displayName} className="ml-1.5" />
                   ) : null}
                 </p>
               )}

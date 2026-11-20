@@ -9,6 +9,7 @@ import {
   MemberAvatar,
 } from '@/components/member-avatar';
 import { PartnerLabel } from '@/components/partner-label';
+import { WheelBadge } from '@/components/wheel-badge';
 import { anonymousName, anonymousNote } from '@/lib/chat/anonymous';
 import { firstClubLink } from '@/lib/chat/club-links';
 import type { PostVote } from '@/lib/chat/likes';
@@ -343,6 +344,9 @@ export function Post({
                     injuryType={author.injuryType}
                   />
                 </span>
+              ) : null}
+              {author && !anonymous ? (
+                <WheelBadge memberId={author.id} name={author.displayName} className="ml-1.5" />
               ) : null}
             </span>
             {note ? (
