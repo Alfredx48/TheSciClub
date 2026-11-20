@@ -65,8 +65,11 @@ export function InviteSheet({ onCreated }: { onCreated: () => void }) {
   const [round, setRound] = useState(0);
   const [organizationId, setOrganizationId] = useState<string | null>(null);
   const [edited, setEdited] = useState<string | null>(null);
-  // Mentors of the organization chosen, when they join (the owner, 2026-11-19).
+  // Mentors of the organization chosen, when they join (the owner, 2026-11-19):
+  // everyone on the list to start with, then each person's own box in the
+  // table ("an option for the admin to select who is a mentor and who is not").
   const [asMentor, setAsMentor] = useState(false);
+  const [picked, setPicked] = useState<ReadonlyMap<string, boolean>>(new Map());
   const [error, setError] = useState<string | null>(null);
   const [lines, setLines] = useState<SendLine[] | null>(null);
   const [sending, setSending] = useState(false);
@@ -81,10 +84,15 @@ export function InviteSheet({ onCreated }: { onCreated: () => void }) {
   // One organization of theirs is the one they mean; with several, they pick.
   const chosen = organizationId ?? (organizations.length === 1 ? (organizations[0]?.id ?? '') : '');
   const organizationName = organizations.find((o) => o.id === chosen)?.name ?? null;
-  const suggested = suggestedMessage(organizationName, asMentor);
-  const message = edited ?? suggested;
   const people = read?.people ?? [];
   const tooMany = people.length > SHEET_LIMIT;
+  const isMentor = (email: string) =>
+    organizationName !== null && (picked.get(email.toLowerCase()) ?? asMentor);
+  const mentorCount = people.filter((person) => isMentor(person.email)).length;
+  // One message goes to everyone: it says mentor only when everyone is one.
+  const allMentors = asMentor && (people.length === 0 || mentorCount === people.length);
+  const suggested = suggestedMessage(organizationName, allMentors);
+  const message = edited ?? suggested;
 
   const preview = useMemo(
     () =>
@@ -103,10 +111,10 @@ export function InviteSheet({ onCreated }: { onCreated: () => void }) {
   async function send() {
     if (people.length === 0 || tooMany) return;
     const count = people.length;
-    const mentors = asMentor && organizationName !== null;
+    const mentors = mentorCount;
     if (
       !window.confirm(
-        `Send ${count} invite email${count === 1 ? '' : 's'} from you${organizationName ? `, with ${organizationName}` : ''}${mentors ? ', as mentors' : ''}?`,
+        `Send ${count} invite email${count === 1 ? '' : 's'} from you${organizationName ? `, with ${organizationName}` : ''}${mentors === 0 ? '' : mentors === count ? ', all as mentors' : `, ${mentors} of them as mentors`}?`,
       )
     )
       return;
@@ -124,9 +132,11 @@ export function InviteSheet({ onCreated }: { onCreated: () => void }) {
       }
       // Marked before any email goes: an unmarked invite makes a member, not
       // a mentor (20261119200000). All of them or none.
-      if (mentors) {
+      if (mentors > 0) {
         const ids = added.entries.flatMap((entry) =>
-          entry.outcome === 'added' && entry.inviteId ? [entry.inviteId] : [],
+          entry.outcome === 'added' && entry.inviteId && isMentor(entry.email)
+            ? [entry.inviteId]
+            : [],
         );
         const marked = await setInvitesMentor(ids, true);
         if (!marked.ok) {
@@ -161,6 +171,7 @@ export function InviteSheet({ onCreated }: { onCreated: () => void }) {
           setRound((r) => r + 1);
           setEdited(null);
           setAsMentor(false);
+          setPicked(new Map());
           setError(null);
         }}
       />
@@ -169,9 +180,9 @@ export function InviteSheet({ onCreated }: { onCreated: () => void }) {
 
   return (
     <div className="p-3.5">
-      <PeopleListField key={round} id="sheet" onRead={onRead} />
-
-      <label htmlFor="sheet-organization" className={`${inviteListLabel} mt-3`}>
+      {/* Who they join with and whether they mentor come first: the table
+          below starts from them (the owner, 2026-11-19). */}
+      <label htmlFor="sheet-organization" className={inviteListLabel}>
         They join with
       </label>
       <select
@@ -195,10 +206,38 @@ export function InviteSheet({ onCreated }: { onCreated: () => void }) {
           id="sheet"
           many
           organization={organizationName}
+          hint={
+            asMentor && mentorCount < people.length
+              ? `Only those ticked in the table below become mentors for ${organizationName} when they join.`
+              : `When they join, they become mentors for ${organizationName}. Each person can be changed in the table below.`
+          }
           checked={asMentor}
-          onChange={setAsMentor}
+          onChange={(next) => {
+            // For everyone again: a person changed one by one follows it too.
+            setAsMentor(next);
+            setPicked(new Map());
+          }}
         />
       ) : null}
+
+      <div className="mt-4">
+        <PeopleListField
+          key={round}
+          id="sheet"
+          onRead={onRead}
+          list={(found) => (
+            <PeopleTable
+              read={found}
+              mentorFor={organizationName}
+              isMentor={isMentor}
+              mentors={mentorCount}
+              onMentor={(email, next) => {
+                setPicked((was) => new Map(was).set(email.toLowerCase(), next));
+              }}
+            />
+          )}
+        />
+      </div>
 
       <MessageField id="sheet" suggested={suggested} edited={edited} onEdit={setEdited} />
       <EmailPreview email={preview} />
@@ -222,5 +261,117 @@ export function InviteSheet({ onCreated }: { onCreated: () => void }) {
           : `Send ${people.length} invite${people.length === 1 ? '' : 's'}`}
       </button>
     </div>
+  );
+}
+
+/**
+ * The list as read, every column of it (the owner, 2026-11-19: "open a table
+ * with all the data and check boxes next to each user"), with a Mentor box on
+ * each row once there is an organization to mentor for. It scrolls both ways
+ * in its own box, the boxes kept in view at the left.
+ */
+function PeopleTable({
+  read,
+  mentorFor,
+  isMentor,
+  mentors,
+  onMentor,
+}: {
+  read: ReadSheet;
+  mentorFor: string | null;
+  isMentor: (email: string) => boolean;
+  mentors: number;
+  onMentor: (email: string, mentor: boolean) => void;
+}) {
+  // The address first after the box: it is what is checked before sending,
+  // and on a phone the columns after it scroll out of view.
+  const header = read.columns ?? ['Email', 'Name'];
+  const emailAt = read.columns
+    ? Math.max(
+        0,
+        header.findIndex((c) => /e-?mail/i.test(c)),
+      )
+    : 0;
+  const order = [emailAt, ...header.map((_, i) => i).filter((i) => i !== emailAt)];
+  const columns = order.map((i) => header[i] ?? '');
+  const cell = 'px-2.5 py-2 align-middle';
+  // A line at the box's edge, so cells scrolled under it are plainly behind it.
+  const edge = 'sticky left-0 z-[1] shadow-[inset_-1px_0_0_var(--color-line)]';
+  return (
+    <>
+      <div className="mt-1.5 max-h-[24rem] overflow-auto rounded-[11px] border border-line">
+        <table className="w-full border-collapse text-left text-[0.8125rem]">
+          <caption className="sr-only">
+            The people to invite{mentorFor ? ', with whether each is a mentor' : ''}
+          </caption>
+          <thead className="sticky top-0 z-[1] bg-tint">
+            <tr>
+              {mentorFor ? (
+                <th scope="col" className={`${cell} ${edge} bg-tint font-bold text-ink`}>
+                  Mentor
+                </th>
+              ) : null}
+              {columns.map((column, index) => (
+                <th
+                  // Columns never move: the index is their place.
+                  // biome-ignore lint/suspicious/noArrayIndexKey: see above.
+                  key={index}
+                  scope="col"
+                  className={`${cell} whitespace-nowrap font-bold text-ink`}
+                >
+                  {column || `Column ${index + 1}`}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {read.people.map((person, row) => {
+              const values = read.columns
+                ? (read.rows?.[row] ?? [])
+                : [person.email, person.name ?? ''];
+              const cells = order.map((i) => values[i] ?? '');
+              const who = person.name ?? person.email;
+              return (
+                <tr key={person.email} className="border-line border-t">
+                  {mentorFor ? (
+                    <td className={`${edge} bg-paper p-0`}>
+                      <label className="grid h-11 w-14 cursor-pointer place-items-center">
+                        <input
+                          type="checkbox"
+                          aria-label={`${who} as a mentor`}
+                          checked={isMentor(person.email)}
+                          onChange={(event) => {
+                            onMentor(person.email, event.target.checked);
+                          }}
+                          className="h-[1.15em] w-[1.15em] accent-emphasis"
+                        />
+                      </label>
+                    </td>
+                  ) : null}
+                  {cells.map((value, index) => (
+                    <td
+                      // biome-ignore lint/suspicious/noArrayIndexKey: see above.
+                      key={index}
+                      className={`${cell} whitespace-nowrap text-ink2`}
+                    >
+                      {value}
+                    </td>
+                  ))}
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      {mentorFor ? (
+        <p className="mt-1.5 text-[0.75rem] text-grey leading-[1.45]">
+          {mentors === 0
+            ? `None of them will be mentors for ${mentorFor}.`
+            : mentors === read.people.length
+              ? `All of them will be mentors for ${mentorFor}.`
+              : `${mentors} of ${read.people.length} will be mentors for ${mentorFor}.`}
+        </p>
+      ) : null}
+    </>
   );
 }

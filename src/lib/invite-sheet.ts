@@ -20,6 +20,14 @@ export interface ReadSheet {
   skipped: string[];
   /** The same address more than once: kept once. */
   repeats: number;
+  /**
+   * The sheet as it is, for the table an administrator checks before sending
+   * (the owner, 2026-11-19: "open a table with all the data"): its header row,
+   * when it has one, and each person's row, in the order of `people`. Without
+   * a header there are no columns, and each row is empty.
+   */
+  columns?: string[] | null;
+  rows?: string[][];
 }
 
 /** At most this many at a time, as the database allows. */
@@ -101,7 +109,7 @@ export function peopleIn(table: string[][]): ReadSheet {
   const rows = table.filter((r) => r.some((c) => c.trim() !== ''));
   const header = rows[0] ?? [];
   const isHeader = header.some((c) => /e-?mail/i.test(c)) && !header.some((c) => EMAIL.test(c));
-  const found: SheetPerson[] = [];
+  const found: { person: SheetPerson; row: string[] }[] = [];
   const skipped: string[] = [];
 
   if (isHeader) {
@@ -115,7 +123,10 @@ export function peopleIn(table: string[][]): ReadSheet {
         skipped.push(row.join(' ').trim());
         continue;
       }
-      found.push({ email, name: nameAt >= 0 ? nameFrom(row[nameAt]) : null });
+      found.push({
+        person: { email, name: nameAt >= 0 ? nameFrom(row[nameAt]) : null },
+        row: header.map((_, i) => (row[i] ?? '').trim()),
+      });
     }
   } else {
     for (const row of rows) {
@@ -137,7 +148,7 @@ export function peopleIn(table: string[][]): ReadSheet {
             holding.length === 1 && matches.length === 1
               ? nameFrom(row.find((c) => c.trim() && !EMAIL.test(c)))
               : null;
-          found.push({ email: match[0], name: around ?? beside });
+          found.push({ person: { email: match[0], name: around ?? beside }, row: [] });
         }
       }
     }
@@ -145,8 +156,9 @@ export function peopleIn(table: string[][]): ReadSheet {
 
   const seen = new Set<string>();
   const people: SheetPerson[] = [];
+  const kept: string[][] = [];
   let repeats = 0;
-  for (const person of found) {
+  for (const { person, row } of found) {
     const key = person.email.toLowerCase();
     if (seen.has(key)) {
       repeats++;
@@ -154,8 +166,15 @@ export function peopleIn(table: string[][]): ReadSheet {
     }
     seen.add(key);
     people.push(person);
+    kept.push(row);
   }
-  return { people, skipped, repeats };
+  return {
+    people,
+    skipped,
+    repeats,
+    columns: isHeader ? header.map((c) => c.trim()) : null,
+    rows: kept,
+  };
 }
 
 /** Everything in one: pasted text or a downloaded CSV. */

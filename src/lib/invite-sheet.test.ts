@@ -18,6 +18,12 @@ describe('reading people to invite out of a spreadsheet', () => {
     ]);
     expect(read.skipped).toEqual(['Nobody']);
     expect(read.repeats).toBe(1);
+    // The whole row, for the table checked before sending (2026-11-19).
+    expect(read.columns).toEqual(['Full name', 'First name', 'Email address', 'Role']);
+    expect(read.rows).toEqual([
+      ['Li, Suet Fei', 'Suet Fei', 'suetfei@example.com', 'Board'],
+      ['Matt Beadon', 'Matt', 'MATT.beadon@example.com', 'Board, treasurer'],
+    ]);
   });
 
   it('reads rows pasted from a sheet without a header, and a To line of names and addresses', () => {

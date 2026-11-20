@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import { describeThrown } from '@/lib/describe-error';
 import { type ReadSheet, readSheet, SHEET_LIMIT, sheetCsvUrl } from '@/lib/invite-sheet';
 import { sendInvite } from '@/lib/send-invite';
@@ -21,19 +21,28 @@ const hint = 'mt-1.5 text-[0.75rem] text-grey leading-[1.45]';
 /** Between two emails: the email service takes about two a second. */
 const GAP_MS = 600;
 
+/** A CSV bigger than this is not a list of people (200 at most). */
+const CSV_MAX_BYTES = 2_000_000;
+
 export function PeopleListField({
   id,
   onRead,
+  list,
 }: {
   id: string;
   /** What was found, or null while there is nothing to read. */
   onRead: (read: ReadSheet | null) => void;
+  /** Draws the people found, in place of the plain list (the administrator's table). */
+  list?: (read: ReadSheet) => ReactNode;
 }) {
   const [link, setLink] = useState('');
   const [pasted, setPasted] = useState('');
+  // Read from the link or from a CSV file, whichever came last.
   const [fromLink, setFromLink] = useState<ReadSheet | null>(null);
+  const [fileName, setFileName] = useState<string | null>(null);
   const [reading, setReading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const file = useRef<HTMLInputElement>(null);
 
   const read = useMemo(() => (pasted.trim() ? readSheet(pasted) : fromLink), [pasted, fromLink]);
   useEffect(() => {
@@ -60,11 +69,34 @@ export function PeopleListField({
         return;
       }
       setPasted('');
+      setFileName(null);
       setFromLink(readSheet(text));
     } catch (e) {
       setError(describeThrown(e, 'The sheet could not be read. Check the link and try again.'));
     } finally {
       setReading(false);
+    }
+  }
+
+  // A CSV saved from Excel, Numbers or a sheet (the owner, 2026-11-19: "an
+  // option to import csv in addition to a google sheets link"). Read here, in
+  // the browser: the file goes nowhere.
+  async function readFile(chosen: File) {
+    setError(null);
+    if (chosen.size > CSV_MAX_BYTES) {
+      setError(
+        'That file is too big for a list of people. Save just the sheet with them as a CSV.',
+      );
+      return;
+    }
+    try {
+      const text = await chosen.text();
+      setPasted('');
+      setLink('');
+      setFileName(chosen.name);
+      setFromLink(readSheet(text));
+    } catch (e) {
+      setError(describeThrown(e, 'The file could not be read. Save it as a CSV and try again.'));
     }
   }
 
@@ -104,6 +136,44 @@ export function PeopleListField({
         In the sheet, press Share and set General access to “Anyone with the link”. It needs a
         column of email addresses; a First name or Name column is used to greet each person.
       </p>
+      <p className={`${label} mt-3`} id={`${id}-file-label`}>
+        Or import a CSV file
+      </p>
+      <div className="mt-1.5 flex flex-wrap items-center gap-2">
+        <input
+          ref={file}
+          id={`${id}-file`}
+          type="file"
+          accept=".csv,text/csv"
+          aria-labelledby={`${id}-file-label`}
+          className="sr-only"
+          onChange={(e) => {
+            const chosen = e.target.files?.[0];
+            // The same file again, after a change to it, is read again.
+            e.target.value = '';
+            if (chosen) void readFile(chosen);
+          }}
+        />
+        <button
+          type="button"
+          aria-describedby={`${id}-file-hint`}
+          onClick={() => {
+            file.current?.click();
+          }}
+          className="min-h-[42px] flex-none rounded-[11px] bg-tint px-3.5 font-bold font-head text-[0.8125rem] text-emphasis"
+        >
+          Choose a CSV file
+        </button>
+        {fileName && !pasted.trim() ? (
+          <span className="min-w-0 text-[0.8125rem] text-ink2 [overflow-wrap:anywhere]">
+            {fileName}
+          </span>
+        ) : null}
+      </div>
+      <p id={`${id}-file-hint`} className={hint}>
+        Saved from Excel, Numbers or Google Sheets (File, Download, CSV). It stays on this device;
+        only the addresses and names are sent.
+      </p>
       {error ? (
         <p role="alert" className="mt-1.5 text-[0.78125rem] text-destructive leading-[1.45]">
           {error}
@@ -137,7 +207,9 @@ export function PeopleListField({
               : `${people.length} ${people.length === 1 ? 'person' : 'people'} to invite`}
             {read.repeats > 0 ? ` · ${read.repeats} repeated, kept once` : ''}
           </p>
-          {people.length > 0 ? (
+          {people.length > 0 && list ? (
+            list(read)
+          ) : people.length > 0 ? (
             <ul className="mt-1.5 max-h-[11rem] overflow-y-auto rounded-[11px] border border-line text-[0.8125rem]">
               {people.map((p) => (
                 <li
@@ -356,6 +428,7 @@ export function MentorField({
   id,
   organization,
   many = false,
+  hint,
   checked,
   onChange,
 }: {
@@ -363,6 +436,8 @@ export function MentorField({
   organization: string;
   /** A list of people, not one. */
   many?: boolean;
+  /** Said under it in place of what joining does. */
+  hint?: string;
   checked: boolean;
   onChange: (next: boolean) => void;
 }) {
@@ -389,9 +464,10 @@ export function MentorField({
           id={`${id}-mentor-hint`}
           className="mt-0.5 block text-[0.78125rem] text-ink2 leading-[1.45]"
         >
-          {many
-            ? `When they join, they become mentors for ${organization}.`
-            : `When they join, they become a mentor for ${organization}.`}
+          {hint ??
+            (many
+              ? `When they join, they become mentors for ${organization}.`
+              : `When they join, they become a mentor for ${organization}.`)}
         </span>
       </span>
     </label>
