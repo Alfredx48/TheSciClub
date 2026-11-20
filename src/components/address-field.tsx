@@ -7,6 +7,7 @@ import {
   SUGGEST_DELAY_MS,
   type SuggestionKind,
   suggestAddresses,
+  withTypedNumber,
 } from '@/lib/address-suggestions';
 
 /**
@@ -112,7 +113,8 @@ export function AddressField({
       setSaid('');
       return;
     }
-    const show = (list: AddressSuggestion[]) => {
+    const show = (found: AddressSuggestion[]) => {
+      const list = kind === 'address' ? withTypedNumber(found, typed) : found;
       setSuggestions(list);
       const shown = list.length > 0 && document.activeElement === input.current;
       setOpen(shown);

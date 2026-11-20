@@ -55,6 +55,29 @@ export function photonUrl(query: string, kind: SuggestionKind = 'address'): stri
   return `${PHOTON_ORIGIN}/api/?${params.toString()}`;
 }
 
+/**
+ * A street with no number takes the number typed (the owner, 2026-11-20:
+ * "831 Schooner Street, Foster City" came up as Schooner Street alone, and
+ * picking it lost the 831). OpenStreetMap has many streets without their
+ * houses; the person typing knows the number. A named place keeps its own.
+ */
+export function withTypedNumber(
+  suggestions: readonly AddressSuggestion[],
+  typed: string,
+): AddressSuggestion[] {
+  const number = /^\s*(\d+[a-z]?(?:-\d+)?)\s+\S/i.exec(typed)?.[1];
+  if (!number) return [...suggestions];
+  return suggestions.map((suggestion) =>
+    suggestion.name || /^\d/.test(suggestion.street)
+      ? suggestion
+      : {
+          ...suggestion,
+          street: `${number} ${suggestion.street}`,
+          line: `${number} ${suggestion.line}`,
+        },
+  );
+}
+
 /** Photon's city layer as suggestions: a US place and its state, no street. */
 export function toCitySuggestions(body: unknown): AddressSuggestion[] {
   const features = isRecord(body) && Array.isArray(body.features) ? body.features : [];

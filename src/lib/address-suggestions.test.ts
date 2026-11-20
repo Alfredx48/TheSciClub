@@ -4,6 +4,7 @@ import {
   suggestAddresses,
   toCitySuggestions,
   toSuggestions,
+  withTypedNumber,
 } from '@/lib/address-suggestions';
 
 /** Shaped as photon.komoot.io answered on 2026-10-28. */
@@ -212,5 +213,39 @@ describe("Photon's answer as cities to fill in", () => {
       ['Oakland', 'CA', 'Oakland, CA', ''],
       ['Oakley', 'CA', 'Oakley, CA', ''],
     ]);
+  });
+});
+
+// The owner, 2026-11-20: "831 Schooner Street, Foster City" was suggested as
+// Schooner Street alone, and picking it lost the house number.
+describe('a street OpenStreetMap has no house numbers for', () => {
+  it('takes the number typed; a numbered address or a named place keeps its own', () => {
+    const schooner = feature({
+      osm_id: 1,
+      osm_key: 'highway',
+      type: 'street',
+      name: 'Schooner Street',
+      city: 'Foster City',
+      state: 'California',
+      postcode: '94404',
+    });
+    const park = feature({
+      osm_id: 2,
+      name: 'Schooner Creek Discovery Park',
+      housenumber: '4815',
+      street: 'Southeast 51st Street',
+      city: 'Lincoln City',
+      state: 'Oregon',
+    });
+    const found = toSuggestions({ features: [schooner, park] });
+    expect(withTypedNumber(found, '831 schooner stre').map((s) => s.street)).toEqual([
+      '4815 Southeast 51st Street',
+      '831 Schooner Street',
+    ]);
+    expect(withTypedNumber(found, '831 schooner stre')[1]?.line).toBe(
+      '831 Schooner Street, Foster City, CA 94404',
+    );
+    // Nothing typed as a number: as Photon said.
+    expect(withTypedNumber(found, 'schooner st')).toEqual(found);
   });
 });
