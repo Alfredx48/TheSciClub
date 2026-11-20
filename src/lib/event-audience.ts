@@ -242,6 +242,7 @@ export interface PublicEvent {
   title: string;
   description: string;
   descriptionHtml: string;
+  accessDetails?: string | null;
   startTime: string;
   endTime: string | null;
   allDay: boolean;
@@ -264,6 +265,7 @@ export interface PublicEventRow {
   title: string;
   description: string | null;
   description_html: string | null;
+  access_details?: string | null;
   start_time: string;
   end_time: string | null;
   all_day: boolean | null;
@@ -303,6 +305,7 @@ export function publicEventFrom(row: PublicEventRow): PublicEvent {
     title: row.title,
     description: row.description ?? '',
     descriptionHtml: row.description_html ?? '',
+    accessDetails: row.access_details ?? null,
     startTime: row.start_time,
     endTime: row.end_time,
     allDay: Boolean(row.all_day),

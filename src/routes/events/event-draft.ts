@@ -21,6 +21,7 @@ export interface EventDraft {
   hostName: string;
   title: string;
   description: string;
+  accessDetails: string;
   date: DateParts;
   /** As typed: "6:30 pm". */
   startTime: string;
@@ -52,6 +53,7 @@ export type RepeatEnd = 'never' | 'on' | 'after';
 
 export const TITLE_MAX = 140;
 export const DESCRIPTION_MAX = 4000;
+export const ACCESS_DETAILS_MAX = 1000;
 export const HOST_NAME_MAX = 120;
 export const LOCATION_MAX = 300;
 export const CITY_MAX = 100;
@@ -101,6 +103,7 @@ export function emptyDraft(onlyHost: string | null, hostState = ''): EventDraft 
     hostName: '',
     title: '',
     description: '',
+    accessDetails: '',
     date: EMPTY_DATE_PARTS,
     startTime: '',
     endTime: '',
@@ -132,6 +135,7 @@ export function draftFromEvent(event: ClubEvent): EventDraft {
     hostName: event.hostName ?? '',
     title: event.title,
     description: event.description,
+    accessDetails: event.accessDetails ?? '',
     date: { month: String(start.month), day: String(start.day), year: String(start.year) },
     startTime: timeText(start.hour, start.minute),
     endTime: event.endTime
@@ -497,6 +501,10 @@ export function readDraft(
   if (!url.ok || !registration.ok) {
     return { ok: false, problem: 'A link has to be a web address, like https://norcalsci.org.' };
   }
+  if (draft.accessDetails.trim().length > ACCESS_DETAILS_MAX) {
+    return { ok: false, problem: 'Access details can be 1,000 characters at most.' };
+  }
+
   // Only an event held online has a call to join; in person keeps none.
   const meeting = draft.format === 'in_person' ? { ok: true, url: '' } : readLink(draft.meetingUrl);
   if (!meeting.ok || (meeting.url !== '' && !/^https:\/\//i.test(meeting.url))) {

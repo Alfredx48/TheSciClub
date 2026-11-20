@@ -37,6 +37,7 @@ import {
 import { CoverField } from '@/routes/events/cover-field';
 import { DescriptionEditor } from '@/routes/events/description-editor';
 import {
+  ACCESS_DETAILS_MAX,
   CITY_MAX,
   DESCRIPTION_MAX,
   describeRepeat,
@@ -379,7 +380,11 @@ function EventForm({
     if (!reading.ok || saving || !audienceReady(chosenAudience)) return;
     setSaving(true);
     const repeat = reading.repeat;
-    const payload = reading.payload;
+    const accessDetails = draft.accessDetails.trim();
+    const payload =
+      accessDetails === initial.accessDetails.trim()
+        ? reading.payload
+        : { ...reading.payload, accessDetails };
     void (async () => {
       const result =
         repeat && isNew
@@ -735,10 +740,32 @@ function EventForm({
           onChange={(next) => {
             set('description', next);
           }}
-          placeholder="What happens, who it is for, what to bring, and whether the venue is step-free."
+          placeholder="What happens, who it is for, and what to bring."
           hintClassName={HINT}
           onPaste={(event) => {
             pastePhotos(event, coverTarget.current);
+          }}
+        />
+
+        <label htmlFor="event-access-details" className={LABEL}>
+          Accessibility (optional)
+        </label>
+        <p id="event-access-hint" className={HINT}>
+          {draft.format === 'online'
+            ? 'Share what you know about captions, dial-in, or how to request accommodations.'
+            : draft.format === 'hybrid'
+              ? 'Share what you know about step-free access, restrooms, parking, captions, or how to request accommodations.'
+              : 'Share what you know about step-free entrances, accessible restrooms, parking or drop-off, and how to request accommodations.'}
+        </p>
+        <textarea
+          id="event-access-details"
+          aria-describedby="event-access-hint"
+          className={FIELD}
+          rows={3}
+          maxLength={ACCESS_DETAILS_MAX}
+          value={draft.accessDetails}
+          onChange={(event) => {
+            set('accessDetails', event.target.value);
           }}
         />
 

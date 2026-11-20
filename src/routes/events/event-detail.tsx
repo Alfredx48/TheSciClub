@@ -27,6 +27,7 @@ import { PostBody } from '@/routes/chat/post-body';
 import { AttendeeList } from '@/routes/events/attendee-list';
 import { backLabel, backState, backToEvents } from '@/routes/events/back';
 import { CheckInCard, CheckInClosed, CheckInNotYet } from '@/routes/events/check-in-card';
+import { EventAccessDetails } from '@/routes/events/event-access-details';
 import { EventAudienceSection, OutsideTheAudience } from '@/routes/events/event-audience-parts';
 import { EventCohosts } from '@/routes/events/event-cohosts';
 import { mayChangeEvent } from '@/routes/events/event-draft';
@@ -334,6 +335,8 @@ export default function EventDetailPage() {
         </div>
 
         <div className="mx-auto w-full max-w-[var(--events-measure)] px-4 pb-5">
+          <EventAccessDetails details={event.accessDetails} />
+
           {/* In a warm box of its own, a size up, so it is read (the owner,
               2026-11-17: "make the details section on the event page pop out
               more ... a different color bubble ... up the font one size"). */}

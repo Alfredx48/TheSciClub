@@ -105,6 +105,7 @@ interface EventRow {
   /** Not in a list's read (LIST_COLUMNS). */
   description?: string;
   description_html?: string;
+  access_details?: string | null;
   detail_summary?: string | null;
   start_time: string;
   end_time: string | null;
@@ -209,6 +210,7 @@ export function toEvents(inputs: EventJoinInputs): ClubEvent[] {
       title: row.title,
       description: row.description ?? '',
       descriptionHtml: row.description_html ?? '',
+      accessDetails: row.access_details ?? null,
       detailSummary: row.detail_summary ?? null,
       startTime: row.start_time,
       endTime: row.end_time,
@@ -347,10 +349,16 @@ export function useEvents({ from, to, id, organizationId, ids }: EventQuery = {}
           if (aborted()) return;
           cohosted = (links.data ?? []).map((link) => link.event_id);
         }
-        // Typed as the full list: the rows are EventRow either way.
-        const columns = (id ? EVENT_COLUMNS : LIST_COLUMNS) as typeof EVENT_COLUMNS;
-        const readRange = (batch: string[] | null) =>
+        const readRange = (batch: string[] | null, includeAccessDetails = Boolean(id)) =>
           readPages<EventRow>((first, last) => {
+            // The row mapper accepts the optional detail fields.
+            const columns = (
+              includeAccessDetails
+                ? `${EVENT_COLUMNS}, access_details`
+                : id
+                  ? EVENT_COLUMNS
+                  : LIST_COLUMNS
+            ) as typeof EVENT_COLUMNS;
             let query = supabase
               .from('events')
               .select(`${columns}, ${EMBEDDED}`)
@@ -368,7 +376,7 @@ export function useEvents({ from, to, id, organizationId, ids }: EventQuery = {}
             if (batch) query = query.in('id', batch);
             return query.range(first, last).abortSignal(signal);
           });
-        const events = only
+        let events = only
           ? await readInBatches<EventRow>(only, readRange).then((result) => ({
               error: result.error,
               data: (result.data ?? []).sort(
@@ -376,6 +384,13 @@ export function useEvents({ from, to, id, organizationId, ids }: EventQuery = {}
               ),
             }))
           : await readRange(null);
+        if (
+          id &&
+          events.error?.code === '42703' &&
+          events.error.message.includes('access_details')
+        ) {
+          events = await readRange(null, false);
+        }
         if (aborted()) return;
         if (events.error) {
           fail(describeError(events.error, 'Could not load events.'));
@@ -632,6 +647,7 @@ export interface EventDraftPayload {
   hostName: string;
   title: string;
   description: string;
+  accessDetails?: string;
   /** ISO, already converted from the Pacific wall-clock time typed. */
   startTime: string;
   endTime: string | null;
@@ -661,6 +677,7 @@ export async function saveEvent(
       host: draft.hostName,
       title: draft.title,
       description: draft.description,
+      ...(draft.accessDetails === undefined ? {} : { access_details: draft.accessDetails }),
       starts: draft.startTime,
       ends: draft.endTime,
       format: draft.format,
@@ -856,6 +873,7 @@ export async function saveEventSeries(
       host: draft.hostName,
       title: draft.title,
       description: draft.description,
+      ...(draft.accessDetails === undefined ? {} : { access_details: draft.accessDetails }),
       starts: draft.startTime,
       ends: draft.endTime,
       format: draft.format,
@@ -1071,6 +1089,7 @@ export async function adminChangeImportedEvent(
       host: draft.hostName,
       title: draft.title,
       description: draft.description,
+      ...(draft.accessDetails === undefined ? {} : { access_details: draft.accessDetails }),
       starts: draft.startTime,
       ends: draft.endTime,
       format: draft.format,

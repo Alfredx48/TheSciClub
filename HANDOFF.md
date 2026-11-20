@@ -269,6 +269,9 @@ citing a HANDOFF section mean), `932a809` (product decisions). Comments citing
   admin-only function. Earlier choices: administrators see who; questions
   and replies.
 
+- **Event accessibility**: organizers can add venue or online access notes
+  (20261120230000). The event's audience applies, including invite links.
+  Notes are read on the event page, and new repeating dates inherit them.
 - **Every event public by default** (the owner, 2026-10-22): `20261022200000`
   sets the default to `public` and makes the club's existing events public
   (all imported from public calendars), not live until the owner's push.
@@ -596,6 +599,9 @@ All live. Migration headers and the files named say how and why.
   appearance, higher contrast, text size, easier-to-read text, underline
   links, bigger tap targets, reduce motion; per device (`lib/accessibility.tsx`).
   Built in place of an overlay widget like accessiBe, on purpose.
+- **Drafts**: Home and room ask boxes, topic replies and chat messages
+  recover text from device storage per member. Signing out clears them.
+  Unsent photos remain in memory. Recovery makes no network requests.
 - **Privacy at the API**: events, series, tag links and RSVP counts are
   members-only; `chat_authors` keeps its security barrier; organizations stay
   readable for the closed door.
