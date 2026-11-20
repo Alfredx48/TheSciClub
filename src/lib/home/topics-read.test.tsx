@@ -1,6 +1,7 @@
 import { act, render, renderHook, waitFor } from '@testing-library/react';
 import { Activity } from 'react';
 import { beforeEach, expect, it, vi } from 'vitest';
+import { AccountContext } from '@/lib/account-context';
 import { useChatAuthors } from '@/lib/chat/authors';
 import { HOME_TOPIC_LIMIT, useHomeTopics } from '@/lib/home/topics';
 import { keptReadsStale } from '@/lib/kept-reads';
@@ -93,6 +94,34 @@ beforeEach(() => {
   db.calls = [];
   db.includeHidden = true;
   db.includeClosed = true;
+});
+
+it('reuses the pending cold Home feed across the development effect replay', async () => {
+  const feed = Promise.resolve([]);
+  const takeInitialHomeFeed = vi.fn<() => Promise<unknown[]> | undefined>();
+  takeInitialHomeFeed.mockReturnValueOnce(feed);
+  const { result } = renderHook(() => useHomeTopics(), {
+    reactStrictMode: true,
+    wrapper: ({ children }) => (
+      <AccountContext.Provider
+        value={{
+          status: 'member',
+          userId: 'a1',
+          isAdmin: false,
+          displayName: 'Ana',
+          takeInitialHomeFeed,
+        }}
+      >
+        {children}
+      </AccountContext.Provider>
+    ),
+  });
+  await waitFor(() => {
+    expect(result.current.loading).toBe(false);
+  });
+  expect(result.current.error).toBeNull();
+  expect(takeInitialHomeFeed).toHaveBeenCalledTimes(1);
+  expect(db.rpcs).toEqual([]);
 });
 
 it('requests only eligible rooms before limiting Home topics, including for an admin', async () => {

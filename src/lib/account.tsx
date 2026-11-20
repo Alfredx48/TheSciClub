@@ -4,7 +4,8 @@ import { forgetTrail } from '@/lib/back-trail';
 import { resetAttachmentUrls } from '@/lib/chat/attachments';
 import { forgetDrafts } from '@/lib/chat/drafts';
 import { describeError, describeThrown } from '@/lib/describe-error';
-import type { HomeStartup } from '@/lib/home/types';
+import { readHomeFeed } from '@/lib/home/feed-read';
+import { DEFAULT_HOME_VIEW } from '@/lib/home/types';
 import { ownRowChanged, readOwnRow } from '@/lib/own-row';
 import { forgetThisDevice } from '@/lib/push/notifications';
 import { forgetSharedReads } from '@/lib/shared-reads';
@@ -53,9 +54,9 @@ export interface Account {
   isAdmin: boolean;
   /** Who you are signed in as. Null until the member row is read. */
   displayName: string | null;
-  homeStartup?: HomeStartup;
   error?: string;
   retry?: () => void;
+  takeInitialHomeFeed?: () => Promise<unknown[] | null> | undefined;
 }
 
 /**
@@ -110,7 +111,7 @@ function same(a: Account, b: Account): boolean {
     a.isAdmin === b.isAdmin &&
     a.displayName === b.displayName &&
     a.error === b.error &&
-    a.homeStartup === b.homeStartup
+    a.takeInitialHomeFeed === b.takeInitialHomeFeed
   );
 }
 
@@ -171,6 +172,7 @@ export function useOwnAccount({
     // was a second read of the same row at every start).
     let answered = false;
     async function resolve(userId: string | null) {
+      if (aborted()) return;
       reading = userId;
       const request = ++revision;
       if (!userId) {
@@ -182,14 +184,13 @@ export function useOwnAccount({
       try {
         // The shared row (lib/own-row.ts), but only one read since this
         // screen opened: a pause still shows on the next screen.
-        const coldTestHome =
-          !known.current &&
-          opened.refresh === '/home' &&
-          window.location.hostname === 'tests.thesciclub.com';
-        const shared = await readOwnRow(GUARD_COLUMNS, {
-          since,
-          ...(coldTestHome ? { homeFor: userId } : {}),
-        });
+        const membership = readOwnRow(GUARD_COLUMNS, { since });
+        // First Home only. The feed obeys RLS and the shell still waits for membership.
+        let initialHomeFeed =
+          refresh === '/home' && !known.current
+            ? readHomeFeed(DEFAULT_HOME_VIEW, controller.signal)
+            : undefined;
+        const shared = await membership;
         if (aborted() || request !== revision) return;
         if (shared?.error) throw shared.error;
         // Another account's row, signed in meanwhile: read alone.
@@ -206,15 +207,22 @@ export function useOwnAccount({
           if (result.error) throw result.error;
           row = result.data as Record<string, unknown> | null;
         }
+        const status = statusFor(row);
         settle({
-          status: statusFor(row),
+          status,
+          ...(status === 'member' && initialHomeFeed
+            ? {
+                takeInitialHomeFeed: () => {
+                  const feed = initialHomeFeed;
+                  initialHomeFeed = undefined;
+                  return feed;
+                },
+              }
+            : {}),
           userId,
           isAdmin: Boolean(row?.is_admin),
           displayName:
             typeof row?.display_name === 'string' && row.display_name ? row.display_name : null,
-          ...(coldTestHome && shared?.row === row && shared.homeStartup
-            ? { homeStartup: shared.homeStartup }
-            : {}),
         });
       } catch (error) {
         if (aborted() || request !== revision) return;
@@ -264,7 +272,7 @@ export function useOwnAccount({
       controller.abort();
       sub.subscription.unsubscribe();
     };
-  }, [attempt, enabled, opened]);
+  }, [attempt, enabled, opened, refresh]);
 
   return useMemo(() => ({ ...account, retry }), [account, retry]);
 }

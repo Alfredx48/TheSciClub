@@ -1,9 +1,11 @@
-import { useEffect, useRef, useState } from 'react';
+import { useContext, useEffect, useRef, useState } from 'react';
+import { AccountContext } from '@/lib/account-context';
 import { AUTHOR_COLUMNS, type ChatAuthorRow, rememberChatAuthors } from '@/lib/chat/authors';
 import { type ChatRoomRow, toRoom } from '@/lib/chat/rooms';
 import { POST_COLUMNS, type PostRow, toPost } from '@/lib/chat/topics';
 import type { ChatPost, ChatRoom } from '@/lib/chat/types';
 import { describeError, describeThrown, type Failure } from '@/lib/describe-error';
+import { HOME_TOPIC_LIMIT, readHomeFeed } from '@/lib/home/feed-read';
 import {
   DEFAULT_HOME_VIEW,
   type HomeReply,
@@ -43,7 +45,7 @@ import { getSupabase } from '@/lib/supabase';
  * text waited for both). A database without that function is read as above, in two requests.
  */
 
-export const HOME_TOPIC_LIMIT = 40;
+export { HOME_TOPIC_LIMIT } from '@/lib/home/feed-read';
 
 const TOPIC_COLUMNS =
   'id, room_id, title, author_id, created_at, last_post_at, reply_count, is_question';
@@ -220,21 +222,6 @@ async function readRanked(signal: AbortSignal): Promise<RankedRow[] | null> {
 }
 
 /**
- * The whole of Home's posts in one request, or null to read as before: a database without
- * `home_feed`, or any failure, which the reads after it report if they fail too.
- */
-async function readFeed(view: HomeView, signal: AbortSignal): Promise<FeedRow[] | null> {
-  try {
-    const { data, error } = (await getSupabase()
-      .rpc('home_feed', { p_show: view.show, p_sort: view.sort, max_rows: HOME_TOPIC_LIMIT })
-      .abortSignal(signal)) as Result<FeedRow[]>;
-    return error || !Array.isArray(data) ? null : data;
-  } catch {
-    return null;
-  }
-}
-
-/**
  * Which posts, in order, for a Show or Sort other than the default, or null on any failure:
  * the read after it then says so.
  */
@@ -283,7 +270,8 @@ export function useHomeTopics(
     readAt: null,
   });
   const kept = useKeptRead();
-  const startup = useRef(initial);
+  const takeInitialHomeFeed = useContext(AccountContext)?.takeInitialHomeFeed;
+  const startingFeed = useRef<Promise<unknown[] | null> | undefined>(undefined);
   const { show, sort } = view;
   /** The choice the state now holds. */
   const held = useRef<string | null>(null);
@@ -338,10 +326,14 @@ export function useHomeTopics(
     async function load() {
       try {
         const supabase = getSupabase();
-        const initialFeed = startup.current as FeedRow[] | undefined;
-        startup.current = undefined;
-        const feed =
-          !chosen && initialFeed ? initialFeed : await readFeed({ show, sort }, controller.signal);
+        if (!chosen) startingFeed.current ??= takeInitialHomeFeed?.();
+        const initial = chosen ? undefined : startingFeed.current;
+        const prefetched = initial ? await initial : null;
+        if (aborted()) return;
+        if (initial) startingFeed.current = undefined;
+        const feed = (prefetched ?? (await readHomeFeed({ show, sort }, controller.signal))) as
+          | FeedRow[]
+          | null;
         if (aborted()) return;
         if (feed) {
           const byRoom = new Map<string, ChatRoom>();
@@ -425,7 +417,7 @@ export function useHomeTopics(
     return () => {
       controller.abort();
     };
-  }, [kept, show, sort]);
+  }, [kept, show, sort, takeInitialHomeFeed]);
 
   return state;
 }
