@@ -1,10 +1,12 @@
-import { ShieldCheck } from 'lucide-react';
+import { Mail, ShieldCheck } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useAccount } from '@/lib/account';
 import { chatDayHeading } from '@/lib/chat/time';
 import { describeError } from '@/lib/describe-error';
 import { getSupabase } from '@/lib/supabase';
 import { methodLabel } from '@/routes/admin/sign-in-methods';
+import { firstName, mentorAskMailto } from '@/routes/peers/mentor-ask-email';
 import { DetailRow, Section } from '@/routes/peers/profile-parts';
 
 /**
@@ -320,6 +322,7 @@ export function AdminMemberStory({ memberId, name }: { memberId: string; name: s
         <ShieldCheck aria-hidden="true" className="h-4 w-4 flex-none" />
         Only the club’s administrators see this, not {name} or other members.
       </p>
+      <MentorAskCard memberId={memberId} name={name} />
       {state.status === 'loading' ? (
         <p className="text-[0.8125rem] text-grey">Loading…</p>
       ) : state.status === 'error' ? (
@@ -410,5 +413,53 @@ function StoryCards({ story }: { story: MemberStory }) {
       <StoryCard story={story} />
       {story.did ? <DidCard did={story.did} /> : null}
     </>
+  );
+}
+
+/**
+ * Create email: the administrator's own mail app opens on an email to the
+ * member, written and addressed, asking them to complete their profile,
+ * install the app and post (the owner, 2026-11-20: "I want it to come from
+ * me. Maybe a mailto link. Something I can do on my phone"). The club sends
+ * nothing; they read it over and press Send. The address comes from
+ * admin_member_email (20261121010000), as Admin → Members shows it.
+ */
+function MentorAskCard({ memberId, name }: { memberId: string; name: string }) {
+  const account = useAccount();
+  const [to, setTo] = useState<string | null | undefined>(undefined);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    setTo(undefined);
+    void (async () => {
+      const { data, error } = (await getSupabase()
+        .rpc('admin_member_email', { p_member: memberId })
+        .abortSignal(controller.signal)) as { data: string | null; error: unknown };
+      if (controller.signal.aborted) return;
+      setTo(error ? null : (data ?? null));
+    })();
+    return () => {
+      controller.abort();
+    };
+  }, [memberId]);
+
+  // Not there yet, or no address to write to: nothing to offer.
+  if (!to) return null;
+  return (
+    <div className="mb-4 rounded-[17px] border border-line bg-paper p-3.5">
+      <p className="text-[0.85rem] leading-[1.42]">
+        Ask {firstName(name) || name} to complete their profile, install the app and post.
+      </p>
+      <a
+        href={mentorAskMailto({ to, member: name, admin: account.displayName })}
+        className="mt-3 flex min-h-[48px] items-center justify-center gap-2 rounded-xl bg-action px-5 font-bold font-head text-[0.9375rem] text-white"
+      >
+        <Mail aria-hidden="true" className="h-[18px] w-[18px]" />
+        Create email
+      </a>
+      <p className="mt-2 break-words text-[0.78125rem] text-grey leading-[1.45]">
+        Opens your mail app with it written, to {to}. You send it.
+      </p>
+    </div>
   );
 }

@@ -4,8 +4,11 @@
 -- Adm, an administrator, reads how Ivy came: invited by Men, a member, with
 -- a message, and seen on two days. Men, a mentor, and Ivy herself are
 -- refused: devices, sign-ins and days active are an administrator's alone.
+-- So is a member's address for an administrator's own email
+-- (admin_member_email, 20261121010000): Men is refused it, as is Ivy her own.
 -- Run against the test project on 2026-11-18:
---   "adm: member/Men/See you Saturday/2 days; men: refused; ivy: refused".
+--   "adm: member/Men/See you Saturday/2 days; men: refused; ivy: refused",
+--   and on 2026-11-20 "...; email adm: allowed, men: refused, ivy: refused".
 --
 --   node --env-file=.env.local <runner> supabase/tests/admin-member-story.sql
 --
@@ -22,6 +25,9 @@ declare
   read_adm text;
   read_men text := 'allowed';
   read_ivy text := 'allowed';
+  email_adm text := 'refused';
+  email_men text := 'allowed';
+  email_ivy text := 'allowed';
 begin
   insert into public.members (id, type, status, display_name, phone, birth_date, level_range, state, is_admin) values
     (adm, 'peer',   'active', 'Adm', '19991118111', '1980-01-01', 'T1–T6', 'CA', true),
@@ -39,6 +45,11 @@ begin
 
   perform set_config('request.jwt.claims', json_build_object('sub', adm, 'role', 'authenticated')::text, true);
   story := public.admin_member_story(ivy);
+  begin
+    perform public.admin_member_email(ivy);
+    email_adm := 'allowed';
+  exception when others then null;
+  end;
   read_adm := (story -> 'came' ->> 'way') || '/' || (story -> 'came' -> 'by' ->> 'name') || '/'
            || (story -> 'came' ->> 'message') || '/' || (story ->> 'activeDays') || ' days';
 
@@ -47,13 +58,22 @@ begin
     perform public.admin_member_story(ivy);
   exception when others then read_men := 'refused';
   end;
+  begin
+    perform public.admin_member_email(ivy);
+  exception when others then email_men := 'refused';
+  end;
 
   perform set_config('request.jwt.claims', json_build_object('sub', ivy, 'role', 'authenticated')::text, true);
   begin
     perform public.admin_member_story(ivy);
   exception when others then read_ivy := 'refused';
   end;
+  begin
+    perform public.admin_member_email(ivy);
+  exception when others then email_ivy := 'refused';
+  end;
 
-  raise exception 'RESULT adm: %; men: %; ivy: %', read_adm, read_men, read_ivy;
+  raise exception 'RESULT adm: %; men: %; ivy: %; email adm: %, men: %, ivy: %',
+    read_adm, read_men, read_ivy, email_adm, email_men, email_ivy;
 end;
 $$;
