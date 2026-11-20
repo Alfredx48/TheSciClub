@@ -1,7 +1,9 @@
 import { useId, useRef, useState } from 'react';
 import { SheetGrip } from '@/components/sheet-grip';
+import { StrikeRuleSelect } from '@/components/strike-rule-select';
 import { describeThrown } from '@/lib/describe-error';
 import { useDialogFocus } from '@/lib/dialog-focus';
+import type { StrikeRule } from '@/lib/strike-rules';
 
 /** As chat_flag_anonymous_post allows. */
 const REASON_MAX = 500;
@@ -19,25 +21,27 @@ export function FlagSheet({
 }: {
   onCancel: () => void;
   /** Resolves to null on success, or to a sentence to show. */
-  onSend: (reason: string) => Promise<string | null>;
+  onSend: (reason: string, rule: StrikeRule) => Promise<string | null>;
 }) {
   const [reason, setReason] = useState('');
+  const [rule, setRule] = useState<StrikeRule | ''>('');
   const [sending, setSending] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
 
   const titleId = useId();
   const reasonId = useId();
+  const ruleId = useId();
   const dialog = useRef<HTMLDivElement | null>(null);
   const heading = useRef<HTMLHeadingElement | null>(null);
   useDialogFocus(dialog, heading, onCancel);
 
-  const ready = reason.trim() !== '' && reason.trim().length <= REASON_MAX;
+  const ready = rule !== '' && reason.trim() !== '' && reason.trim().length <= REASON_MAX;
 
   function send() {
     if (sending || !ready) return;
     setSending(true);
     setFailure(null);
-    void onSend(reason.trim())
+    void onSend(reason.trim(), rule)
       .then((said) => {
         if (said) setFailure(said);
       })
@@ -87,13 +91,21 @@ export function FlagSheet({
           </p>
 
           <label
+            htmlFor={ruleId}
+            className="mt-4 block font-extrabold font-head text-[0.71875rem] text-grey uppercase tracking-[0.13em]"
+          >
+            Which rule it breaks
+          </label>
+          <StrikeRuleSelect id={ruleId} value={rule} onChange={setRule} className="mt-2" />
+
+          <label
             htmlFor={reasonId}
             className="mt-4 block font-extrabold font-head text-[0.71875rem] text-grey uppercase tracking-[0.13em]"
           >
             Why it is flagged
           </label>
           <p className="mt-1 text-[0.75rem] text-grey leading-[1.45]">
-            Required. The writer reads this, word for word.
+            Required. The writer reads this, word for word, and can respond to the administrators.
           </p>
           <textarea
             id={reasonId}

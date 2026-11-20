@@ -394,18 +394,28 @@ describe('the Terms of Service', () => {
     expect(document.body.textContent).not.toMatch(/Able Bodied|nonprofit/);
   });
 
-  it('lists the four things that end a membership', () => {
+  // The rulebook the owner approved (2026-11-20): what ends a membership at
+  // once, and the five strike rules by name.
+  it('lists what ends a membership at once, and what is a strike', () => {
     open('/terms');
     const section = screen.getByRole('heading', { name: 'Losing your membership' }).parentElement;
     if (!section) throw new Error('no section');
     for (const rule of [
-      'Selling to members.',
-      'Harassing anyone.',
-      'Giving medical advice as fact.',
-      'Repeating outside a room what was said in it.',
+      'Threatening anyone.',
+      'Scams, or asking members for money for yourself.',
     ]) {
       expect(within(section).getByText(rule)).toBeInTheDocument();
     }
+    for (const name of [
+      'Harassment.',
+      'Medical claims as fact.',
+      'Selling or advertising outside the Marketplace.',
+      'Spam.',
+      'Careless sharing.',
+    ]) {
+      expect(within(section).getByText(name)).toBeInTheDocument();
+    }
+    expect(section).not.toHaveTextContent(/Repeating outside a room/);
   });
 
   // Apple 1.2 and Google Play's UGC policy.

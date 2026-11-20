@@ -3,7 +3,10 @@ import { useEffect, useState } from 'react';
 import { signOut, useAccount } from '@/lib/account';
 import { pauseEnds } from '@/lib/chat/anonymous';
 import { useOwnMember } from '@/lib/members';
+import { ruleName } from '@/lib/strike-rules';
 import { getSupabase } from '@/lib/supabase';
+import { countingStrikes, loadMyStrikes, type MyStrike } from '@/routes/me/standing-api';
+import { StrikeConversation } from '@/routes/strikes/strike-conversation';
 
 /**
  * When a pause for strikes ends (member_strike_pauses, 20261120110000), or null for a pause an
@@ -33,6 +36,27 @@ function useStrikePauseEnd(memberId: string | null): string | null {
 }
 
 /**
+ * The strikes behind a pause, which a paused member can still respond to (the owner, 2026-11-20:
+ * "there should be an opportunity for them to respond"; 20261120120000).
+ */
+function useStrikesBehindPause(memberId: string | null, paused: boolean): MyStrike[] {
+  const [strikes, setStrikes] = useState<MyStrike[]>([]);
+  useEffect(() => {
+    if (!memberId || !paused) return;
+    const run = { live: true };
+    void loadMyStrikes(memberId, false)
+      .then((result) => {
+        if (run.live && result.ok) setStrikes(countingStrikes(result.strikes));
+      })
+      .catch(() => undefined);
+    return () => {
+      run.live = false;
+    };
+  }, [memberId, paused]);
+  return strikes;
+}
+
+/**
  * The membership is paused, and the person it belongs to is told so.
  *
  * Suspension existed in the database and in `/admin` from the beginning and
@@ -58,6 +82,8 @@ export function SuspendedScreen() {
   const { invitedBy } = useOwnMember(userId);
   const [busy, setBusy] = useState(false);
   const strikeEnds = useStrikePauseEnd(userId);
+  const strikes = useStrikesBehindPause(userId, strikeEnds !== null);
+  const [answering, setAnswering] = useState<MyStrike | null>(null);
 
   return (
     <div className="mx-auto flex h-dvh w-full max-w-[480px] flex-col bg-canvas">
@@ -96,6 +122,52 @@ export function SuspendedScreen() {
           </>
         )}
 
+        {strikes.length > 0 ? (
+          <section aria-label="Your strikes" className="mt-4">
+            <h2 className="font-extrabold font-head text-[0.71875rem] text-grey uppercase tracking-[0.13em]">
+              Your strikes
+            </h2>
+            <ul className="mt-2 flex flex-col gap-2">
+              {strikes.map((strike) => (
+                <li
+                  key={strike.id}
+                  className="rounded-[14px] border border-line bg-paper px-3.5 py-3"
+                >
+                  <p className="font-bold text-[0.8125rem] text-ink leading-[1.45]">
+                    {ruleName(strike.rule) ?? strike.reason}
+                  </p>
+                  {ruleName(strike.rule) ? (
+                    <p className="text-[0.8125rem] text-ink2 leading-[1.45]">{strike.reason}</p>
+                  ) : null}
+                  <p className="mt-0.5 text-[0.75rem] text-grey">
+                    {strike.anonymous ? 'Anonymous post flagged · ' : ''}
+                    {new Date(strike.issuedAt).toLocaleDateString(undefined, {
+                      day: 'numeric',
+                      month: 'long',
+                      year: 'numeric',
+                    })}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAnswering(answering?.id === strike.id ? null : strike);
+                    }}
+                    aria-expanded={answering?.id === strike.id}
+                    className="inline-flex min-h-[44px] items-center font-semibold text-[0.84375rem] text-emphasis underline"
+                  >
+                    {answering?.id === strike.id ? 'Close' : 'Respond'}
+                  </button>
+                  {answering?.id === strike.id ? (
+                    <div className="mt-2 border-line border-t pt-3">
+                      <StrikeConversation kind={strike.kind} id={strike.id} isAdmin={false} />
+                    </div>
+                  ) : null}
+                </li>
+              ))}
+            </ul>
+          </section>
+        ) : null}
+
         {invitedBy ? (
           <div className="mt-4 rounded-[17px] border border-line bg-paper px-3.5 py-3.5">
             <p className="text-[0.78125rem] text-grey leading-[1.5]">
@@ -109,8 +181,9 @@ export function SuspendedScreen() {
             visible in the product, and this is the screen where that matters
             most. */}
         <p className="mt-4 text-[0.78125rem] text-grey leading-[1.55]">
-          Membership can be paused or ended for selling to members, harassing anyone, giving medical
-          advice as fact, or repeating outside a room what was said in it.
+          Strikes are for harassment, medical claims as fact, selling or advertising outside the
+          Marketplace, spam and careless sharing. Threats, scams and exposing someone end a
+          membership at once.
         </p>
       </div>
 

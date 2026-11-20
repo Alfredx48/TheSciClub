@@ -26,8 +26,12 @@ import { getSupabase } from '@/lib/supabase';
  */
 export interface MyStrike {
   id: string;
+  /** A named strike, or a flag on an anonymous post: the way to its conversation (20261120120000). */
+  kind: 'strike' | 'flag';
   /** A flag on one of their anonymous posts (20261120110000): a strike like any other. */
   anonymous?: boolean;
+  /** Which rule (strike-rules.ts), or null for one from before rules. */
+  rule: string | null;
   reason: string;
   issuedAt: string;
   withdrawnAt: string | null;
@@ -36,8 +40,18 @@ export interface MyStrike {
 
 interface MyStrikeRow {
   id: string;
+  rule: string | null;
   reason: string;
   issued_at: string;
+  withdrawn_at: string | null;
+  withdrawn_reason: string | null;
+}
+
+interface FlagRow {
+  id: string;
+  rule: string | null;
+  reason: string;
+  flagged_at: string;
   withdrawn_at: string | null;
   withdrawn_reason: string | null;
 }
@@ -51,12 +65,14 @@ interface MyStrikeRow {
  */
 export async function loadMyStrikes(
   memberId: string,
+  /** False on the paused screen: the strikes that paused them are from before it. */
+  sinceLatestPause = true,
 ): Promise<{ ok: true; strikes: MyStrike[]; afterPause: boolean } | { ok: false; error: string }> {
   const supabase = getSupabase();
   const [named, flagged, paused] = await Promise.all([
     supabase
       .from('member_strikes')
-      .select('id, reason, issued_at, withdrawn_at, withdrawn_reason')
+      .select('id, rule, reason, issued_at, withdrawn_at, withdrawn_reason')
       .eq('member_id', memberId)
       .order('issued_at', { ascending: false }),
     supabase.rpc('my_anonymous_strikes'),
@@ -64,6 +80,8 @@ export async function loadMyStrikes(
       .from('member_strike_pauses')
       .select('paused_at')
       .eq('member_id', memberId)
+      // A pause undone by a withdrawal never happened (20261120120000).
+      .is('undone_at', null)
       .order('paused_at', { ascending: false })
       .limit(1),
   ]);
@@ -74,21 +92,25 @@ export async function loadMyStrikes(
   const strikes: MyStrike[] = [
     ...(named.data as MyStrikeRow[]).map((row) => ({
       id: row.id,
+      kind: 'strike' as const,
+      rule: row.rule,
       reason: row.reason,
       issuedAt: row.issued_at,
       withdrawnAt: row.withdrawn_at,
       withdrawnReason: row.withdrawn_reason,
     })),
-    ...((flagged.data as { reason: string; flagged_at: string }[] | null) ?? []).map((row) => ({
-      id: `flag:${row.flagged_at}`,
+    ...((flagged.data as FlagRow[] | null) ?? []).map((row) => ({
+      id: row.id,
+      kind: 'flag' as const,
       anonymous: true,
+      rule: row.rule,
       reason: row.reason,
       issuedAt: row.flagged_at,
-      withdrawnAt: null,
-      withdrawnReason: null,
+      withdrawnAt: row.withdrawn_at,
+      withdrawnReason: row.withdrawn_reason,
     })),
   ]
-    .filter((strike) => since === null || strike.issuedAt > since)
+    .filter((strike) => !sinceLatestPause || since === null || strike.issuedAt > since)
     .sort((a, b) => (a.issuedAt < b.issuedAt ? 1 : -1));
   return { ok: true, strikes, afterPause: since !== null };
 }

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { ChatPost } from '@/lib/chat/types';
 import { describeError, type Failure } from '@/lib/describe-error';
+import type { StrikeRule } from '@/lib/strike-rules';
 import { getSupabase } from '@/lib/supabase';
 
 /**
@@ -271,10 +272,12 @@ export function standingRefusal(known: AnonymousStanding | null): string | null 
 export async function flagAnonymousPost(
   postId: string,
   reason: string,
+  rule: StrikeRule,
 ): Promise<{ ok: true; value: string[] } | { ok: false; error: string }> {
   const { data, error } = (await getSupabase().rpc('chat_flag_anonymous_post', {
     post: postId,
     reason,
+    flag_rule: rule,
   })) as Result<string[]>;
   if (error) return { ok: false, error: describeError(error, 'The post was not flagged.') };
   return { ok: true, value: data ?? [] };

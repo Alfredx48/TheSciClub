@@ -1,10 +1,11 @@
 import { ChevronDown, Loader2 } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Navigate } from 'react-router-dom';
+import { Link, Navigate } from 'react-router-dom';
 import { BackLink } from '@/components/back-link';
 import { OrganizationPicker } from '@/components/organization-picker';
 import { PageTabs, TabPanel, useTabParam } from '@/components/page-tabs';
 import { SegmentPills } from '@/components/segment-pills';
+import { StrikeRuleSelect } from '@/components/strike-rule-select';
 import { motionReduced } from '@/lib/accessibility';
 import { useAccount } from '@/lib/account';
 import { looksLikeEmail } from '@/lib/auth-email';
@@ -21,6 +22,8 @@ import {
 import { describeThrown } from '@/lib/describe-error';
 import { useJoiningSetting } from '@/lib/joining';
 import { useOrganizations } from '@/lib/organizations';
+import { strikePath } from '@/lib/strike-conversations';
+import { ruleName, type StrikeRule } from '@/lib/strike-rules';
 import { cn } from '@/lib/utils';
 import { ReasonField, SmallButton } from '@/routes/admin/controls';
 import { EventContactsSection } from '@/routes/admin/event-contacts-section';
@@ -82,6 +85,7 @@ import { RoomsSection } from '@/routes/admin/rooms-section';
 import { todayIso, useAppleHealth } from '@/routes/admin/sign-in-health';
 import { SignInSection } from '@/routes/admin/sign-in-section';
 import { StatsSection } from '@/routes/admin/stats-section';
+import { StrikeThreadsSection } from '@/routes/admin/strike-threads-section';
 import { MENTOR_ALLOWANCE } from '@/routes/invites/mentor-invites';
 import { ReportedReviews } from '@/routes/reviews/reported-reviews';
 
@@ -681,6 +685,7 @@ export default function AdminPage() {
                   reload={reports.reload}
                   onGoToMember={goToMember}
                 />
+                <StrikeThreadsSection />
               </>
             ) : null}
 
@@ -892,11 +897,11 @@ export default function AdminPage() {
                     // removeAndBlock for why that order.
                     act(m.id, () => (block ? removeAndBlock(m, reason) : deleteMember(m.id)));
                   }}
-                  onStrike={(reason) => {
+                  onStrike={(reason, rule) => {
                     setNotice(null);
                     act(
                       m.id,
-                      () => addStrike(m.id, reason),
+                      () => addStrike(m.id, reason, rule),
                       (result) => {
                         setNotice(strikeNotice(m.displayName, result));
                       },
@@ -955,11 +960,11 @@ export default function AdminPage() {
                     // removeAndBlock for why that order.
                     act(m.id, () => (block ? removeAndBlock(m, reason) : deleteMember(m.id)));
                   }}
-                  onStrike={(reason) => {
+                  onStrike={(reason, rule) => {
                     setNotice(null);
                     act(
                       m.id,
-                      () => addStrike(m.id, reason),
+                      () => addStrike(m.id, reason, rule),
                       (result) => {
                         setNotice(strikeNotice(m.displayName, result));
                       },
@@ -1122,7 +1127,7 @@ function Row({
   /** Staff of the organization chosen, or a change of which. */
   onSetStaff?: (organizationId: string) => void;
   onRemovePartner?: () => void;
-  onStrike: (reason: string) => void;
+  onStrike: (reason: string, rule: StrikeRule) => void;
   /** This member's strikes that still count. Withdrawn and expired ones are not here. */
   strikes: Strike[];
   /** Notifications and the Home Screen app; absent when not known. */
@@ -1139,6 +1144,7 @@ function Row({
   const [reason, setReason] = useState('');
   const [striking, setStriking] = useState(false);
   const [strikeReason, setStrikeReason] = useState('');
+  const [strikeRule, setStrikeRule] = useState<StrikeRule | ''>('');
   // Which strike is being withdrawn, by id. A member can be on three, and an
   // administrator withdrawing one is almost always correcting a particular
   // mistake rather than clearing the slate — so they pick which.
@@ -1387,8 +1393,13 @@ function Row({
               <li key={strike.id} className="flex flex-wrap items-start gap-2">
                 <span className="min-w-0 flex-1 basis-[11rem]">
                   <span className="block font-bold text-[0.8125rem] text-ink leading-[1.45]">
-                    {strike.reason}
+                    {ruleName(strike.rule) ?? strike.reason}
                   </span>
+                  {ruleName(strike.rule) ? (
+                    <span className="block text-[0.8125rem] text-ink2 leading-[1.45]">
+                      {strike.reason}
+                    </span>
+                  ) : null}
                   <span className="mt-0.5 block text-[0.75rem] text-grey">
                     {new Date(strike.issuedAt).toLocaleDateString(undefined, {
                       day: 'numeric',
@@ -1396,6 +1407,13 @@ function Row({
                       year: 'numeric',
                     })}
                     {strike.issuedByName ? ` · ${strike.issuedByName}` : ''}
+                    {' · '}
+                    <Link
+                      to={strikePath('strike', strike.id)}
+                      className="font-semibold text-emphasis underline"
+                    >
+                      Conversation
+                    </Link>
                   </span>
                 </span>
                 <SmallButton
@@ -1561,21 +1579,33 @@ function Row({
         <ConfirmPanel
           title={`Give ${member.displayName} a strike?`}
           confirmLabel="Give the strike"
-          confirmDisabled={strikeReason.trim().length === 0}
+          confirmDisabled={strikeReason.trim().length === 0 || strikeRule === ''}
           onCancel={() => {
             setStriking(false);
             setStrikeReason('');
+            setStrikeRule('');
           }}
           onConfirm={() => {
+            if (strikeRule === '') return;
             setStriking(false);
-            onStrike(strikeReason.trim());
+            onStrike(strikeReason.trim(), strikeRule);
             setStrikeReason('');
+            setStrikeRule('');
           }}
         >
           <p>
-            They will see this on Me, with the date. It stops counting after a year, and it can be
-            withdrawn.
+            They are told, and see it on Me with the rule and the date, and can answer it. It stops
+            counting after a year, and it can be withdrawn.
           </p>
+          <label className="mt-2 block font-semibold text-[0.75rem] text-ink" htmlFor="strike-rule">
+            Which rule?
+          </label>
+          <StrikeRuleSelect
+            id="strike-rule"
+            value={strikeRule}
+            onChange={setStrikeRule}
+            className="mt-1 text-[0.8125rem]"
+          />
           <label className="mt-2 block font-semibold text-[0.75rem] text-ink" htmlFor="strike-why">
             What happened?
           </label>

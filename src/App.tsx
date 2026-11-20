@@ -73,6 +73,7 @@ const CheckInsPage = lazy(() => import('@/routes/events/check-ins-page'));
 const HeldInvitesPage = lazy(() => import('@/routes/events/held-invites'));
 const IntroductionPage = lazy(() => import('@/routes/introductions/page'));
 const AnonymousPage = lazy(() => import('@/routes/chat/anonymous-page'));
+const StrikePage = lazy(() => import('@/routes/strikes/strike-page'));
 const InvitesPage = lazy(() => import('@/routes/invites/page'));
 const QrCodePage = lazy(() => import('@/routes/me/qr-page'));
 const StatsPage = lazy(() => import('@/routes/stats/page'));
@@ -315,6 +316,8 @@ function ShellContent() {
             <Route path="/introductions/:id" element={<IntroductionPage />} />
             {/* What Anonymous is, from an anonymous name or face (20261120110000). */}
             <Route path="/anonymous" element={<AnonymousPage />} />
+            {/* A strike or flag, and the conversation about it (20261120120000). */}
+            <Route path="/strikes/:kind/:id" element={<StrikePage />} />
             <Route path="/chat" element={null} />
             {/* A room's slug is in the URL — /chat/rooms/bowel — which is why
             chat_rooms.id is a slug and not a uuid. /new sits above :roomId for

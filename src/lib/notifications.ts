@@ -4,6 +4,7 @@ import { describeError, describeThrown, type Failure } from '@/lib/describe-erro
 import { familyAs } from '@/lib/family';
 import { californiaToday, grantDay } from '@/lib/grants';
 import { tellOtherTabs } from '@/lib/read-elsewhere';
+import { ruleName } from '@/lib/strike-rules';
 import { getSupabase } from '@/lib/supabase';
 
 /**
@@ -62,7 +63,10 @@ export type NotificationKind =
   | 'family_link'
   | 'checked_in'
   | 'important'
-  | 'anonymous_flagged';
+  | 'anonymous_flagged'
+  | 'strike_given'
+  | 'strike_message'
+  | 'strike_withdrawn';
 
 interface Row {
   id: string;
@@ -403,8 +407,33 @@ export function notificationSentence(n: AppNotification): string {
     // detail is what it cost them and the reason.
     case 'anonymous_flagged': {
       const { cost, reason } = readFlag(n.detail);
-      return `An administrator flagged and hid your anonymous post in ${quoted(n.place)}: “${reason}”. ${flagConsequence(cost)}`;
+      return `An administrator flagged and hid your anonymous post in ${quoted(n.place)}: “${reason}”. ${flagConsequence(cost)} You can respond to it.`;
     }
+    // A strike and its conversation (20261120120000). detail is the kind, the
+    // id and the rule. To an administrator, place is who answered.
+    case 'strike_given': {
+      const rule = ruleName(n.detail?.split(':')[2]);
+      return rule
+        ? `An administrator gave you a strike for ${rule.toLowerCase()}. You can respond to it.`
+        : 'An administrator gave you a strike. You can respond to it.';
+    }
+    case 'strike_message': {
+      const flag = n.detail?.startsWith('flag:') ?? false;
+      if (n.place) {
+        const who = flag ? 'The writer of a flagged post' : n.place;
+        return n.count > 1
+          ? `${who} sent ${n.count} messages about ${flag ? 'the flag' : 'their strike'}`
+          : `${who} answered about ${flag ? 'the flag' : 'their strike'}`;
+      }
+      const about = flag ? 'the flag on your anonymous post' : 'your strike';
+      return n.count > 1
+        ? `${n.count} answers from the administrators about ${about}`
+        : `An administrator answered about ${about}`;
+    }
+    case 'strike_withdrawn':
+      return n.detail?.startsWith('flag:')
+        ? 'An administrator withdrew the flag on your anonymous post. Your post is back, and the flag no longer counts.'
+        : 'An administrator withdrew your strike. It no longer counts.';
     default:
       return 'Something new in the club';
   }

@@ -10,6 +10,8 @@ const render = (ui: React.ReactElement) => renderPlain(<MemoryRouter>{ui}</Memor
 function strike(o: Partial<MyStrike> = {}): MyStrike {
   return {
     id: 's1',
+    kind: 'strike',
+    rule: null,
     reason: 'Sold supplements in a room',
     issuedAt: new Date().toISOString(),
     withdrawnAt: null,

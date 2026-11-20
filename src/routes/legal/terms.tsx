@@ -1,12 +1,13 @@
 import { Link } from 'react-router-dom';
+import { STRIKE_RULES } from '@/lib/strike-rules';
 import { TERMS_UPDATED } from '@/lib/terms';
 import { ContactEmail, LegalPage, List, P, Section } from '@/routes/legal/legal-page';
 
 /**
  * The Terms of Service, at /terms.
  *
- * The four ways to lose a membership are CONTEXT.md's, word for word. What is
- * not allowed, the 24-hour promise and how to report and block are what
+ * What ends a membership at once, and the strike rules (strike-rules.ts), are
+ * the rulebook the owner approved on 2026-11-20. What is not allowed, the 24-hour promise and how to report and block are what
  * Apple (1.2) and Google Play (UGC) ask a club like this to say.
  */
 export default function TermsPage() {
@@ -102,30 +103,66 @@ export default function TermsPage() {
       </Section>
 
       <Section title="Losing your membership">
-        <P>Membership can be taken away. Any of these will end it:</P>
+        <P>Membership can be taken away. Some things end it at once:</P>
         <List>
-          <li>Selling to members.</li>
-          <li>Harassing anyone.</li>
-          <li>Giving medical advice as fact.</li>
-          <li>Repeating outside a room what was said in it.</li>
+          <li>Threatening anyone.</li>
+          <li>Encouraging someone to harm themselves.</li>
+          <li>
+            Attacking people for their race, ethnicity, religion, disability, sex, sexual
+            orientation, gender identity, age or where they come from.
+          </li>
+          <li>Sending sexual content to someone who did not ask for it.</li>
+          <li>
+            Deliberately exposing someone: sharing their private details, unmasking an anonymous
+            writer or guessing aloud who it is, or telling people outside the club that someone is a
+            member.
+          </li>
+          <li>Pretending to be somebody else.</li>
+          <li>Scams, or asking members for money for yourself.</li>
+          <li>Getting around a block, a pause or a removal.</li>
+        </List>
+        <P>Others are strikes:</P>
+        <List>
+          {STRIKE_RULES.filter((rule) => rule.id !== 'other').map((rule) => (
+            <li key={rule.id}>
+              <b>{rule.name}.</b> {rule.counts}
+              {rule.fine ? ` ${rule.fine}` : ''}
+            </li>
+          ))}
+          <li>
+            Anything else these terms do not allow, when it does not end a membership at once.
+          </li>
         </List>
         <P>
-          Posting objectionable content can end it too. We may remove anything that breaks these
-          terms, give a strike (it shows on your Standing card, on Me), pause a membership, or end
-          it.
+          <b>Private details</b> are what a member has not shared in the club themselves: their
+          address, phone number, email address, workplace, full legal name, social media accounts or
+          license plate, and health details beyond what they posted. Quoting what someone said in a
+          room you are both in does not expose them, and neither does telling the administrators in
+          a report.
         </P>
         <P>
-          <b>Strikes.</b> A strike counts for 12 months, unless it is withdrawn. Three strikes
-          within 12 months pause your membership for 30 days. It comes back on its own, and the
-          strikes from before the pause stop counting. Three more strikes after a pause close your
-          account for good, and the email address and phone number it used are blocked from joining
-          again.
+          <b>Screenshots.</b> You may share a room post outside the club to get it answered, with
+          the name and photo of whoever wrote it hidden; an anonymous post can be shared as it is.
+          Do not share direct messages or group conversations.
+        </P>
+        <P>
+          Posting objectionable content can end a membership too. We may remove anything that breaks
+          these terms, give a strike (it shows on your Standing card, on Me, with the rule it was
+          given under), pause a membership, or end it.
+        </P>
+        <P>
+          <b>Strikes.</b> A strike counts for 12 months, unless it is withdrawn. You can respond to
+          every strike, and an administrator answers. Three strikes within 12 months pause your
+          membership for 30 days. It comes back on its own, and the strikes from before the pause
+          stop counting. Three more strikes after a pause close your account for good, and the email
+          address and phone number it used are blocked from joining again.
         </P>
         <P>
           <b>Anonymous posts.</b> An administrator can flag an anonymous post that breaks these
-          terms. It is hidden, you are told why, and it counts as a strike. It also stops you
-          posting anonymously: for a month after one flag, and for three months after a second
-          within 12 months. Once your membership has been paused for strikes, you can no longer post
+          terms. It is hidden, you are told why, you can respond, and it counts as a strike. It also
+          stops you posting anonymously: for a month after one flag, and for three months after a
+          second within 12 months. If the flag is withdrawn, your post comes back and none of this
+          counts. Once your membership has been paused for strikes, you can no longer post
           anonymously. Nobody in the app, administrators included, can see who wrote an anonymous
           post, but the club’s database records it, so that replies and flags reach you.
         </P>

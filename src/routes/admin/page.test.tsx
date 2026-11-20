@@ -26,7 +26,7 @@ const api = vi.hoisted(() => ({
   deleted: [] as string[],
   revoked: [] as string[],
   statusCalls: [] as [string, string][],
-  strikes: [] as [string, string][],
+  strikes: [] as [string, string, string][],
   withdrawn: [] as [string, string][],
   strikeRows: [] as Strike[],
   typeCalls: [] as [string, string][],
@@ -274,9 +274,9 @@ vi.mock('@/routes/admin/members-admin', async (importOriginal) => ({
     api.statusCalls.push([id, status]);
     return Promise.resolve({ ok: true });
   },
-  addStrike: (id: string, reason: string) => {
+  addStrike: (id: string, reason: string, rule: string) => {
     if (api.failWith) return Promise.resolve({ ok: false, error: api.failWith });
-    api.strikes.push([id, reason]);
+    api.strikes.push([id, reason, rule]);
     // The roster moves too, the way it does when load() re-reads
     // admin_members — otherwise a test could strike somebody onto three and
     // find the row still offering a fourth.
@@ -1403,14 +1403,17 @@ describe('giving somebody a strike', () => {
     expect(api.strikes).toEqual([]);
   });
 
-  it('sends the reason the administrator typed', async () => {
+  it('sends the rule and the reason the administrator chose', async () => {
     api.members = [member({ id: 'm1', displayName: 'Ordinary' })];
     renderAdmin();
     await manage();
     await userEvent.click(await screen.findByRole('button', { name: 'Strike' }));
     await userEvent.type(screen.getByLabelText('What happened?'), '  Sold supplements  ');
+    // A rule is required too (20261120120000).
+    expect(screen.getByRole('button', { name: 'Give the strike' })).toBeDisabled();
+    await userEvent.selectOptions(screen.getByLabelText('Which rule?'), 'selling');
     await userEvent.click(screen.getByRole('button', { name: 'Give the strike' }));
-    expect(api.strikes).toEqual([['m1', 'Sold supplements']]);
+    expect(api.strikes).toEqual([['m1', 'Sold supplements', 'selling']]);
   });
 
   it('shows the count on the row, so the roster says where somebody stands', async () => {
@@ -1445,6 +1448,7 @@ describe('three strikes pause, and three more close', () => {
   async function strikeOnce(why: string) {
     await manage();
     await userEvent.click(await screen.findByRole('button', { name: 'Strike' }));
+    await userEvent.selectOptions(screen.getByLabelText('Which rule?'), 'harassment');
     await userEvent.type(screen.getByLabelText('What happened?'), why);
     await userEvent.click(screen.getByRole('button', { name: 'Give the strike' }));
   }
@@ -1507,6 +1511,7 @@ describe('withdrawing a strike', () => {
       {
         id: 's1',
         memberId: 'm1',
+        rule: null,
         reason: 'Sold supplements',
         issuedAt: '2026-09-01T10:00:00Z',
         issuedByName: 'Admin',
@@ -1517,6 +1522,7 @@ describe('withdrawing a strike', () => {
       {
         id: 's2',
         memberId: 'm1',
+        rule: null,
         reason: 'Repeated a room',
         issuedAt: '2026-09-10T10:00:00Z',
         issuedByName: 'Admin',

@@ -1,6 +1,8 @@
 import { ShieldAlert, ShieldCheck, ShieldX } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { standingRefusal, useAnonymousStanding } from '@/lib/chat/anonymous';
+import { strikePath } from '@/lib/strike-conversations';
+import { ruleName } from '@/lib/strike-rules';
 import { cn } from '@/lib/utils';
 import { LOSING_MEMBERSHIP_ID } from '@/routes/legal/legal-page';
 import { countingStrikes, type MyStrike, STRIKE_MONTHS } from '@/routes/me/standing-api';
@@ -124,12 +126,24 @@ export function StandingCard({
             {counting.map((strike) => (
               <li key={strike.id}>
                 <p className="font-bold text-[0.8125rem] text-ink leading-[1.45]">
-                  {strike.reason}
+                  {ruleName(strike.rule) ?? strike.reason}
                 </p>
+                {ruleName(strike.rule) ? (
+                  <p className="text-[0.8125rem] text-ink2 leading-[1.45]">{strike.reason}</p>
+                ) : null}
                 <p className="mt-0.5 text-[0.75rem] text-grey">
                   {strike.anonymous
                     ? `Anonymous post flagged · ${whenIssued(strike.issuedAt)}`
                     : whenIssued(strike.issuedAt)}
+                  {' · '}
+                  {/* Every strike can be answered (the owner, 2026-11-20; 20261120120000). */}
+                  <Link
+                    to={strikePath(strike.kind, strike.id)}
+                    data-target="small"
+                    className="font-semibold text-emphasis underline"
+                  >
+                    Respond
+                  </Link>
                 </p>
               </li>
             ))}

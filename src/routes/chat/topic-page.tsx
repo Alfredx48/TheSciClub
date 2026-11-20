@@ -954,8 +954,8 @@ export default function TopicPage() {
           onCancel={() => {
             setFlaggingId(null);
           }}
-          onSend={async (reason) => {
-            const result = await flagAnonymousPost(flaggingId, reason);
+          onSend={async (reason, rule) => {
+            const result = await flagAnonymousPost(flaggingId, reason, rule);
             if (!result.ok) return result.error;
             if (result.value.length > 0) void deleteAttachments(result.value);
             setFlaggingId(null);

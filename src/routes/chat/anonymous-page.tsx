@@ -67,10 +67,10 @@ export default function AnonymousPage() {
 
         <Section title="The club’s rules still apply">
           An administrator can flag an anonymous post that breaks them. It is hidden, the writer is
-          told why, and it counts as a strike. After one flag the writer can’t post anonymously for
-          a month, and after two within 12 months, for three months. Three strikes of any kind
-          within 12 months pause a membership for 30 days, and after that the member can never post
-          anonymously again.
+          told why and can respond, and it counts as a strike. After one flag the writer can’t post
+          anonymously for a month, and after two within 12 months, for three months. Three strikes
+          of any kind within 12 months pause a membership for 30 days, and after that the member can
+          never post anonymously again.
         </Section>
 
         <p className="mt-6 text-[0.875rem] text-ink2 leading-[1.5]">

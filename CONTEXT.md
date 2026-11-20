@@ -40,20 +40,23 @@ So membership is granted by a person, not claimed by a form:
 - A **member organization** (NorCal SCI, SCVMC SCI Peer Support) adds numbers.
 - A **peer mentor** can add ten. Administrators, organization accounts, and members linked to speak for an organization can invite without a limit (2026-10-09).
 - The QR code gets somebody the app. It does not get them in. Somebody still has to add the number, unless an administrator has opened joining. An administrator's own QR code (Me → Your QR code, 2026-10-14) gives them the credit for whoever joins from it while joining is open, and lets nobody in while it is closed: it says who to ask instead.
-- Membership can be taken away. Selling to members, harassing anyone, giving medical advice as
-  fact, or repeating outside a room what was said in it — any of those end it.
+- Membership can be taken away. Threats, exposing someone, scams and the like end it at once;
+  harassment, medical claims as fact, selling outside the Marketplace, spam and careless sharing
+  are strikes, and three in a year pause it for 30 days. The Terms list both (the owner,
+  2026-11-20). Sharing a room post outside the club to get it answered is fine, with the name and
+  photo hidden.
 
 That last point is load-bearing and must stay reachable in the product. A club where membership
 cannot be lost is not a club.
 
 It no longer has to be *printed* on the Standing card, which is what this said until 2026-09-18.
-The owner's call: the card says where a member stands, and the four things above go in the terms
+The owner's call: the card says where a member stands, and the rules above go in the terms
 of service when there is one to link to. Until then they are one control away, on the card, opening
 on hover, on focus and on tap — reachable is the requirement, not permanently on screen.
 
 Losing a membership has to be actionable too, and from 2026-09-20 it is. Direct and group conversations are
 private even from administrators: nobody can read a thread they are not in, by design. That left
-harassment in a direct message — one of the four things above — witnessed only by the person it
+harassment in a direct message — a strike under the rules above — witnessed only by the person it
 happened to. So a member can **report a single message, or a single post**, and that one message
 alone is disclosed: its words, who wrote it, when, and where in words ("a direct conversation").
 Not the thread, not what was said before or after it, and no way back into the conversation from
