@@ -84,6 +84,11 @@ function useTabSpinner(location: Location): {
     let seen = false;
     let done = false;
     const timers: ReturnType<typeof setTimeout>[] = [];
+    const stopSpinning = () => {
+      if (pending.current !== tap) return;
+      pending.current = null;
+      setSpinning(null);
+    };
     const finish = () => {
       if (done) return;
       done = true;
@@ -91,8 +96,13 @@ function useTabSpinner(location: Location): {
       timers.push(
         setTimeout(() => {
           if (pending.current !== tap) return;
-          pending.current = null;
-          setSpinning(null);
+          // The selected tab can start its read while this timer is pending.
+          if (readsInFlight() > 0) {
+            seen = true;
+            done = false;
+            return;
+          }
+          stopSpinning();
         }, left),
       );
     };
@@ -106,7 +116,7 @@ function useTabSpinner(location: Location): {
       setTimeout(() => {
         if (!seen) finish();
       }, TAB_SPIN_WAIT_MS),
-      setTimeout(finish, TAB_SPIN_MAX_MS),
+      setTimeout(stopSpinning, TAB_SPIN_MAX_MS),
     );
     return () => {
       stop();
