@@ -40,6 +40,7 @@ export { childrenLabel };
 import { NameAndWheel } from '@/components/wheel-badge';
 import { type Role, RoleOrganizations } from '@/routes/peers/representation-tags';
 import { isAdminOfAny, isMentor, RolePill } from '@/routes/peers/role-pill';
+import { WheelieSection } from '@/routes/peers/wheelie-section';
 import { type BrowseMember, cityAndState, type RepresentedOrganization } from '@/types/domain';
 
 /**
@@ -982,6 +983,8 @@ function MemberProfile({ onBlocked }: { onBlocked: () => void }) {
                 <DetailRow label="Where" value={cityAndState(member)} />
               </div>
             </Section>
+
+            <WheelieSection memberId={member.id} name={member.displayName} />
 
             {/* The rooms this member's topics reach, after everything about
                 the member: the page is for reading the person, and these were

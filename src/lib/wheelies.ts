@@ -129,3 +129,131 @@ export function useWheeliePoints(memberId: string | null | undefined): number | 
   if (!memberId || !points) return null;
   return points.get(memberId) ?? null;
 }
+
+// ------------------------------------------------- one member's, taken apart --
+
+/** What one post of theirs earned (public.member_wheelie_points). */
+export interface WheeliePost {
+  postId: string;
+  topicId: string;
+  roomId: string;
+  title: string;
+  isQuestion: boolean;
+  /** The post that started the topic, rather than a reply in it. */
+  opening: boolean;
+  /** Their first question, which earned 50 more. */
+  first: boolean;
+  at: string;
+  /** For writing it: 10 for asking or posting (and the 50), 5 for a reply. */
+  own: number;
+  upvotes: number;
+  responses: number;
+  points: number;
+}
+
+export interface WheelieBreakdown {
+  total: number;
+  /** Points and how many times, by kind: 'rsvp', 'check_in', 'review', 'question', 'post',
+   * 'first_question', 'reply', 'upvote', 'response', 'profile', 'streak'. */
+  kinds: Partial<Record<string, { count: number; points: number }>>;
+  /** Days in a row up to today or yesterday. */
+  streak: number;
+  posts: WheeliePost[];
+}
+
+interface PostRow {
+  post_id: string;
+  topic_id: string;
+  room_id: string;
+  title: string;
+  is_question: boolean;
+  opening: boolean | null;
+  first: boolean | null;
+  at: string;
+  own: number;
+  upvotes: number;
+  responses: number;
+  points: number;
+}
+
+/** Null when there is nothing to show: blocked either way, not a member who earns, or a
+ * database from before 20261121050000. */
+export async function loadWheelieBreakdown(memberId: string): Promise<WheelieBreakdown | null> {
+  const { data, error } = (await getSupabase().rpc('member_wheelie_points', {
+    p_member: memberId,
+  })) as {
+    data: {
+      total: number;
+      kinds: WheelieBreakdown['kinds'];
+      streak: number;
+      posts: PostRow[];
+    } | null;
+    error: unknown;
+  };
+  if (error || !data) return null;
+  return {
+    total: data.total,
+    kinds: data.kinds,
+    streak: data.streak,
+    posts: data.posts.map((p) => ({
+      postId: p.post_id,
+      topicId: p.topic_id,
+      roomId: p.room_id,
+      title: p.title,
+      isQuestion: p.is_question,
+      opening: p.opening === true,
+      first: p.first === true,
+      at: p.at,
+      own: p.own,
+      upvotes: p.upvotes,
+      responses: p.responses,
+      points: p.points,
+    })),
+  };
+}
+
+export function useWheelieBreakdown(memberId: string | null | undefined): WheelieBreakdown | null {
+  const [found, setFound] = useState<{ id: string; breakdown: WheelieBreakdown | null } | null>(
+    null,
+  );
+  useEffect(() => {
+    if (!memberId) return;
+    let live = true;
+    void loadWheelieBreakdown(memberId)
+      .catch(() => null)
+      .then((breakdown) => {
+        if (live) setFound({ id: memberId, breakdown });
+      });
+    return () => {
+      live = false;
+    };
+  }, [memberId]);
+  return found && found.id === memberId ? found.breakdown : null;
+}
+
+/** "one upvote", "3 upvotes". */
+function counted(n: number, one: string, many: string): string {
+  return n === 1 ? `one ${one}` : `${n} ${many}`;
+}
+
+/**
+ * What a post earned, in words, as the 2-pager has it: "10 for asking, 30 for
+ * three upvotes and 12 for four replies".
+ */
+export function postPointsInWords(post: WheeliePost): string {
+  const parts: string[] = [];
+  if (post.opening) {
+    parts.push(`10 for ${post.isQuestion ? 'asking' : 'posting'}`);
+    if (post.first) parts.push('50 for a first question');
+  } else {
+    parts.push(`5 for ${post.isQuestion ? 'answering' : 'commenting'}`);
+  }
+  if (post.upvotes)
+    parts.push(`${post.upvotes * 10} for ${counted(post.upvotes, 'upvote', 'upvotes')}`);
+  if (post.responses)
+    parts.push(
+      `${post.responses * 3} for ${counted(post.responses, 'reply or reaction', 'replies and reactions')}`,
+    );
+  const last = parts.pop() ?? '';
+  return parts.length ? `${parts.join(', ')} and ${last}` : last;
+}

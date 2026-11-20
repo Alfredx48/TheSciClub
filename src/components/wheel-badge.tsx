@@ -1,5 +1,6 @@
 import { useId, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { Link } from 'react-router-dom';
 import { useDialogFocus } from '@/lib/dialog-focus';
 import { cn } from '@/lib/utils';
 import {
@@ -141,6 +142,12 @@ function WheelSheet({
   const dialog = useRef<HTMLDivElement | null>(null);
   const heading = useRef<HTMLHeadingElement | null>(null);
   useDialogFocus(dialog, heading, onClose);
+  // The sheet is a portal, and React passes its clicks up to whatever the wheel
+  // sits in: a card or a byline link would open too.
+  const close = (event: React.MouseEvent) => {
+    event.stopPropagation();
+    onClose();
+  };
   const first = name?.trim().split(/\s+/)[0];
 
   return createPortal(
@@ -149,7 +156,7 @@ function WheelSheet({
         type="button"
         aria-label="Close"
         tabIndex={-1}
-        onClick={onClose}
+        onClick={close}
         className="fixed inset-0 z-[80] bg-[rgba(10,20,35,.5)]"
       />
       <div
@@ -188,9 +195,16 @@ function WheelSheet({
           Members earn Wheelie points for taking part: asking and answering questions, coming to
           events, writing reviews and completing their profile.
         </p>
+        <Link
+          to="/wheelie-points"
+          onClick={close}
+          className="mt-1 inline-flex min-h-[44px] items-center font-semibold text-[0.8125rem] text-emphasis underline underline-offset-2"
+        >
+          How Wheelie points work
+        </Link>
         <button
           type="button"
-          onClick={onClose}
+          onClick={close}
           className="mt-4 min-h-12 w-full rounded-xl border border-line font-semibold"
         >
           Done
