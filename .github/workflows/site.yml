@@ -1,0 +1,92 @@
+# Site: builds the app and deploys it to Cloudflare on every push to main
+# (thesciclub.com) and tests (tests.thesciclub.com). Netlify did this until
+# 2026-11-20; its credits ran out on deploys (the owner).
+#
+# Each site's build settings are variables of a GitHub environment, site-live
+# or site-tests: VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY,
+# VITE_VAPID_PUBLIC_KEY, VITE_PASSKEYS, VITE_APPLE_SIGN_IN, and on site-tests
+# TEST_SUPABASE_REF. All are public (they end up in the browser bundle).
+# CLOUDFLARE_API_TOKEN (Workers Scripts: Edit) and CLOUDFLARE_ACCOUNT_ID are
+# repository secrets. cloudflare/wrangler.toml has the rest.
+#
+# Only in the owner's repository: pushes reach Able-Bodied/thesciclub too,
+# which has no Cloudflare token.
+
+name: Site
+
+on:
+  push:
+    branches: [main, tests]
+  workflow_dispatch:
+
+# A newer push to the same branch replaces an older one's deploy.
+concurrency:
+  group: site-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    if: >-
+      github.repository == 'Alfredx48/TheSciClub' &&
+      (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/tests')
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: ${{ github.ref == 'refs/heads/main' && 'site-live' || 'site-tests' }}
+
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          # The runner's cached 24.x lags security releases.
+          check-latest: true
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        env:
+          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY }}
+          VITE_VAPID_PUBLIC_KEY: ${{ vars.VITE_VAPID_PUBLIC_KEY }}
+          VITE_PASSKEYS: ${{ vars.VITE_PASSKEYS }}
+          VITE_APPLE_SIGN_IN: ${{ vars.VITE_APPLE_SIGN_IN }}
+          TEST_SUPABASE_REF: ${{ vars.TEST_SUPABASE_REF }}
+        run: |
+          set -euo pipefail
+          for name in VITE_SUPABASE_URL VITE_SUPABASE_ANON_KEY; do
+            [ -n "${!name}" ] || { echo "::error::Set the $name variable of this environment"; exit 1; }
+          done
+          # The test site must not be built against the live project, nor the reverse.
+          if [ "$GITHUB_REF" = refs/heads/main ]; then
+            [ -z "$TEST_SUPABASE_REF" ] || { echo "::error::site-live has TEST_SUPABASE_REF"; exit 1; }
+          else
+            [[ "$VITE_SUPABASE_URL" == "https://$TEST_SUPABASE_REF.supabase.co" ]] \
+              || { echo "::error::site-tests must name its test project in both variables"; exit 1; }
+          fi
+          pnpm build
+          node scripts/cloudflare-site.mjs
+
+      - name: Deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY }}
+        run: |
+          set -euo pipefail
+          site=()
+          [ "$GITHUB_REF" = refs/heads/main ] || site=(--env tests)
+          pnpm dlx --allow-build=esbuild --allow-build=workerd wrangler@4.149.0 deploy \
+            --config cloudflare/wrangler.toml "${site[@]}" \
+            --var "VITE_SUPABASE_URL:$VITE_SUPABASE_URL" \
+            --var "VITE_SUPABASE_ANON_KEY:$VITE_SUPABASE_ANON_KEY"

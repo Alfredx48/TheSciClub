@@ -1,0 +1,31 @@
+# The site on Cloudflare: thesciclub.com from main, tests.thesciclub.com from
+# tests (`--env tests`). .github/workflows/site.yml builds and deploys on every
+# push; the Supabase URL and anon key come from there as --var, per site.
+#
+# The built app is served as static assets. The Worker (worker.ts) runs only
+# for run_worker_first: the link previews and the YouTube page, which were
+# Netlify edge functions. dist/_headers and dist/_redirects are written from
+# netlify.toml by scripts/cloudflare-site.mjs.
+
+name = "thesciclub"
+main = "worker.ts"
+compatibility_date = "2026-10-01"
+workers_dev = true
+preview_urls = false
+
+[assets]
+directory = "../dist"
+binding = "ASSETS"
+# Any path with no file is the app's index.html, routed in the browser.
+not_found_handling = "single-page-application"
+run_worker_first = [
+  "/e/*",
+  "/events",
+  "/events/*",
+  "/chat/rooms/*",
+  "/embed/youtube.html",
+  "/embed/youtube",
+]
+
+[env.tests]
+name = "thesciclub-tests"

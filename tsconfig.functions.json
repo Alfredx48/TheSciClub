@@ -31,5 +31,5 @@
   // Supabase and Netlify Edge Functions: Deno at runtime, checked here by the
   // same tsc as everything else so a type error cannot wait until deploy.
   // netlify/plugins: the types of the test site's build step.
-  "include": ["supabase/functions", "netlify/edge-functions", "netlify/plugins"]
+  "include": ["supabase/functions", "netlify/edge-functions", "netlify/plugins", "cloudflare"]
 }
