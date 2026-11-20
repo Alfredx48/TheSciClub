@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { BackLink } from '@/components/back-link';
 import { WheelIcon } from '@/components/wheel-badge';
 import { pointsInWords, SPOKES, WHEEL_LEVELS, wheelOf } from '@/lib/wheelies';
@@ -127,6 +128,20 @@ export default function WheeliePointsPage() {
         <p className="mt-2 text-[0.75rem] text-grey leading-[1.45]">
           The Wheelie points a level starts at. Every member starts with a green wheel.
         </p>
+
+        <Heading>Monthly leaderboard</Heading>
+        <p className="text-[0.8125rem] text-ink2 leading-[1.5]">
+          A leaderboard ranks members by the Wheelie points they earned that month. It starts over
+          every month, so everybody starts the new month level; the wheel’s level keeps counting.
+          The top ten each month might win a prize, such as swag or a gift card, and are enshrined
+          in the Hall of Top Wheelies.
+        </p>
+        <Link
+          to="/wheelie-points/leaderboard"
+          className="mt-1 inline-flex min-h-[44px] items-center font-semibold text-[0.8125rem] text-emphasis underline underline-offset-2"
+        >
+          See this month’s leaderboard
+        </Link>
 
         <Heading>Rules</Heading>
         <ul className="list-disc space-y-1.5 pl-5 text-[0.8125rem] text-ink2 leading-[1.5]">

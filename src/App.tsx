@@ -79,6 +79,7 @@ const QrCodePage = lazy(() => import('@/routes/me/qr-page'));
 const StatsPage = lazy(() => import('@/routes/stats/page'));
 const SavedPage = lazy(() => import('@/routes/me/saved-page'));
 const WheeliePointsPage = lazy(() => import('@/routes/wheelies/page'));
+const LeaderboardPage = lazy(() => import('@/routes/wheelies/leaderboard-page'));
 const MyPostsPage = lazy(() => import('@/routes/me/my-posts-page'));
 const NotificationsPage = lazy(() => import('@/routes/notifications/page'));
 const MemberDetailPage = lazy(() => import('@/routes/peers/member-detail'));
@@ -378,6 +379,7 @@ function ShellContent() {
             {/* Org admins and professionals (20261031110000); reached from Me. */}
             <Route path="/stats" element={<StatsPage />} />
             <Route path="/wheelie-points" element={<WheeliePointsPage />} />
+            <Route path="/wheelie-points/leaderboard" element={<LeaderboardPage />} />
             {/* The page's old address, in notifications already sent. */}
             <Route path="/partner" element={<Navigate to="/stats" replace />} />
             {/* Unlisted in the tab bar; the page redirects a non-admin away. */}

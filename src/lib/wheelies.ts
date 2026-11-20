@@ -257,3 +257,84 @@ export function postPointsInWords(post: WheeliePost): string {
   const last = parts.pop() ?? '';
   return parts.length ? `${parts.join(', ')} and ${last}` : last;
 }
+
+// ------------------------------------------------------- the leaderboard --
+
+export interface Placing {
+  memberId: string;
+  rank: number;
+  points: number;
+}
+
+export interface Leaderboard {
+  /** The Pacific month, "2026-11-01". */
+  month: string;
+  top: Placing[];
+  /** The reader's own place, or null before they have earned any this month. */
+  me: { rank: number; points: number } | null;
+}
+
+export interface HallMonth {
+  month: string;
+  winners: Placing[];
+}
+
+/** This month's leaderboard and the Hall of Top Wheelies (20261121060000). */
+export async function loadLeaderboard(): Promise<{ board: Leaderboard; hall: HallMonth[] }> {
+  const supabase = getSupabase();
+  const [board, hall] = (await Promise.all([
+    supabase.rpc('wheelie_leaderboard'),
+    supabase.rpc('wheelie_hall'),
+  ])) as [
+    {
+      data: {
+        month: string;
+        top: { member_id: string; rank: number; points: number }[];
+        me: { rank: number; points: number } | null;
+      } | null;
+      error: { message: string } | null;
+    },
+    {
+      data: { month: string; member_id: string; rank: number; points: number }[] | null;
+      error: { message: string } | null;
+    },
+  ];
+  if (board.error || !board.data) throw new Error(board.error?.message ?? 'No leaderboard.');
+  if (hall.error) throw new Error(hall.error.message);
+  const months = new Map<string, Placing[]>();
+  for (const row of hall.data ?? []) {
+    const list = months.get(row.month) ?? [];
+    list.push({ memberId: row.member_id, rank: row.rank, points: row.points });
+    months.set(row.month, list);
+  }
+  return {
+    board: {
+      month: board.data.month,
+      top: board.data.top.map((row) => ({
+        memberId: row.member_id,
+        rank: row.rank,
+        points: row.points,
+      })),
+      me: board.data.me,
+    },
+    hall: [...months].map(([month, winners]) => ({ month, winners })),
+  };
+}
+
+/** "November 2026", for a month given as "2026-11-01". */
+export function monthInWords(month: string): string {
+  const [year, number] = month.split('-').map(Number);
+  return new Date(year ?? 2026, (number ?? 1) - 1, 1).toLocaleString('en-US', {
+    month: 'long',
+    year: 'numeric',
+  });
+}
+
+/** "December 1", the day after a month given as "2026-11-01" ends. */
+export function monthAfterStarts(month: string): string {
+  const [year, number] = month.split('-').map(Number);
+  return new Date(year ?? 2026, number ?? 1, 1).toLocaleString('en-US', {
+    month: 'long',
+    day: 'numeric',
+  });
+}

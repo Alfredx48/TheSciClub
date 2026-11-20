@@ -66,6 +66,12 @@ export function WheelieSection({ memberId, name }: { memberId: string; name: str
         >
           How Wheelie points work
         </Link>
+        <Link
+          to="/wheelie-points/leaderboard"
+          className="mt-1 ml-5 inline-flex min-h-[44px] items-center font-semibold text-[0.8125rem] text-emphasis underline underline-offset-2"
+        >
+          Leaderboard
+        </Link>
       </div>
 
       <PostList breakdown={breakdown} first={first} />

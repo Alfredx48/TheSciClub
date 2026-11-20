@@ -202,6 +202,13 @@ function WheelSheet({
         >
           How Wheelie points work
         </Link>
+        <Link
+          to="/wheelie-points/leaderboard"
+          onClick={close}
+          className="ml-5 inline-flex min-h-[44px] items-center font-semibold text-[0.8125rem] text-emphasis underline underline-offset-2"
+        >
+          Leaderboard
+        </Link>
         <button
           type="button"
           onClick={close}
