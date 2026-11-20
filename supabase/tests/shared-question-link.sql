@@ -1,6 +1,6 @@
 -- ============================================================================
 -- A question an administrator shares can let people in, for 24 hours
--- (20261116200000)
+-- (20261116200000), and carries the organization of an admin of only one (20261119160000)
 -- ============================================================================
 -- With joining closed: only an administrator makes the link's code; asking
 -- again within the hour is the same code; the join screen hears that it lets
@@ -131,5 +131,38 @@ select public.signup_needs_an_invite(jsonb_build_object('user', jsonb_build_obje
   'email', 'probe-share@example.com', 'app_metadata', jsonb_build_object('provider', 'email'),
   'user_metadata', jsonb_build_object('qr_code', (select code from public.qr_codes
     where admin_id = 'aaaaaaaa-5a5a-0000-0000-00000000000c' and made_to_share))))) as no_longer_org_admin;
+
+\echo ''
+\echo '== 9. whose organization the link carries (20261119160000) (expect Probe Share Org for an admin of it alone; none for an admin of two; none for a club administrator; whoever joins through the first joins Probe Share Org) =='
+insert into public.organization_representatives (organization_id, member_id)
+values ('bbbbbbbb-5a5a-0000-0000-00000000000a', 'aaaaaaaa-5a5a-0000-0000-00000000000c');
+update public.qr_codes set turned_off_at = now() where admin_id = 'aaaaaaaa-5a5a-0000-0000-00000000000c';
+select set_config('request.jwt.claims',
+  '{"sub":"aaaaaaaa-5a5a-0000-0000-00000000000c","role":"authenticated"}', true) is not null as ok;
+set local role authenticated;
+select code as one_org from public.share_topic_code('5a5a0000-0000-0000-0000-000000000001') \gset
+reset role;
+insert into public.organizations (id, short_code, name, city)
+values ('bbbbbbbb-5a5a-0000-0000-00000000000b', 'PRSR', 'Probe Second Org', 'Oakland');
+insert into public.organization_representatives (organization_id, member_id)
+values ('bbbbbbbb-5a5a-0000-0000-00000000000b', 'aaaaaaaa-5a5a-0000-0000-00000000000c');
+set local role authenticated;
+select code as two_orgs from public.share_topic_code('5a5a0000-0000-0000-0000-000000000001') \gset
+reset role;
+select o.name as organization, (q.code = :'one_org') as one_org, (q.code = :'two_orgs') as two_orgs,
+       (q.code = :'made') as club_admin
+  from public.qr_codes q left join public.organizations o on o.id = q.organization_id
+ where q.code in (:'one_org', :'two_orgs', :'made')
+ order by one_org desc, two_orgs desc;
+insert into public.invites (id, email, status, invited_by_member_id, qr_code_id)
+select 'cccccccc-5a5a-0000-0000-000000000001', 'probe-share@example.com', 'consumed',
+       'aaaaaaaa-5a5a-0000-0000-00000000000c', q.id
+  from public.qr_codes q where q.code = :'one_org';
+insert into public.members (id, type, status, display_name, phone, birth_date, level_range, state, city, invite_id)
+values ('aaaaaaaa-5a5a-0000-0000-00000000000d', 'peer', 'active', 'Probe joiner', '19990005a04', '1980-01-01', 'T1–T6', 'CA', 'Oakland',
+        'cccccccc-5a5a-0000-0000-000000000001');
+select o.name as joined, om.joined_via
+  from public.organization_members om join public.organizations o on o.id = om.organization_id
+ where om.member_id = 'aaaaaaaa-5a5a-0000-0000-00000000000d';
 
 rollback;
