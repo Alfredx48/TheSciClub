@@ -2,7 +2,8 @@
 -- Who said Going or Interested hears when an event changes
 -- ============================================================================
 -- 20261120140000: Going hears of the date, time, place, in person / online,
--- the video call link and a cancellation; Interested of the date, time, place
+-- the video call link and a cancellation (and 20261120150000: Interested of a
+-- cancellation too, in the bell only); Interested of the date, time, place
 -- and in person / online only. Not whoever changed it, not across a block,
 -- not for an event that is over, and not when a joined invitation's copy is
 -- deleted after its RSVPs moved.
@@ -91,9 +92,12 @@ update public.events set location = 'Elsewhere' where id = '11201120-0000-0000-0
 select * from public.notifications where kind = 'event_changed' and member_id::text like '%-1120-%' and read_at is null;
 
 \echo ''
-\echo '== 7. cancelled: Ana, who is going, by its title; not Bo (expect Ana cancelled:Probe meetup! 1 f) =='
+\echo '== 7. cancelled: Ana, who is going, with a push; Bo, interested, in the bell only (20261120150000) (expect Ana event_cancelled, Bo event_cancelled_bell) =='
 delete from public.events where id = '11201120-0000-0000-0000-000000000001';
-select t.* from told t where t.detail like 'cancelled:%';
+select m.display_name as who, n.detail, split_part(n.tag, ':', 1) as tag
+  from public.notifications n join public.members m on m.id = n.member_id
+ where n.kind = 'event_changed' and n.detail like 'cancelled:%' and n.member_id::text like '%-1120-%'
+ order by 1;
 
 \echo ''
 \echo '== 8. ...in her bell, by its title, opening the calendar (expect Probe meetup! | /events) =='
