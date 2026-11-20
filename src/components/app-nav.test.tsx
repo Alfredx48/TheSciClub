@@ -1,6 +1,6 @@
 import { act, fireEvent, render, renderHook, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, useNavigate } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { AppNav, litTab, TAB_SPIN_MIN_MS } from '@/components/app-nav';
 import type * as BadgesModule from '@/lib/badges';
@@ -195,6 +195,30 @@ describe('the Me tab', () => {
 describe('the tab tapped', () => {
   afterEach(() => {
     vi.useRealTimers();
+  });
+
+  it('opens a tab again after Back while the first refresh is still pending', () => {
+    function Back() {
+      const navigate = useNavigate();
+      return (
+        <button type="button" onClick={() => void navigate(-1)}>
+          Back
+        </button>
+      );
+    }
+    render(
+      <MemoryRouter initialEntries={['/home']}>
+        <AppNav />
+        <Back />
+      </MemoryRouter>,
+    );
+    const peers = screen.getByRole('link', { name: 'Peers' });
+    fireEvent.click(peers);
+    expect(peers).toHaveAttribute('aria-busy', 'true');
+    fireEvent.click(screen.getByRole('button', { name: 'Back' }));
+    expect(screen.getByRole('link', { name: 'Home' })).toHaveAttribute('aria-current', 'page');
+    fireEvent.click(peers);
+    expect(peers).toHaveAttribute('aria-current', 'page');
   });
 
   it('spins while its read is out, at least a moment, and stops once it lands', async () => {
