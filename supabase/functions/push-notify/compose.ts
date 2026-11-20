@@ -62,6 +62,8 @@
  * those two may. A group message names its group (the owner, 2026-11-05).
  */
 
+import { cancelledTitle, eventChangePhrase } from '../_shared/event-change.ts';
+
 /** How much of a message a lock screen gets. iOS shows about four lines. */
 export const PREVIEW_LENGTH = 120;
 
@@ -445,6 +447,24 @@ export function compose(owed: Owed): PushMessage | null {
         title:
           owed.detail === 'reminder' ? `${group} · Important, reminder` : `${group} · Important`,
         body: said,
+        ...where,
+      };
+    }
+    // A change for whoever said Going or Interested (20261120140000):
+    // detail what changed, photo_count how many dates.
+    case 'event_changed': {
+      if (subject === '') return null;
+      const dates = owed.photo_count > 1 ? owed.photo_count : 1;
+      if (cancelledTitle(owed.detail) !== null)
+        return {
+          title: `Cancelled: ${subject}`,
+          body: dates > 1 ? `${dates} dates were cancelled.` : 'It’s off the calendar.',
+          ...where,
+        };
+      const said = eventChangePhrase(owed.detail);
+      return {
+        title: `Changed: ${subject}`,
+        body: `${said.charAt(0).toUpperCase()}${said.slice(1)}${dates > 1 ? `, for ${dates} dates` : ''}.`,
         ...where,
       };
     }

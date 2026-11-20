@@ -6,6 +6,7 @@ import { californiaToday, grantDay } from '@/lib/grants';
 import { tellOtherTabs } from '@/lib/read-elsewhere';
 import { ruleName } from '@/lib/strike-rules';
 import { getSupabase } from '@/lib/supabase';
+import { cancelledTitle, eventChangePhrase } from '../../supabase/functions/_shared/event-change';
 
 /**
  * The notifications list (20261010000000): what each member was notified
@@ -62,6 +63,7 @@ export type NotificationKind =
   | 'event_notice'
   | 'family_link'
   | 'checked_in'
+  | 'event_changed'
   | 'important'
   | 'anonymous_flagged'
   | 'strike_given'
@@ -347,6 +349,15 @@ export function notificationSentence(n: AppNotification): string {
         : `${from} invited you to ${event}. Are you going?`;
     }
     // The morning after the event (20261031070000).
+    // A date, time, place or link changed, or it was cancelled, for whoever
+    // said Going or Interested (20261120140000). count is how many dates.
+    case 'event_changed': {
+      const gone = cancelledTitle(n.detail);
+      if (gone !== null)
+        return n.count > 1 ? `${n.count} dates of ${gone} were cancelled` : `${gone} was cancelled`;
+      const dates = n.count > 1 ? ` (${n.count} dates)` : '';
+      return `${n.place ?? 'An event you said you’d go to'}: ${eventChangePhrase(n.detail)}${dates}`;
+    }
     case 'event_followup':
       return `How was ${n.place ?? 'the event'}? Leave a review and add your pictures`;
     // place is the invitation's title, detail what became of it (20261101000000).
