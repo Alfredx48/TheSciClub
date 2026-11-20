@@ -448,7 +448,8 @@ function MentorAskCard({ memberId, name }: { memberId: string; name: string }) {
   return (
     <div className="mb-4 rounded-[17px] border border-line bg-paper p-3.5">
       <p className="text-[0.85rem] leading-[1.42]">
-        Ask {firstName(name) || name} to complete their profile, install the app and post.
+        Ask {firstName(name) || name} to complete their profile, install the app and answer or ask a
+        question.
       </p>
       <a
         href={mentorAskMailto({ to, member: name, admin: account.displayName })}
@@ -458,7 +459,7 @@ function MentorAskCard({ memberId, name }: { memberId: string; name: string }) {
         Create email
       </a>
       <p className="mt-2 break-words text-[0.78125rem] text-grey leading-[1.45]">
-        Opens your mail app with it written, to {to}. You send it.
+        Opens your mail app with the email written to {to}. Nothing goes until you send it.
       </p>
     </div>
   );

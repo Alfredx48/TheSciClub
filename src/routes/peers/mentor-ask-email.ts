@@ -27,7 +27,7 @@ export function mentorAskBody({ member, admin }: { member: string; admin: string
     `2. Install the iOS app (${APP_STORE_URL}) and turn on notifications`,
     '3. Try to answer a question or ask one. Any content you create makes the app more dynamic and interesting to people with SCI.',
     '',
-    'Thank you so much for your help. Let’s build this club one wheeler at a time.',
+    "Thank you so much for your help. Let's build this club one wheeler at a time.",
     '',
     from ? `Thanks,\n${from}` : 'Thanks',
   ].join('\n');
