@@ -210,7 +210,9 @@ export default function TopicPage() {
       }
     });
     observer.observe(frame);
-    return () => observer.disconnect();
+    return () => {
+      observer.disconnect();
+    };
   }, [drawn, place]);
   useEffect(() => {
     if (!drawn || threads.length === 0 || scrolledFor.current === wantedNavigation) return;

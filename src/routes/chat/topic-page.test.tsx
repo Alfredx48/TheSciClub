@@ -525,17 +525,18 @@ describe('opening on the post a notification was about', () => {
 it('scrolls the focused reply back into view after the native keyboard shrinks the page', async () => {
   const native = vi.spyOn(Capacitor, 'isNativePlatform').mockReturnValue(true);
   const scroll = vi.fn();
-  const resize: Array<() => void> = [];
+  const resize: (() => void)[] = [];
   vi.stubGlobal(
     'ResizeObserver',
     class {
-      constructor(private callback: ResizeObserverCallback) {}
-      observe(target: Element) {
-        if (target.classList.contains('overflow-y-auto')) {
-          resize.push(() => this.callback([], this as unknown as ResizeObserver));
-        }
+      private onResize: () => void;
+      constructor(onResize: () => void) {
+        this.onResize = onResize;
       }
-      disconnect() {}
+      observe(target: Element) {
+        if (target.classList.contains('overflow-y-auto')) resize.push(this.onResize);
+      }
+      disconnect = vi.fn();
     },
   );
   try {
