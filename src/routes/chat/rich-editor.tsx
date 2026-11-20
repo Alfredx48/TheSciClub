@@ -83,7 +83,9 @@ export function RichEditor({
   latest.current = { onChange, onPhotos, onKeyDown };
   const mentionKeys = useRef<(event: KeyboardEvent) => boolean>(() => false);
 
+  // Suspense can leave a render waiting before React commits it.
   const editor = useEditor({
+    immediatelyRender: false,
     extensions: [
       StarterKit.configure({
         code: false,
@@ -131,26 +133,36 @@ export function RichEditor({
       latest.current.onChange(markdown);
     },
   });
+  const pendingFocus = useRef<'current' | 'end' | null>(null);
   const editorRef = useRef<Editor | null>(editor);
   editorRef.current = editor;
 
   useEffect(() => {
-    if (value === said.current) return;
+    if (!editor || value === said.current) return;
     said.current = value;
     editor.commands.setContent(load(value), { emitUpdate: false });
   }, [value, editor]);
 
   useEffect(() => {
-    editor.setEditable(!readOnly, false);
+    editor?.setEditable(!readOnly, false);
   }, [readOnly, editor]);
+
+  useEffect(() => {
+    if (!editor || pendingFocus.current === null) return;
+    const at = pendingFocus.current;
+    pendingFocus.current = null;
+    editor.commands.focus(at === 'end' ? 'end' : null);
+  }, [editor]);
 
   useImperativeHandle(
     ref,
     () => ({
       focus: (at) => {
-        editor.commands.focus(at === 'end' ? 'end' : null);
+        if (editor) editor.commands.focus(at === 'end' ? 'end' : null);
+        else pendingFocus.current = at ?? 'current';
       },
       format: (kind) => {
+        if (!editor) return;
         const chain = editor.chain().focus();
         if (kind === 'bold') chain.toggleBold().run();
         if (kind === 'italic') chain.toggleItalic().run();
@@ -160,6 +172,7 @@ export function RichEditor({
         if (kind === 'numbers') chain.toggleOrderedList().run();
       },
       link: (href) => {
+        if (!editor) return;
         const { empty } = editor.state.selection;
         if (empty) {
           editor
@@ -177,7 +190,7 @@ export function RichEditor({
         }
       },
       insertPhotos: (paths) => {
-        insertPhotoNodes(editor.state.selection.from, paths, editor);
+        if (editor) insertPhotoNodes(editor.state.selection.from, paths, editor);
       },
     }),
     [editor],
@@ -186,14 +199,16 @@ export function RichEditor({
   // The @ list, reading the line the caret is in.
   const field: MentionField = {
     read: () => {
+      if (!editor) return null;
       const { selection } = editor.state;
       if (!selection.empty || !selection.$from.parent.isTextblock) return null;
       const { $from } = selection;
       const text = $from.parent.textBetween(0, $from.parentOffset, undefined, '\n');
       return { text, caret: text.length };
     },
-    focused: () => editor.isFocused,
+    focused: () => editor?.isFocused ?? false,
     put: (query, caret, words) => {
+      if (!editor) return;
       const start = editor.state.selection.$from.start();
       editor
         .chain()
@@ -220,6 +235,7 @@ export function RichEditor({
   const look = useRef({ onSelect, onBlur });
   look.current = { onSelect, onBlur };
   useEffect(() => {
+    if (!editor) return;
     const dom = editor.view.dom;
     for (const [name, wanted] of Object.entries(aria)) {
       if (wanted === undefined) dom.removeAttribute(name);
@@ -227,6 +243,7 @@ export function RichEditor({
     }
   });
   useEffect(() => {
+    if (!editor) return;
     const select = () => {
       look.current.onSelect();
     };
