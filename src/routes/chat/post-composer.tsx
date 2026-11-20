@@ -142,6 +142,7 @@ export function PostComposer({
   const [storage, setStorage] = useState<DraftStorage>(null);
   const [anonymousChoice, setAnonymousChoice] = useState(recovered?.anonymous);
   const anonymous = !!anonymousOption && (anonymousChoice ?? anonymousOption.checked);
+  const draftAnonymous = anonymousChoice ?? (anonymous ? true : undefined);
   const [mode, setMode] = useState(readMode);
   const [preview, setPreview] = useState(false);
   const [sending, setSending] = useState(false);
@@ -185,8 +186,8 @@ export function PostComposer({
 
   useEffect(() => {
     if (draftKey && editingId === null)
-      setStorage(writeDraft(draftKey, withoutLocalPhotos(draft), { anonymous }));
-  }, [draftKey, draft, editingId, anonymous]);
+      setStorage(writeDraft(draftKey, withoutLocalPhotos(draft), { anonymous: draftAnonymous }));
+  }, [draftKey, draft, editingId, draftAnonymous]);
 
   useLayoutEffect(() => {
     if (editingId === loaded.current) return;
