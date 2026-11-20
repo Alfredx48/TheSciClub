@@ -221,7 +221,7 @@ describe('the tab tapped', () => {
     expect(peers).toHaveAttribute('aria-current', 'page');
   });
 
-  it('spins while its read is out, at least a moment, and stops once it lands', async () => {
+  it('keeps spinning when a late read starts before the spinner goes away', async () => {
     vi.useFakeTimers();
     let land: (response: Response) => void = () => undefined;
     const reads = noticeWrites(
@@ -236,6 +236,7 @@ describe('the tab tapped', () => {
       </MemoryRouter>,
     );
     fireEvent.click(screen.getByRole('link', { name: 'Peers' }));
+    await act(() => vi.advanceTimersByTimeAsync(TAB_SPIN_MIN_MS - 100));
     const sent = reads('https://x.supabase.co/rest/v1/rpc/browse_members', { method: 'POST' });
     await act(() => vi.advanceTimersByTimeAsync(TAB_SPIN_MIN_MS + 500));
     // Still out after the least time: still turning, on Peers only.
