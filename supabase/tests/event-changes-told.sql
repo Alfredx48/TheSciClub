@@ -3,7 +3,7 @@
 -- ============================================================================
 -- 20261120140000: Going hears of the date, time, place, in person / online,
 -- the video call link and a cancellation (and 20261120150000: Interested of a
--- cancellation too, in the bell only); Interested of the date, time, place
+-- cancellation too, and 20261120160000: Interested in the bell only); Interested of the date, time, place
 -- and in person / online only. Not whoever changed it, not across a block,
 -- not for an event that is over, and not when a joined invitation's copy is
 -- deleted after its RSVPs moved.
@@ -48,7 +48,8 @@ insert into public.event_rsvps (event_id, member_id, status, created_at) values
   ('11201120-0000-0000-0000-000000000003', 'aaaaaaaa-1120-0000-0000-00000000000a', 'going', now() - interval '1 day');
 
 create temp view told as
-  select m.display_name as who, n.detail, n.count, n.event_id is not null as has_event
+  select m.display_name as who, n.detail, n.count, n.event_id is not null as has_event,
+         split_part(n.tag, ':', 1) as tag
     from public.notifications n join public.members m on m.id = n.member_id
    where n.kind = 'event_changed' and n.member_id::text like '%-1120-%'
    order by m.display_name, n.tag;
@@ -74,7 +75,7 @@ update public.events set meeting_url = 'https://meet.example/x' where id = '1120
 select * from told;
 
 \echo ''
-\echo '== 4. now online, and its place cleared: both, the format first, no place (expect Ana online,time,link; Bo online,time) =='
+\echo '== 4. now online, and its place cleared, at once: one notice each, the format first, no place; Bo in the bell only (20261120160000) (expect Ana online,time,link event_changed; Bo online,time event_changed_bell) =='
 update public.events set event_format = 'online', location = '', city = null where id = '11201120-0000-0000-0000-000000000001';
 select * from told;
 
