@@ -3,13 +3,14 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { BackLink } from '@/components/back-link';
 import { useAccount } from '@/lib/account';
 import { attachmentFolder, deleteAttachments, uploadAttachments } from '@/lib/chat/attachments';
-import { memberDraftKey } from '@/lib/chat/drafts';
+import { memberDraftKey, readKeptDraft, writeDraft } from '@/lib/chat/drafts';
 import { PRICED_ROOM, parsePrice, setListingPrice } from '@/lib/chat/listing-prices';
 import { POST_COUNT_FROM, POST_MAX } from '@/lib/chat/post-length';
 import { roomPrompt } from '@/lib/chat/room-prompts';
 import { roomsByCategory, useChatRooms } from '@/lib/chat/rooms';
 import { createTopic } from '@/lib/chat/topics';
 import { describeThrown } from '@/lib/describe-error';
+import { draftMediaGeneration, mayHaveDraftMedia, writeDraftMedia } from '@/lib/draft-media';
 import { useFormDraft } from '@/lib/form-draft';
 import { type PhotoTarget, pastePhotos } from '@/lib/paste-photos';
 import { noteSent } from '@/lib/push/notifications';
@@ -44,20 +45,37 @@ export default function NewTopicPage() {
   const location = useLocation();
   const roomsRead = useChatRooms();
   const sharing = fromHome(location.state)?.kind === 'share';
-  const feedback = appFeedbackRoom(roomsRead.rooms)?.id === roomId;
-  const draftKey = memberDraftKey(
-    account.userId,
-    `new-post:${feedback ? 'feedback' : sharing ? 'photo' : 'post'}`,
+  // Each Marketplace room keeps a listing of its own (the owner, 2026-11-21):
+  // List something in Giving away opens in Giving away, on the item half
+  // listed there or a clean form, never on a post half written for General.
+  function draftKeyFor(id: string | undefined) {
+    const feedback = appFeedbackRoom(roomsRead.rooms)?.id === id;
+    const listing = roomsRead.rooms.find((r) => r.id === id)?.category === 'Classifieds';
+    return memberDraftKey(
+      account.userId,
+      `new-post:${feedback ? 'feedback' : listing ? `listing:${id}` : sharing ? 'photo' : 'post'}`,
+    );
+  }
+  const draftKey = draftKeyFor(roomId);
+  return (
+    <NewTopicForm
+      key={draftKey}
+      draftKey={draftKey}
+      draftKeyFor={draftKeyFor}
+      roomId={roomId}
+      roomsRead={roomsRead}
+    />
   );
-  return <NewTopicForm key={draftKey} draftKey={draftKey} roomId={roomId} roomsRead={roomsRead} />;
 }
 
 function NewTopicForm({
   draftKey,
+  draftKeyFor,
   roomId,
   roomsRead,
 }: {
   draftKey: string | undefined;
+  draftKeyFor: (roomId: string) => string | undefined;
   roomId: string | undefined;
   roomsRead: ReturnType<typeof useChatRooms>;
 }) {
@@ -95,6 +113,26 @@ function NewTopicForm({
   }
   const photoDraft = useDraftFiles(draftKey);
   const { value: files, setValue: setFiles } = photoDraft;
+
+  /** Choosing another room takes what is written along, unless that room
+   * keeps a draft of its own (a Marketplace room's listing), which then opens
+   * instead and this one stays where it was. */
+  async function moveDraft(next: string) {
+    const nextKey = draftKeyFor(next);
+    if (nextKey === draftKey) {
+      set('destination', next);
+      return;
+    }
+    const written = draft.storage !== null || files.length > 0;
+    if (!nextKey || !written || readKeptDraft(nextKey) || mayHaveDraftMedia(nextKey)) return;
+    writeDraft(
+      nextKey,
+      JSON.stringify({ version: 1, value: { ...draft.value, destination: next } }),
+    );
+    if (files.length > 0) await writeDraftMedia(nextKey, files, draftMediaGeneration());
+    draft.discard();
+    photoDraft.clear();
+  }
   // Pictures pasted into the post join the photographs (lib/paste-photos.ts).
   const photoTarget = useRef<PhotoTarget | null>(null);
   const [saving, setSaving] = useState(false);
@@ -304,11 +342,13 @@ function NewTopicForm({
               id="topic-room"
               value={room.id}
               onChange={(event) => {
-                set('destination', event.target.value);
-                void navigate(`/chat/rooms/${event.target.value}/new`, {
-                  replace: true,
-                  state: location.state as unknown,
-                });
+                const next = event.target.value;
+                void moveDraft(next).then(() =>
+                  navigate(`/chat/rooms/${next}/new`, {
+                    replace: true,
+                    state: location.state as unknown,
+                  }),
+                );
               }}
               className="mt-1.5 min-h-[44px] w-full rounded-[12px] border-[1.6px] border-line bg-paper px-3 py-2 text-[1rem] text-ink outline-none focus:border-emphasis"
             >

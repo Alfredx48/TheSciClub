@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type * as Router from 'react-router-dom';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
@@ -85,9 +85,9 @@ beforeEach(() => {
   db.questions = [];
 });
 
-function renderPage(state?: unknown) {
+function renderPage(state?: unknown, room = 'equip') {
   return render(
-    <MemoryRouter initialEntries={[{ pathname: '/chat/rooms/equip/new', state }]}>
+    <MemoryRouter initialEntries={[{ pathname: `/chat/rooms/${room}/new`, state }]}>
       <Routes>
         <Route path="/chat/rooms/:roomId/new" element={<NewTopicPage />} />
       </Routes>
@@ -363,6 +363,28 @@ describe('choosing the room', () => {
     expect(names).toEqual(['General', 'Equipment & assistive tech']);
     await user.selectOptions(select, 'General');
     expect(db.navigated).toEqual([['/chat/rooms/general/new', state]]);
+  });
+
+  // The owner, 2026-11-21: List something in Giving away opened General, on a
+  // post half written there.
+  it('opens a Marketplace room on its own listing, never on a post half written elsewhere', async () => {
+    const user = userEvent.setup();
+    db.rooms.push(makeRoom({ id: 'giving-away', name: 'Giving away', category: 'Classifieds' }));
+    const first = renderPage();
+    await user.type(screen.getByLabelText('What is it about?'), 'Half a thought');
+    first.unmount();
+
+    const listing = renderPage(undefined, 'giving-away');
+    expect(screen.getByLabelText('Room')).toHaveValue('giving-away');
+    expect(screen.getByLabelText('What are you listing?')).toHaveValue('');
+    await user.type(screen.getByLabelText('What are you listing?'), 'Shower chair');
+    listing.unmount();
+
+    renderPage(undefined, 'giving-away');
+    expect(screen.getByLabelText('What are you listing?')).toHaveValue('Shower chair');
+    cleanup();
+    renderPage();
+    expect(screen.getByLabelText('What is it about?')).toHaveValue('Half a thought');
   });
 
   it('is not offered on the App Feedback form', () => {
