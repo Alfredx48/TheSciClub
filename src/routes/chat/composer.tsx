@@ -264,6 +264,15 @@ export function Composer({
     if (replyingToId) box.current?.focus();
   }, [replyingToId]);
 
+  // Fit the box whenever its words change, once they are in it: a send empties the draft from a
+  // promise, and a frame asked for then could come before React had emptied the box, leaving
+  // it as tall as the message that went (the owner, 2026-11-21).
+  // biome-ignore lint/correctness/useExhaustiveDependencies: draft is the trigger, read from the box.
+  useLayoutEffect(() => {
+    const element = box.current;
+    if (element) setLong(fitToContent(element));
+  }, [draft]);
+
   function resize() {
     const element = box.current;
     if (element) setLong(fitToContent(element));

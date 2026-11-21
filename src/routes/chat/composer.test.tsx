@@ -54,6 +54,33 @@ describe('the composer', () => {
     });
   });
 
+  // The owner, 2026-11-21: after a long message went, the empty box stayed as tall as it was.
+  // A frame can come before React has emptied the box, so one is run at once here.
+  it('shrinks back to one line once a long message has gone', async () => {
+    vi.stubGlobal('requestAnimationFrame', (run: FrameRequestCallback) => {
+      run(0);
+      return 0;
+    });
+    const tall = vi
+      .spyOn(HTMLTextAreaElement.prototype, 'scrollHeight', 'get')
+      .mockImplementation(function (this: HTMLTextAreaElement) {
+        return this.value.length > 20 ? 300 : 44;
+      });
+    const onSend = renderComposer();
+    const user = userEvent.setup();
+    const box = screen.getByRole('textbox');
+    await user.type(box, 'A message long enough to wrap onto many lines');
+    expect(box.style.height).toBe('300px');
+    await user.click(screen.getByRole('button', { name: 'Send this message' }));
+    await waitFor(() => {
+      expect(onSend).toHaveBeenCalled();
+    });
+    await waitFor(() => {
+      expect(box.style.height).toBe('44px');
+    });
+    tall.mockRestore();
+  });
+
   // Words are optional once there is a photograph — the row's own check says
   // words *or* a picture.
   it('sends a photograph alone, and clears the strip once it has gone', async () => {
