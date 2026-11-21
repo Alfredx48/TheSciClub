@@ -91,11 +91,12 @@ export default function WheeliePointsPage() {
         <Heading>The wheel</Heading>
         <p className="text-[0.8125rem] text-ink2 leading-[1.5]">
           The wheel’s colour is your level. Its {SPOKES} spokes fill one at a time as you earn
-          towards the next level; when the seventh would fill, the wheel takes the next colour and
-          the spokes start over.
+          towards the next level; when the thirteenth would fill, the wheel takes the next colour
+          and the spokes start over.
         </p>
-        <ul className="mt-3 grid grid-cols-4 gap-x-2 gap-y-3" aria-label="Spokes filling">
-          {Array.from({ length: SPOKES }, (_, spokes) => {
+        <ul className="mt-3 grid grid-cols-3 gap-x-2 gap-y-3" aria-label="Spokes filling">
+          {/* Every third spoke: thirteen wheels in a row said no more than five. */}
+          {[0, 3, 6, 9, 12].map((spokes) => {
             const points = Math.ceil(((WHEEL_LEVELS[1]?.from ?? 100) * spokes) / SPOKES);
             return (
               <li key={points} className="flex flex-col items-center gap-1">

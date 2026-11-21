@@ -5,8 +5,8 @@ import { getSupabase } from '@/lib/supabase';
  * Wheelie points (20261121030000; the owner's 2-pager, 2026-11-20): what a
  * member has earned for taking part, shown as a wheel on their journey in
  * the club (the Me tab and their profile; the owner, 2026-11-20, took it off
- * names everywhere else as too loud). Its colour is their level; its seven spokes fill one at a time on the way to the
- * next, and when all seven would be full the wheel takes the next colour and
+ * names everywhere else as too loud). Its colour is their level; its thirteen spokes fill one at a time on the way to the
+ * next (seven until the owner, 2026-11-21), and when all thirteen would be full the wheel takes the next colour and
  * they start over.
  */
 
@@ -32,7 +32,7 @@ export const WHEEL_LEVELS: readonly WheelLevel[] = [
   { level: 10, name: 'Dark purple', from: 10000 },
 ];
 
-export const SPOKES = 7;
+export const SPOKES = 13;
 
 export interface Wheel {
   points: number;
