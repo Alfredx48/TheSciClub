@@ -552,6 +552,14 @@ export function Composer({
       }
       style={full ? { top: screen?.top ?? 0, height: screen?.height ?? '100dvh' } : undefined}
     >
+      {/* The keyboard on an iPhone is see-through, so the cover reaches on under it (the owner,
+          2026-11-21: the conversation showed through the keys). */}
+      {full ? (
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-x-0 top-full h-[100lvh] bg-paper"
+        />
+      ) : null}
       {full ? (
         <div className="mx-auto mb-2 flex w-full max-w-[720px] flex-none items-center justify-between gap-2">
           <p className="font-semibold text-[0.9375rem] text-ink">
