@@ -136,6 +136,46 @@ function useTabSpinner(location: Location): {
   };
 }
 
+const TEXT_INPUTS = new Set(['text', 'search', 'email', 'url', 'tel', 'password', 'number']);
+
+/** Whether the focused element brings up a phone's keyboard. */
+function takesTyping(element: Element | null): boolean {
+  if (!(element instanceof HTMLElement)) return false;
+  if (element.isContentEditable || element instanceof HTMLTextAreaElement) return true;
+  return element instanceof HTMLInputElement && TEXT_INPUTS.has(element.type);
+}
+
+/**
+ * Whether somebody is typing, so a phone's bar can step aside for the keyboard (the owner,
+ * 2026-11-21: the bar sat between the message box and the keyboard). Read from focus, not
+ * the keyboard, which a page cannot see; a moment's wait on leaving a field keeps the bar from
+ * flashing up between one field and the next.
+ */
+export function useTyping(): boolean {
+  const [typing, setTyping] = useState(() => takesTyping(document.activeElement));
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const onFocusIn = () => {
+      clearTimeout(timer);
+      setTyping(takesTyping(document.activeElement));
+    };
+    const onFocusOut = () => {
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        setTyping(takesTyping(document.activeElement));
+      }, 100);
+    };
+    document.addEventListener('focusin', onFocusIn);
+    document.addEventListener('focusout', onFocusOut);
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener('focusin', onFocusIn);
+      document.removeEventListener('focusout', onFocusOut);
+    };
+  }, []);
+  return typing;
+}
+
 export function AppNav() {
   // Reading a conversation happens on a screen that is not this one, so the
   // hook listens for `unreadChanged()` rather than this refetching on every
@@ -153,6 +193,7 @@ export function AppNav() {
   const wide = useWideLayout();
   const lit = litTab(location.pathname, location.state);
   const { spinning, tapped } = useTabSpinner(location);
+  const typing = useTyping();
   // The bar stays still on every screen, Home's feed included, while people
   // get used to the app (the owner, 2026-11-15). It slid away on a scroll
   // from 2026-11-01, on Home's feed only from 2026-11-09.
@@ -180,6 +221,8 @@ export function AppNav() {
         'z-40 order-last flex-none bg-paper px-2',
         'border-line border-t pt-1 pb-[max(0.5rem,env(safe-area-inset-bottom))]',
         'md:order-first md:border-t-0 md:border-b md:px-4 md:pt-1.5 md:pb-1.5',
+        // Out of the keyboard's way on a phone; a desktop's top bar stays.
+        typing && 'max-md:hidden',
       )}
     >
       <div

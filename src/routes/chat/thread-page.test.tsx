@@ -293,7 +293,10 @@ describe('a conversation', () => {
     renderThread();
     expect(screen.getByRole('heading', { name: 'Jan' })).toBeInTheDocument();
     expect(screen.getByText('T4 complete')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Profile' })).toHaveAttribute('href', '/peers/jan');
+    expect(screen.getByRole('link', { name: 'Jan, profile' })).toHaveAttribute(
+      'href',
+      '/peers/jan',
+    );
   });
 
   it('draws what has been said, announced politely as it grows', () => {
@@ -417,12 +420,12 @@ describe('a conversation', () => {
   });
 
   it('has nothing behind the subtitle of a conversation between two people', () => {
-    // A member's level is a fact about them, not a door; their profile is the
-    // button already on the right of the header.
+    // A member's level is a fact about them, not a door; their profile is
+    // their photograph and name.
     db.thread = thread();
     renderThread();
     expect(screen.queryByRole('link', { name: /members/ })).toBeNull();
-    expect(screen.getByRole('link', { name: 'Profile' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Jan, profile' })).toBeInTheDocument();
   });
 
   it('says a conversation cannot be shown rather than printing nothing', () => {

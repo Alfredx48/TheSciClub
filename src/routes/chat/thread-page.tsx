@@ -509,65 +509,75 @@ function ThreadScreen({ threadId }: { threadId: string | undefined }) {
     );
   }
 
+  // The photograph and name are the way to the other person's profile (the owner,
+  // 2026-11-21: the Profile button beside the bell went, for room).
+  const identity = (
+    <>
+      {/* Decorative: the name is beside it. */}
+      <span aria-hidden="true" className="flex-none">
+        {thread.kind === 'group' ? (
+          <GroupAvatar url={thread.photoPath ? picture.get(thread.photoPath) : null} />
+        ) : other ? (
+          <MemberAvatar
+            id={other.id}
+            displayName={other.displayName}
+            photoPath={other.photoPath}
+            photoAlt={other.photoAlt}
+          />
+        ) : (
+          <FormerMemberAvatar />
+        )}
+      </span>
+      <div className="min-w-0 flex-1">
+        <h1
+          ref={heading}
+          tabIndex={-1}
+          className="truncate font-extrabold font-head text-[1rem] text-ink outline-none"
+        >
+          {title}
+        </h1>
+        {thread.kind === 'group' ? (
+          <Link
+            to={`/chat/t/${thread.id}/members`}
+            data-target="small"
+            className="block truncate text-[0.78125rem] text-emphasis underline"
+          >
+            {thread.memberCount} {thread.memberCount === 1 ? 'member' : 'members'}
+          </Link>
+        ) : (
+          <p className="truncate text-[0.78125rem] text-grey">
+            {other?.level ? (
+              <LevelHighlight
+                level={other.level}
+                stage={other.stage}
+                band={other.band}
+                injuryType={other.injuryType}
+              />
+            ) : null}
+          </p>
+        )}
+      </div>
+    </>
+  );
+  const profileHref = thread.kind !== 'group' && other?.hasProfile ? `/peers/${other.id}` : null;
+
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
       <header className="flex-none border-line border-b bg-paper px-[18px] pt-3 pb-3">
         <div className="mx-auto w-full max-w-[720px]">
           <BackLink to="/chat" label="Chat" />
           <div className="mt-1 flex items-center gap-2.5">
-            {/* Decorative: the name is beside it, and Profile is the link. */}
-            <span aria-hidden="true" className="flex-none">
-              {thread.kind === 'group' ? (
-                <GroupAvatar url={thread.photoPath ? picture.get(thread.photoPath) : null} />
-              ) : other ? (
-                <MemberAvatar
-                  id={other.id}
-                  displayName={other.displayName}
-                  photoPath={other.photoPath}
-                  photoAlt={other.photoAlt}
-                />
-              ) : (
-                <FormerMemberAvatar />
-              )}
-            </span>
-            <div className="min-w-0 flex-1">
-              <h1
-                ref={heading}
-                tabIndex={-1}
-                className="truncate font-extrabold font-head text-[1rem] text-ink outline-none"
-              >
-                {title}
-              </h1>
-              {thread.kind === 'group' ? (
-                <Link
-                  to={`/chat/t/${thread.id}/members`}
-                  data-target="small"
-                  className="block truncate text-[0.78125rem] text-emphasis underline"
-                >
-                  {thread.memberCount} {thread.memberCount === 1 ? 'member' : 'members'}
-                </Link>
-              ) : (
-                <p className="truncate text-[0.78125rem] text-grey">
-                  {other?.level ? (
-                    <LevelHighlight
-                      level={other.level}
-                      stage={other.stage}
-                      band={other.band}
-                      injuryType={other.injuryType}
-                    />
-                  ) : null}
-                </p>
-              )}
-            </div>
-            {other?.hasProfile ? (
+            {profileHref ? (
               <Link
-                to={`/peers/${other.id}`}
-                data-target="small"
-                className="flex-none rounded-full border border-line px-3 py-1.5 font-bold text-[0.75rem] text-emphasis"
+                to={profileHref}
+                aria-label={`${title}, profile`}
+                className="-my-1 -ml-1 flex min-w-0 flex-1 items-center gap-2.5 rounded-xl py-1 pl-1 hover:bg-tint"
               >
-                Profile
+                {identity}
               </Link>
-            ) : null}
+            ) : (
+              <div className="flex min-w-0 flex-1 items-center gap-2.5">{identity}</div>
+            )}
             <button
               type="button"
               aria-label={searchOpen ? 'Close search' : 'Search this conversation'}

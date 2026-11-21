@@ -160,6 +160,34 @@ describe('the bar on a scroll', () => {
   });
 });
 
+describe('the bar while typing', () => {
+  it('steps aside on a phone while a text box has focus, and only then', () => {
+    vi.useFakeTimers();
+    render(
+      <MemoryRouter initialEntries={['/chat']}>
+        <AppNav />
+        <textarea aria-label="Message" />
+        <input type="checkbox" aria-label="Tick" />
+      </MemoryRouter>,
+    );
+    const nav = screen.getByRole('navigation', { name: 'Main' });
+    act(() => {
+      screen.getByRole('checkbox', { name: 'Tick' }).focus();
+    });
+    expect(nav.className).not.toContain('max-md:hidden');
+    act(() => {
+      screen.getByRole('textbox', { name: 'Message' }).focus();
+    });
+    expect(nav.className).toContain('max-md:hidden');
+    act(() => {
+      screen.getByRole('textbox', { name: 'Message' }).blur();
+      vi.advanceTimersByTime(150);
+    });
+    expect(nav.className).not.toContain('max-md:hidden');
+    vi.useRealTimers();
+  });
+});
+
 describe('the Me tab', () => {
   const renderNav = () =>
     render(
