@@ -79,7 +79,7 @@ describe('the five tabs', () => {
   it('hides every tab on another screen', async () => {
     const router = renderAt('/me');
     await screen.findByRole('heading', { name: 'Me' });
-    await act(() => router.navigate('/me/saved'));
+    await act(() => router.navigate('/me/qr'));
     expect(screen.getByText('Me')).not.toBeVisible();
     await act(() => router.navigate('/me'));
     expect(screen.getByRole('heading', { name: 'Me' })).toBeVisible();

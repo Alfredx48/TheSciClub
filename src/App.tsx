@@ -77,7 +77,6 @@ const StrikePage = lazy(() => import('@/routes/strikes/strike-page'));
 const InvitesPage = lazy(() => import('@/routes/invites/page'));
 const QrCodePage = lazy(() => import('@/routes/me/qr-page'));
 const StatsPage = lazy(() => import('@/routes/stats/page'));
-const SavedPage = lazy(() => import('@/routes/me/saved-page'));
 const WheeliePointsPage = lazy(() => import('@/routes/wheelies/page'));
 const LeaderboardPage = lazy(() => import('@/routes/wheelies/leaderboard-page'));
 const JourneyPage = lazy(() => import('@/routes/wheelies/journey-page'));
@@ -367,7 +366,6 @@ function ShellContent() {
             {/* Administrators, org admins and professionals; the page sends
             anybody else to Me. */}
             <Route path="/me/qr" element={<QrCodePage />} />
-            <Route path="/me/saved" element={<SavedPage />} />
             <Route path="/me/journey" element={<JourneyPage />} />
             {/* Unlisted in the tab bar: the bell on Home (phone) and at the end
             of the top bar (desktop) lead here. */}

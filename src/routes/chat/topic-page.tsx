@@ -35,7 +35,6 @@ import { POST_MAX } from '@/lib/chat/post-length';
 import { useReactions } from '@/lib/chat/reactions';
 import { reportPost, useMyReports } from '@/lib/chat/reports';
 import { useChatRooms } from '@/lib/chat/rooms';
-import { saveKey, useTopicSaves } from '@/lib/chat/saves';
 import { chatTimeLong, chatTimeOn } from '@/lib/chat/time';
 import {
   deleteMyTopic,
@@ -68,7 +67,6 @@ import { MuteButton } from '@/routes/chat/mute-button';
 import { Post } from '@/routes/chat/post';
 import { ReactionBar } from '@/routes/chat/reaction-bar';
 import { ReportSheet } from '@/routes/chat/report-sheet';
-import { SaveTopicButton } from '@/routes/chat/save-button';
 import { SharePostButton } from '@/routes/chat/share-post';
 import { BlockMemberSheet } from '@/routes/peers/block-sheet';
 
@@ -172,7 +170,6 @@ export default function TopicPage() {
   const likes = usePostLikes(standingIds);
   // Counted after this visit's read-through write lands, not before it too.
   const views = usePostViews(standingIds, { afterVisit: true });
-  const saves = useTopicSaves(topicId);
 
   useTopicRealtime(topicId, topicPosts, edits, likes);
 
@@ -549,18 +546,6 @@ export default function TopicPage() {
         readerId={account.userId}
       />
     ),
-    // The first post is the topic, which the header's Save covers.
-    save:
-      post.id === threads[0]?.post.id || saves.error
-        ? undefined
-        : {
-            saved: saves.saved.has(saveKey(topic.id, post.id)),
-            onToggle: () => {
-              saves.toggle(topic.id, post.id);
-            },
-            failure:
-              saves.failure?.key === saveKey(topic.id, post.id) ? saves.failure.message : null,
-          },
     likes: voteFor(likes, post.id, account.userId),
   });
 
@@ -766,23 +751,11 @@ export default function TopicPage() {
                 This room is closed. No member can see this post yet.
               </p>
             ) : null}
-            {/* One row, evenly spaced and the same height: Save, Mute, Move, Delete.
+            {/* One row, evenly spaced and the same height: Mute, Move, Delete (Save
+              went, the owner, 2026-11-21: hardly used; saves stay stored).
               Each used to carry its own margin, so they sat at different
               heights and two of them touched. */}
             <div className="flex flex-wrap items-start gap-2 empty:hidden [&:not(:empty)]:mt-2.5">
-              {/* Private to the reader (20261020030000). */}
-              {account.userId && !saves.error ? (
-                <SaveTopicButton
-                  saved={saves.saved.has(saveKey(topic.id, null))}
-                  disabled={saves.loading}
-                  onToggle={() => {
-                    saves.toggle(topic.id, null);
-                  }}
-                  failure={
-                    saves.failure?.key === saveKey(topic.id, null) ? saves.failure.message : null
-                  }
-                />
-              ) : null}
               {/* Only the member who started a topic is notified of its
                 replies, so only they are offered a way to stop that. */}
               {startedByMe ? (

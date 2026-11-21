@@ -48,7 +48,6 @@ const SCREENS = [
   '/join',
   '/me',
   '/me/qr',
-  '/me/saved',
   '/notifications',
   '/organizations/manage',
   '/partner',
