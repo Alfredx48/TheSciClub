@@ -6,7 +6,7 @@ import { pointsInWords, useWheelieBreakdown, wheelOf } from '@/lib/wheelies';
 /**
  * A member's journey in the club: their wheel with their Wheelie points beside
  * it, opening where every point came from (the owner, 2026-11-20). On the Me
- * tab under Complete your profile, and on a member's profile. Draws nothing
+ * tab under Complete your profile (off members' profiles for now: the owner, 2026-11-21). Draws nothing
  * for somebody who does not earn them (an organization, a directory listing).
  */
 export function JourneyCard({

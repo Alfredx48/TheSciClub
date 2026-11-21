@@ -48,7 +48,7 @@ const RULES: readonly string[] = [
   'Upvoting, replying or reacting to your own post earns nothing, and neither does an administrator’s boost.',
   'A vote or reaction you give earns its point while it stands. Take it back and the point goes; switch an upvote to a downvote and it stays.',
   'A post an administrator removes earns nothing.',
-  'Anonymous questions, answers and reviews earn nothing, so the points on your profile never point back to them.',
+  'Anonymous questions, answers and reviews earn nothing, so your points never point back to them.',
   'An RSVP earns its points once for each event, and checking in earns more on top. Cancel, or don’t check in, and the RSVP’s points are taken back.',
 ];
 

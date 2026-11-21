@@ -34,7 +34,6 @@ import { IntroduceSheet } from '@/routes/peers/introduce-sheet';
 import { gradientFor, initialsOf, SummaryLine } from '@/routes/peers/member-card';
 import { MentorSheet, mentorActionLabel, useMentorActions } from '@/routes/peers/mentor-controls';
 import { Chips, childrenLabel, DetailRow, Section } from '@/routes/peers/profile-parts';
-import { JourneyCard } from '@/routes/wheelies/journey-card';
 
 export { childrenLabel };
 
@@ -978,14 +977,6 @@ function MemberProfile({ onBlocked }: { onBlocked: () => void }) {
                 <DetailRow label="Where" value={cityAndState(member)} />
               </div>
             </Section>
-
-            <div className="mt-5">
-              <JourneyCard
-                memberId={member.id}
-                name={member.displayName}
-                own={member.id === account.userId}
-              />
-            </div>
 
             {/* The rooms this member's topics reach, after everything about
                 the member: the page is for reading the person, and these were

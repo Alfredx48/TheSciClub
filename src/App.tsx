@@ -316,7 +316,6 @@ function ShellContent() {
             <Route path="/home/new" element={<HomeNewPage />} />
             <Route path="/peers" element={null} />
             <Route path="/peers/:id" element={<MemberDetailPage />} />
-            <Route path="/peers/:id/journey" element={<JourneyPage />} />
             <Route path="/introductions/:id" element={<IntroductionPage />} />
             {/* What Anonymous is, from an anonymous name or face (20261120110000). */}
             <Route path="/anonymous" element={<AnonymousPage />} />
