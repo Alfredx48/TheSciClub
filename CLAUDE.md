@@ -53,42 +53,15 @@ person you are working for. Never push `main` without their word.
 - Database changes go to the test project first, the live one only at the
   word of the person you are working for.
 
-## Moving the site off Netlify (owner, 2026-11-21)
+## Installed apps must keep updating (owner, 2026-11-21)
 
-Read this before you move either site, or any of its files, to another host
-(Cloudflare or anything else), or change a domain's DNS.
-
-Netlify did things for us without being asked, and installed apps depend on
-them. After tests.thesciclub.com moved to Cloudflare, a Home Screen app sat
-on a four-day-old copy and would not update: Cloudflare keeps a file with no
-rule of its own for four hours, where Netlify asked again every time.
-
-- **Updates must keep arriving.** `/sw.js` and `/version.json` are served
-  with `Cache-Control: no-cache` (netlify.toml, carried to Cloudflare by
-  scripts/cloudflare-site.mjs and checked by
-  scripts/cloudflare-site-rules.test.mjs). A new host gets the same, and so
-  does any other file src/lib/stay-current.ts or src/sw.ts reads to decide
-  what is current. Leave those rules in place.
-- **Cloudflare's zone can override them.** thesciclub.com's DNS is on
-  Cloudflare (since 2026-11-20). For a proxied name (orange cloud), the
-  zone's Browser Cache TTL replaces a file's own `no-cache` with its own
-  value, 4 hours by default, on `.js` files among others. In the dashboard,
-  Caching › Configuration › Browser Cache TTL must be **Respect Existing
-  Headers**. Check with `curl -sI https://<domain>/sw.js`; anything but
-  `no-cache` is wrong. On 2026-11-21 tests.thesciclub.com still sent
-  `max-age=14400`, though the Worker behind it sends `no-cache`.
-- **Check what else differs.** Compare the new host's response headers and
-  status codes with Netlify's for `/`, `/index.html`, `/sw.js`,
-  `/version.json` and a file under `/assets/`, and explain every difference
-  before moving a domain. (Cloudflare answers `/index.html` with a 307 to
-  `/`; Netlify gives a 200.)
-- **Test an update across the move.** Before a domain moves, install the app
-  from the old host on an iPhone (or the iOS Simulator). Move it, deploy
-  something new, then check that Me › Settings › Version shows the new build
-  without clearing anything.
-- **Live is the owner's call.** Moving thesciclub.com, its DNS or its
-  hosting needs the owner's word, given after the steps above. Tell the
-  person you are working for what you checked.
+The site is on Cloudflare (since 2026-11-20). Installed apps find a new
+version through `/sw.js` and `/version.json`, so both must be fetched fresh
+every time (`Cache-Control: no-cache` in netlify.toml, carried to Cloudflare
+and checked by scripts/cloudflare-site-rules.test.mjs). Cloudflare's
+Caching › Configuration › Browser Cache TTL must stay **Respect Existing
+Headers**, or it overrides them and apps sit on an old copy. Moving hosts
+again: read commit 003ad93a first.
 
 ## Screenshot review (owner, 2026-11-12)
 
