@@ -1,4 +1,4 @@
-import { Bell, BellOff } from 'lucide-react';
+import { AtSign, Bell, BellOff } from 'lucide-react';
 import { useCallback, useId, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { SheetGrip } from '@/components/sheet-grip';
@@ -112,7 +112,9 @@ export function ThreadNotifyButton({
   const choices = NOTIFY_CHOICES.filter(
     (c) => c.value !== 'mentions' || group || notify === 'mentions',
   );
-  const Icon = notify === 'off' ? BellOff : Bell;
+  // A bell alone, like Search beside it (the owner, 2026-11-21); the choice is told by the
+  // icon, and shaded when it is not All.
+  const Icon = notify === 'off' ? BellOff : notify === 'mentions' ? AtSign : Bell;
   return (
     <span className={cn('inline-flex flex-col items-end', className)}>
       <button
@@ -124,17 +126,14 @@ export function ThreadNotifyButton({
         onClick={() => {
           setOpen(true);
         }}
-        data-target="small"
+        title={NOTIFY_CHOICES.find((c) => c.value === notify)?.title}
         className={cn(
-          'inline-flex items-center gap-1 rounded-full px-[0.85em] py-[0.45em] font-bold font-head text-[0.75rem] leading-[1.3] transition-colors',
-          notify === 'all'
-            ? 'border border-line text-emphasis hover:bg-tint'
-            : 'bg-tint text-emphasis hover:bg-line',
+          'flex h-[44px] w-[44px] items-center justify-center rounded-full transition-colors',
+          notify === 'all' ? 'text-ink hover:bg-tint' : 'bg-tint text-emphasis hover:bg-line',
           busy ? 'opacity-50' : '',
         )}
       >
-        <Icon aria-hidden="true" className="h-[1.1em] w-[1.1em] flex-none" />
-        {notify === 'all' ? 'Notify' : notify === 'mentions' ? 'Mentions' : 'Muted'}
+        <Icon aria-hidden="true" className="h-[18px] w-[18px]" />
       </button>
       {error && !open ? (
         <span role="alert" className="mt-1 text-[0.75rem] text-destructive leading-[1.4]">
