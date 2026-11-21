@@ -153,6 +153,22 @@
     Access-Control-Allow-Origin = "*"
     Cache-Control = "no-cache"
 
+# How an installed app finds out there is a new version (src/lib/stay-current.ts):
+# the service worker script and the release it names, asked again every time.
+# Netlify did that for every file without saying so (max-age=0); Cloudflare
+# keeps a file without a rule for four hours, and a Home Screen app on the
+# test site sat on a four-day-old copy after the move (the owner, 2026-11-21).
+# Said here so every host gets it (scripts/cloudflare-site-rules.test.mjs).
+[[headers]]
+  for = "/sw.js"
+  [headers.values]
+    Cache-Control = "no-cache"
+
+[[headers]]
+  for = "/version.json"
+  [headers.values]
+    Cache-Control = "no-cache"
+
 # Built scripts and styles carry a hash of their contents in the name, so a
 # copy never goes stale: a new build is a new name. Kept a year rather than
 # Netlify's default of asking again on every load (max-age=0), which cost a
