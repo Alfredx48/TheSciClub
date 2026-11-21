@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, Navigate } from 'react-router-dom';
 import { BackLink } from '@/components/back-link';
 import { LevelHighlight } from '@/components/injury-stage-pill';
 import { FormerMemberAvatar, MemberAvatar } from '@/components/member-avatar';
@@ -23,6 +23,15 @@ import {
  * month while the wheel's level keeps counting, and each past month's top ten.
  */
 export default function LeaderboardPage() {
+  const account = useAccount();
+  // For admins to see for now (the owner, 2026-11-20); anybody else who
+  // follows an old link lands on their journey instead.
+  if (account.status === 'loading') return null;
+  if (account.status !== 'member' || !account.isAdmin) return <Navigate to="/me/journey" replace />;
+  return <Board />;
+}
+
+function Board() {
   const account = useAccount();
   const me = account.status === 'member' ? account.userId : null;
   const [found, setFound] = useState<

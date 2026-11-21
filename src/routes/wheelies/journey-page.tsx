@@ -59,7 +59,12 @@ export default function JourneyPage() {
             There are no Wheelie points to show here.
           </p>
         ) : (
-          <Journey breakdown={breakdown} own={own} first={first} />
+          <Journey
+            breakdown={breakdown}
+            own={own}
+            first={first}
+            admin={account.status === 'member' && account.isAdmin}
+          />
         )}
       </div>
     </div>
@@ -70,10 +75,13 @@ function Journey({
   breakdown,
   own,
   first,
+  admin,
 }: {
   breakdown: WheelieBreakdown;
   own: boolean;
   first: string | undefined;
+  /** The leaderboard is for admins to see for now (the owner, 2026-11-20). */
+  admin: boolean;
 }) {
   const wheel = wheelOf(breakdown.total);
   return (
@@ -100,19 +108,21 @@ function Journey({
         Members earn Wheelie points for taking part in the club. Tap a row to see where{' '}
         {own ? 'yours' : `${first ?? 'their'}’s`} came from.
       </p>
-      <p className="mt-1 flex gap-5">
+      <p className="mt-1 flex flex-wrap gap-x-5">
         <Link
           to="/wheelie-points"
           className="inline-flex min-h-[44px] items-center font-semibold text-[0.8125rem] text-emphasis underline underline-offset-2"
         >
           How Wheelie points work
         </Link>
-        <Link
-          to="/wheelie-points/leaderboard"
-          className="inline-flex min-h-[44px] items-center font-semibold text-[0.8125rem] text-emphasis underline underline-offset-2"
-        >
-          Leaderboard
-        </Link>
+        {admin ? (
+          <Link
+            to="/wheelie-points/leaderboard"
+            className="inline-flex min-h-[44px] items-center font-semibold text-[0.8125rem] text-emphasis underline underline-offset-2"
+          >
+            Leaderboard (admins only)
+          </Link>
+        ) : null}
       </p>
 
       <div className="mt-2 overflow-hidden rounded-[17px] border border-line bg-paper">
