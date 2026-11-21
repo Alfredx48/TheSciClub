@@ -47,7 +47,6 @@ const SCREENS = [
   '/invites',
   '/join',
   '/me',
-  '/me/posts',
   '/me/qr',
   '/me/saved',
   '/notifications',

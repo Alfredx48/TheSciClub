@@ -107,31 +107,25 @@ function Journey({
       <p className="mt-4 text-[0.8125rem] text-ink2 leading-[1.5]">
         Members earn Wheelie points for taking part in the club. Tap a row to see where{' '}
         {own ? 'yours' : `${first ?? 'their'}’s`} came from.
+        {own
+          ? ' It’s also a good place to look back on your history, like your posts and the events you went to.'
+          : null}
       </p>
-      <p className="mt-1 flex flex-wrap gap-x-5">
+
+      <div className="mt-3 overflow-hidden rounded-[17px] border border-line bg-paper">
+        {rowsOf(breakdown, own, first).map((row) => (
+          <Row key={row.label} row={row} />
+        ))}
+      </div>
+
+      {/* Under the table (the owner, 2026-11-21). */}
+      <p className="mt-2 flex flex-wrap gap-x-5">
         <Link
           to="/wheelie-points"
           className="inline-flex min-h-[44px] items-center font-semibold text-[0.8125rem] text-emphasis underline underline-offset-2"
         >
           How Wheelie points work
         </Link>
-        {/* My posts and Saved moved here from the Me tab (the owner, 2026-11-21). */}
-        {own ? (
-          <>
-            <Link
-              to="/me/posts"
-              className="inline-flex min-h-[44px] items-center font-semibold text-[0.8125rem] text-emphasis underline underline-offset-2"
-            >
-              My posts
-            </Link>
-            <Link
-              to="/me/saved"
-              className="inline-flex min-h-[44px] items-center font-semibold text-[0.8125rem] text-emphasis underline underline-offset-2"
-            >
-              Saved
-            </Link>
-          </>
-        ) : null}
         {admin ? (
           <Link
             to="/wheelie-points/leaderboard"
@@ -141,12 +135,6 @@ function Journey({
           </Link>
         ) : null}
       </p>
-
-      <div className="mt-2 overflow-hidden rounded-[17px] border border-line bg-paper">
-        {rowsOf(breakdown, own, first).map((row) => (
-          <Row key={row.label} row={row} />
-        ))}
-      </div>
     </>
   );
 }
