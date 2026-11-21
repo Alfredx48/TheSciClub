@@ -36,21 +36,37 @@ import { PhotoPicker, PhotoStrip } from '@/routes/chat/photo-picker';
  * `replyingTo` draws the reply bar and moves focus into the box. `mentions` suggests members
  * after "@" (20261029070000); `mentionScope` says where to look (the owner, 2026-10-29).
  */
-/** About six lines. Mirrored by `max-h-[150px]` on the textarea below. */
-const MAX_HEIGHT = 150;
+/** About six lines: the least the box may grow to, however short the screen. */
+const MIN_CAP = 150;
+/**
+ * The share of the visible screen the box may grow to (the owner, 2026-11-21: room for a long
+ * message). Visible means above the keyboard on a phone, so the conversation keeps the rest.
+ */
+const SCREEN_SHARE = 0.5;
+
+/** The tallest the box may grow, from the screen as it is now. */
+function maxHeight(visible: number): number {
+  return Math.max(MIN_CAP, Math.floor(visible * SCREEN_SHARE));
+}
+
+function visibleHeight(): number {
+  return window.visualViewport?.height ?? window.innerHeight;
+}
 
 /**
- * Grow the box to fit, up to MAX_HEIGHT. Measured, not counted, as only the browser knows where
+ * Grow the box to fit, up to maxHeight. Measured, not counted, as only the browser knows where
  * lines wrap. See the header: the lines that look redundant are the ones that matter.
  */
 function fitToContent(element: HTMLTextAreaElement) {
+  const cap = maxHeight(visibleHeight());
+  element.style.maxHeight = `${cap}px`;
   element.style.overflowY = 'hidden';
   element.style.height = 'auto';
   // offsetHeight - clientHeight is the borders as actually used; overflowY hidden above means a
   // leftover scrollbar cannot have moved the wrap.
   const wanted = element.scrollHeight + (element.offsetHeight - element.clientHeight);
-  element.style.height = `${Math.min(wanted, MAX_HEIGHT)}px`;
-  element.style.overflowY = wanted > MAX_HEIGHT ? 'auto' : 'hidden';
+  element.style.height = `${Math.min(wanted, cap)}px`;
+  element.style.overflowY = wanted > cap ? 'auto' : 'hidden';
 }
 
 export interface ComposerEditing {
@@ -235,6 +251,19 @@ export function Composer({
     if (element) fitToContent(element);
   }
 
+  // The keyboard opening or the window changing size changes how tall the box may be.
+  useEffect(() => {
+    const viewport = window.visualViewport ?? window;
+    const refit = () => {
+      const element = box.current;
+      if (element) fitToContent(element);
+    };
+    viewport.addEventListener('resize', refit);
+    return () => {
+      viewport.removeEventListener('resize', refit);
+    };
+  }, []);
+
   const mention = useMentionSuggestions({
     box,
     value: draft,
@@ -370,7 +399,7 @@ export function Composer({
           send();
         }
       }}
-      className="max-h-[150px] min-h-[44px] flex-1 resize-none rounded-[22px] border-[1.6px] border-line bg-canvas px-[15px] py-[11px] text-[0.9375rem] text-ink leading-[1.45] outline-none focus:border-emphasis focus:bg-paper"
+      className="min-h-[44px] flex-1 resize-none rounded-[22px] border-[1.6px] border-line bg-canvas px-[15px] py-[11px] text-[0.9375rem] text-ink leading-[1.45] outline-none focus:border-emphasis focus:bg-paper"
     />
   );
 
