@@ -258,10 +258,7 @@ const ATTEMPT = 'Could not load the posts.';
  * Read once, on arrival. Home does not subscribe to changes; the page's header
  * says why.
  */
-export function useHomeTopics(
-  view: HomeView = DEFAULT_HOME_VIEW,
-  initial?: unknown[],
-): HomeTopicsState {
+export function useHomeTopics(view: HomeView = DEFAULT_HOME_VIEW): HomeTopicsState {
   const [state, setState] = useState<HomeTopicsState>({
     topics: [],
     posts: [],

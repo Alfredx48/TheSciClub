@@ -3,11 +3,7 @@ import { appendFile, readFile } from 'node:fs/promises';
 import { extname, resolve } from 'node:path';
 import { devices, webkit } from 'playwright';
 
-// Only the test site's hostname opts into the combined request.
-const addresses = {
-  separate: 'https://separate.sciclub.test',
-  combined: 'https://tests.thesciclub.com',
-};
+const address = 'https://tests.thesciclub.com';
 const dist = resolve('dist');
 const api = 'https://supabase.test.invalid';
 const shell = await readFile(resolve(dist, 'index.html'), 'utf8');
@@ -83,17 +79,14 @@ const media = {
 const fixtures = { members: member, chat_rooms: [room], 'rpc/home_feed': feed };
 const rtt = 170;
 const membershipWork = 30;
-const roomsWork = 20;
 const timing = {
-  usual: { feedWork: 95, reps: 5 },
-  slow: { feedWork: 500, reps: 5 },
-  fallback: { feedWork: 95, reps: 3 },
+  usual: { roomWork: 20, reps: 5 },
+  slow: { roomWork: 600, reps: 5 },
 };
 const relevant = ['rpc/home_startup', 'members', 'rpc/home_feed', 'chat_rooms'];
 const browser = await webkit.launch({ executablePath: process.env.WEBKIT_PATH });
 
 async function run(flow, scenario) {
-  const address = addresses[flow];
   const context = await browser.newContext({ ...devices['iPhone 13'], serviceWorkers: 'block' });
   try {
     await context.addInitScript(
@@ -148,26 +141,16 @@ async function run(flow, scenario) {
       if (url.origin !== api) return route.abort();
       const endpoint = url.pathname.replace(/^\/rest\/v1\//, '');
       if (relevant.includes(endpoint)) calls.push(endpoint);
-      const { feedWork } = timing[scenario];
+      const { roomWork } = timing[scenario];
       let delay;
       let payload = fixtures[endpoint] ?? [];
-      if (endpoint === 'rpc/home_startup') {
-        if (scenario === 'fallback') {
-          await new Promise((done) => setTimeout(done, rtt));
-          return route.fulfill({
-            status: 404,
-            json: { code: 'PGRST202', message: 'Missing RPC fixture' },
-            headers,
-          });
-        }
-        delay = rtt + membershipWork + roomsWork + feedWork;
-        payload = { viewer: userId, member, feed, rooms: [room] };
-      } else if (endpoint === 'members') {
+      if (endpoint === 'members') {
         delay = rtt + membershipWork;
       } else if (endpoint === 'rpc/home_feed') {
-        delay = rtt + feedWork;
+        delay = rtt + 95;
+        if (flow === 'early cards') payload = feed.map((row) => ({ ...row, room }));
       } else if (endpoint === 'chat_rooms') {
-        delay = rtt + roomsWork;
+        delay = rtt + roomWork;
       } else {
         delay = rtt;
       }
@@ -184,13 +167,7 @@ async function run(flow, scenario) {
     );
     const times = await value.jsonValue();
     assert(times.tabs > 0 && times.text > 0);
-    if (flow === 'combined' && scenario !== 'fallback') {
-      assert.deepEqual(calls, ['rpc/home_startup']);
-    } else {
-      const separate = ['chat_rooms', 'members', 'rpc/home_feed'];
-      const expected = scenario === 'fallback' ? [...separate, 'rpc/home_startup'] : separate;
-      assert.deepEqual(calls.sort(), expected);
-    }
+    assert.deepEqual(calls.sort(), ['chat_rooms', 'members', 'rpc/home_feed']);
     return { tabs: Math.round(times.tabs), text: Math.round(times.text) };
   } finally {
     await context.close();
@@ -200,14 +177,10 @@ async function run(flow, scenario) {
 try {
   const results = {};
   for (const [scenario, { reps }] of Object.entries(timing)) {
-    const samples = { separate: [], combined: [] };
+    const samples = { legacy: [], 'early cards': [] };
     for (let i = 0; i < reps; i++) {
-      if (scenario === 'fallback') {
-        samples.combined.push(await run('combined', scenario));
-      } else {
-        for (const flow of i % 2 ? ['combined', 'separate'] : ['separate', 'combined']) {
-          samples[flow].push(await run(flow, scenario));
-        }
+      for (const flow of i % 2 ? ['early cards', 'legacy'] : ['legacy', 'early cards']) {
+        samples[flow].push(await run(flow, scenario));
       }
     }
     results[scenario] = samples;
@@ -226,10 +199,10 @@ try {
   const summary = [
     '## Cold Home startup in WebKit',
     '',
-    `iPhone viewport and simulated responses. Each request has a ${rtt} ms round trip. Feed work takes ${timing.usual.feedWork} ms in the usual case and ${timing.slow.feedWork} ms in the slow case. Fallback returns a missing-RPC error and must still render Home.`,
+    `iPhone viewport and simulated responses. Each request has a ${rtt} ms round trip. Room list work takes ${timing.usual.roomWork} ms in the usual case and ${timing.slow.roomWork} ms in the slow case.`,
     'Timings are reported without pass/fail thresholds.',
     '',
-    '| Scenario | Requests | Launches | Median tabs ready | Median fresh posts |',
+    '| Scenario | Rendering | Launches | Median tabs ready | Median fresh posts |',
     '| --- | --- | ---: | ---: | ---: |',
     ...rows,
     '',

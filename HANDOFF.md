@@ -784,12 +784,9 @@ All live. Migration headers and the files named say how and why.
 - **Reading on Home**: the organization directory waits for a possible
   mention or a screen that needs the directory. Feed responses with room
   labels let Home show cards while the room picker loads.
-- **Test PWA Home startup**: a cold `/home` reads membership, default posts
-  and room labels with `home_startup`. It uses the caller's permissions
-  and returns posts and rooms only to active members. Apply the migration
-  to the test database before deploying the web change.
-  The Home startup bot workflow on `tests` compares tappable tabs and fresh
-  posts in WebKit with simulated responses. The medians are in the run summary.
+- **Test PWA Home startup**: a cold `/home` starts the feed and membership
+  reads in parallel, as on main. The Home startup bot compares card timing
+  with and without room labels in the feed. WebKit medians are in the run summary.
 - **Home is posts alone, read in one request** (2026-11-18, "for now"): no
   event or peer cards, none of their reads, no Events or People under Type
   and no Distance in the filter; members find those in their own tabs. The

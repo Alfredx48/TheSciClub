@@ -1,10 +1,9 @@
 import { Search } from 'lucide-react';
-import { Fragment, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import { FilterButton } from '@/components/filter-button';
 import { LoadingCards } from '@/components/loading-cards';
 import { NotificationBell, useWideLayout } from '@/components/notification-bell';
-import { AccountContext } from '@/lib/account-context';
 import { useChatAuthors } from '@/lib/chat/authors';
 import { usePostLikes, voteFor } from '@/lib/chat/likes';
 import { useReactions } from '@/lib/chat/reactions';
@@ -70,7 +69,6 @@ const NO_PEOPLE: never[] = [];
  */
 const POST_REQUESTS = [
   'table:members',
-  'rpc:home_startup',
   'rpc:home_feed',
   'rpc:home_topics_ranked',
   'rpc:home_topics_shown',
@@ -82,7 +80,6 @@ export default function HomePage() {
   const [searching, setSearching] = useState(false);
   const wide = useWideLayout();
   const session = useSession();
-  const startup = useContext(AccountContext)?.homeStartup;
   const memberId = session.status === 'signed-in' ? session.userId : null;
 
   // In the URL, as on Events and Chat: back returns to the pill, and it can be linked.
@@ -109,8 +106,8 @@ export default function HomePage() {
     () => ({ show: filters.show, sort: filters.sort }),
     [filters.show, filters.sort],
   );
-  const topicRead = useHomeTopics(view, startup?.feed);
-  const rooms = useChatRooms(startup?.rooms);
+  const topicRead = useHomeTopics(view);
+  const rooms = useChatRooms();
   const [sheetOpen, setSheetOpen] = useState(false);
 
   const cardRooms = rooms.loading || rooms.error ? (topicRead.rooms ?? rooms.rooms) : rooms.rooms;
