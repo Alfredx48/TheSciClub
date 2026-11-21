@@ -18,7 +18,14 @@ import { cloudflareHeaders, cloudflareRedirects } from './cloudflare-site-rules.
 
 const toml = readFileSync('netlify.toml', 'utf8');
 const headers = cloudflareHeaders(toml, process.env.TEST_SUPABASE_REF);
-writeFileSync('dist/_headers', headers);
+// The test site stays out of search, every page of it: live lists /join and
+// the legal pages (netlify.toml, 2026-11-20), the test site lists nothing.
+const testSite = Boolean(process.env.TEST_SUPABASE_REF);
+writeFileSync(
+  'dist/_headers',
+  testSite ? `${headers}\n/*\n  X-Robots-Tag: noindex, nofollow\n` : headers,
+);
+if (testSite) writeFileSync('dist/robots.txt', 'User-agent: *\nDisallow: /\n');
 writeFileSync('dist/_redirects', cloudflareRedirects(toml));
 console.log(
   process.env.TEST_SUPABASE_REF
