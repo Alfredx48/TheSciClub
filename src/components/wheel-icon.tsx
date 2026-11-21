@@ -17,12 +17,12 @@ export function WheelIcon({ wheel, className }: { wheel: Wheel; className?: stri
   const color = levelColor(wheel);
   // The tyre's outer edge meets the box; the push rim sits a gap inside it,
   // and the spokes end at the push rim so the gap is one even ring.
-  const rim = 10.9;
-  const pushRim = 8.3;
+  const rim = 11.2;
+  const pushRim = 8.4;
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true" className={className}>
-      <circle cx="12" cy="12" r={rim} fill="none" stroke={color} strokeWidth="2.2" />
-      <circle cx="12" cy="12" r={pushRim} fill="none" stroke={color} strokeWidth="1.3" />
+      <circle cx="12" cy="12" r={rim} fill="none" stroke={color} strokeWidth="1.5" />
+      <circle cx="12" cy="12" r={pushRim} fill="none" stroke={color} strokeWidth="0.8" />
       {Array.from({ length: SPOKES }, (_, i) => {
         const angle = ((-90 + (i * 360) / SPOKES) * Math.PI) / 180;
         const filled = i < wheel.spokes;
@@ -35,7 +35,7 @@ export function WheelIcon({ wheel, className }: { wheel: Wheel; className?: stri
             x2={12 + pushRim * Math.cos(angle)}
             y2={12 + pushRim * Math.sin(angle)}
             stroke={color}
-            strokeOpacity={filled ? 1 : 0.5}
+            strokeOpacity={filled ? 1 : 0.6}
             strokeWidth={filled ? 1.2 : 0.9}
             strokeLinecap="round"
           />
