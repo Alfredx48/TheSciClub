@@ -67,7 +67,7 @@ describe('the static account-deletion page', () => {
 
 /** The first screen of /join, readable without running the app. */
 describe('the static join page', () => {
-  const html = withPage(shell, join.title, join.Page, join.indexed);
+  const html = withPage(shell, join.title, join.Page, join.indexed, join.description);
 
   it('links the Privacy Policy and the Terms from the first screen', () => {
     expect(html).toContain('Join the club');
@@ -80,8 +80,10 @@ describe('the static join page', () => {
     expect(html).not.toContain('sms-consent');
   });
 
-  it('keeps its noindex and still starts the app', () => {
-    expect(html).toContain('name="robots"');
+  // Found by a search for an SCI community (the owner, 2026-11-20).
+  it('is listed for search, with a description, and still starts the app', () => {
+    expect(html).not.toContain('name="robots"');
+    expect(html).toContain('<meta name="description" content="A private community');
     expect(html).toContain('<script type="module"');
   });
 });

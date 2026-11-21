@@ -21,8 +21,10 @@ const vite = await createServer({
 try {
   const { STATIC_PAGES, withPage } = await vite.ssrLoadModule('/src/routes/legal/static.tsx');
   const shell = await readFile('dist/index.html', 'utf8');
-  for (const { file, title, Page, indexed } of STATIC_PAGES) {
-    await writeFile(`dist/${file}`, withPage(shell, title, Page, indexed));
+  for (const page of STATIC_PAGES) {
+    const { file, title, Page, indexed } = page;
+    const description = 'description' in page ? page.description : undefined;
+    await writeFile(`dist/${file}`, withPage(shell, title, Page, indexed, description));
     console.log(`  dist/${file}`);
   }
 } finally {

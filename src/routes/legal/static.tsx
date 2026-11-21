@@ -21,7 +21,9 @@ import { WelcomeScreen } from '@/routes/onboarding/welcome';
  * `JoinPage`.
  *
  * Not the member pages. Those stay an empty shell on purpose, and keep the
- * noindex this removes from the legal pages.
+ * noindex this removes from the legal pages and /join (index.html's meta; the
+ * site-wide X-Robots-Tag header went on 2026-11-20, as a header cannot be
+ * lifted for one path on Netlify).
  */
 
 /** Nothing to do: a press before the app has started is a press on nothing. */
@@ -49,9 +51,22 @@ export const STATIC_PAGES = [
     Page: DeleteAccountPage,
     indexed: true,
   },
-  // Keeps its noindex: it is a door, not a document.
-  { file: 'join.html', title: 'Join', Page: JoinPage, indexed: false },
+  // Listed since 2026-11-20 (the owner): somebody searching for an SCI
+  // community finds the club here and asks for an invite from it.
+  {
+    file: 'join.html',
+    title: 'Join',
+    Page: JoinPage,
+    indexed: true,
+    description:
+      'A private community for people living with spinal cord injury: meet peers and mentors, ask what you can’t ask anyone else, and find SCI events. Request an invite to join.',
+  },
 ] as const;
+
+/** For an attribute's value: what would end it or start an entity. */
+function escapeAttribute(text: string): string {
+  return text.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+}
 
 const ROBOTS = /\s*<meta name="robots" content="noindex, nofollow" \/>/;
 const TITLE = '<title>The Sci Club</title>';
@@ -66,6 +81,7 @@ export function withPage(
   title: string,
   Page: () => React.ReactElement,
   indexed = true,
+  description?: string,
 ): string {
   if (!ROBOTS.test(shell) || !shell.includes(TITLE) || !shell.includes(ROOT)) {
     throw new Error('index.html no longer has the robots meta, title and root this expects');
@@ -77,6 +93,11 @@ export function withPage(
   );
   return shell
     .replace(ROBOTS, (meta) => (indexed ? '' : meta))
-    .replace(TITLE, `<title>${title} · The Sci Club</title>`)
+    .replace(
+      TITLE,
+      `<title>${title} · The Sci Club</title>${
+        description ? `<meta name="description" content="${escapeAttribute(description)}" />` : ''
+      }`,
+    )
     .replace(ROOT, `<div id="root">${markup}</div>`);
 }

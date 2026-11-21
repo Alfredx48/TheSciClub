@@ -16,7 +16,7 @@ import { Link } from 'react-router-dom';
  * There is no HTTP status behind this. The app is a single page and the host
  * rewrites every path to index.html, deliberately — see netlify.toml, where
  * that rewrite is what stops a reload of /peers 404ing. So this is what "not
- * found" looks like here, and the noindex header covers the crawler half.
+ * found" looks like here, and index.html's noindex covers the crawler half.
  */
 export default function NotFoundPage() {
   return (

@@ -1,0 +1,7 @@
+# The club's public pages may be listed: /join (to ask for an invite), the
+# Privacy Policy, the Terms and Deleting your account. Every other page is a
+# member's and carries noindex, and needs a session besides (2026-11-20).
+User-agent: *
+Allow: /
+
+Sitemap: https://thesciclub.com/sitemap.xml

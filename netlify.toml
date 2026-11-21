@@ -68,10 +68,10 @@
 [[headers]]
   for = "/*"
   [headers.values]
-    # index.html already carries a noindex meta. This is the same instruction
-    # in a header, which is what a crawler sees first and what covers the
-    # responses that are not HTML.
-    X-Robots-Tag = "noindex, nofollow"
+    # No X-Robots-Tag here since 2026-11-20 (the owner): a header on "/*"
+    # cannot be lifted for one path, and /join, /privacy and /terms are listed
+    # for search. Every other page is index.html, whose robots meta keeps it
+    # out (src/routes/legal/static.tsx), and member data needs a session.
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
     # Nothing here needs a camera, a microphone, or a location beyond the one
