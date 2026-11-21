@@ -204,7 +204,7 @@ function partInWords(part: string): string {
   return PARTS[part] ?? part.replace(/^q:/, '').replaceAll('_', ' ');
 }
 
-/** The 2-pager's seven rows, in its order, each with its history. */
+/** The 2-pager's seven rows in its order, with what the member gave (2026-11-21), each with its history. */
 function rowsOf(b: WheelieBreakdown, own: boolean, first: string | undefined): RowData[] {
   const n = (kind: string) => b.kinds[kind]?.count ?? 0;
   const p = (...kinds: string[]) =>
@@ -305,6 +305,34 @@ function rowsOf(b: WheelieBreakdown, own: boolean, first: string | undefined): R
           meta: pieces([many(post.responses, 'reply or reaction', 'replies and reactions')]),
           points: post.responses * 3,
         })),
+    },
+    {
+      // Given, not received (the owner, 2026-11-21: "your full history"). Which
+      // post and which way only to the member: a downvote is never shown.
+      label: 'Votes and reactions given',
+      detail: joined([
+        many(n('voted'), 'vote', 'votes'),
+        many(n('reacted'), 'reaction', 'reactions'),
+      ]),
+      points: p('voted', 'reacted'),
+      how: `1 for each upvote, downvote or reaction given to another member\u2019s question, post, answer or comment.${own ? ' Only you can see this list.' : ''}`,
+      none: own
+        ? 'No votes or reactions yet.'
+        : `${n('voted') + n('reacted')} votes and reactions. Only ${first ?? 'they'} can see which.`,
+      items: (b.given ?? []).map((given) => ({
+        key: `${given.kind}-${given.postId}`,
+        title: given.title,
+        to: `/chat/rooms/${given.roomId}/topics/${given.topicId}?post=${given.postId}`,
+        meta: [
+          given.kind === 'upvote'
+            ? 'Upvoted'
+            : given.kind === 'downvote'
+              ? 'Downvoted'
+              : `Reacted ${given.emoji ?? ''}`.trim(),
+          chatTime(given.at),
+        ],
+        points: given.points,
+      })),
     },
     {
       label: 'Profile parts completed',

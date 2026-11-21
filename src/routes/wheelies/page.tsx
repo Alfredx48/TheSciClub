@@ -29,6 +29,10 @@ const EARNING: readonly { what: string; points: string }[] = [
     points: '5, plus 10 for each upvote and 3 for each reply or reaction it gets',
   },
   {
+    what: 'Upvote, downvote or react to another member\u2019s question, post, answer or comment',
+    points: '1 each',
+  },
+  {
     what: 'Complete a part of your profile',
     points:
       '10 for each part: a photo, your injury or condition, when you were injured, your city, your state, and each answer in the profile survey',

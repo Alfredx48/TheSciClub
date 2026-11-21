@@ -98,10 +98,23 @@ export interface WheelieEvent {
   points: number;
 }
 
+/** A vote or reaction the member gave somebody else's post, a point each (20261121080000). */
+export interface WheelieGiven {
+  postId: string;
+  topicId: string;
+  roomId: string;
+  title: string;
+  kind: 'upvote' | 'downvote' | 'reaction';
+  emoji: string | null;
+  at: string;
+  points: number;
+}
+
 export interface WheelieBreakdown {
   total: number;
   /** Points and how many times, by kind: 'rsvp', 'check_in', 'review', 'question', 'post',
-   * 'first_question', 'reply', 'upvote', 'response', 'profile', 'streak'. */
+   * 'first_question', 'reply', 'upvote', 'response', 'profile', 'streak', and given:
+   * 'voted' (up or down, never said which to anybody else) and 'reacted'. */
   kinds: Partial<Record<string, { count: number; points: number }>>;
   /** Days in a row up to today or yesterday. */
   streak: number;
@@ -113,6 +126,20 @@ export interface WheelieBreakdown {
   /** The parts of their profile that earned ('photo', 'q:bio' …), to the member
    * themselves; null to anybody else. */
   parts: string[] | null;
+  /** Their votes and reactions on others' posts, to the member themselves; null to anybody
+   * else, and from a database before 20261121080000. */
+  given: WheelieGiven[] | null;
+}
+
+interface GivenRow {
+  post_id: string;
+  topic_id: string;
+  room_id: string;
+  title: string;
+  kind: WheelieGiven['kind'];
+  emoji: string | null;
+  at: string;
+  points: number;
 }
 
 interface EventRow {
@@ -156,6 +183,7 @@ export async function loadWheelieBreakdown(memberId: string): Promise<WheelieBre
       best_streak?: number;
       events?: EventRow[];
       parts?: string[] | null;
+      given?: GivenRow[] | null;
     } | null;
     error: unknown;
   };
@@ -192,6 +220,17 @@ export async function loadWheelieBreakdown(memberId: string): Promise<WheelieBre
       points: e.points,
     })),
     parts: data.parts ?? null,
+    given:
+      data.given?.map((g) => ({
+        postId: g.post_id,
+        topicId: g.topic_id,
+        roomId: g.room_id,
+        title: g.title,
+        kind: g.kind,
+        emoji: g.emoji,
+        at: g.at,
+        points: g.points,
+      })) ?? null,
   };
 }
 
