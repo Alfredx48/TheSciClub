@@ -55,8 +55,9 @@ import { BlockMemberSheet } from '@/routes/peers/block-sheet';
  *
  * Enter sends here (Shift+Enter breaks a line); in a topic only the button sends.
  *
- * Opens at the bottom, and follows new messages down only if the reader was already there: a
- * reader who scrolled up is reading. The threshold is `shouldFollowScroll` (threads.test.ts).
+ * Opens at the bottom, and follows new messages down only if the reader was already there or
+ * wrote it: a reader who scrolled up is reading. The threshold is `shouldFollowScroll`
+ * (threads.test.ts). It stays at the bottom when the keyboard makes the list shorter.
  *
  * A group's "N members" links to the members screen; a pair's subtitle is not a link.
  *
@@ -298,7 +299,11 @@ function ThreadScreen({ threadId }: { threadId: string | undefined }) {
     pin,
   ]);
 
-  // Afterwards, follow a new newest message only if the reader was already there.
+  // Afterwards, follow a new newest message only if the reader was already
+  // there, or wrote it: what somebody just sent is what they want to see (the
+  // owner, 2026-11-20: "every time I type a message I have to scroll to the
+  // bottom"; theirs was announced by New messages ↓ like anybody's).
+  const newestMine = account.userId !== null && messages.at(-1)?.authorId === account.userId;
   useEffect(() => {
     if (!opened.current || newestId === seen.current) return;
     seen.current = newestId;
@@ -308,9 +313,31 @@ function ThreadScreen({ threadId }: { threadId: string | undefined }) {
     // Held means the reader is at the bottom, whatever the arithmetic says now
     // that the new message has already made the list taller.
     const distance = element.scrollHeight - element.scrollTop - element.clientHeight;
-    if (pin.holding() || shouldFollowScroll(distance)) toBottom('smooth');
+    if (newestMine || pin.holding() || shouldFollowScroll(distance)) toBottom('smooth');
     else setBehind(true);
-  }, [newestId, toBottom, pin]);
+  }, [newestId, newestMine, toBottom, pin]);
+
+  // A reader at the bottom stays there when the list itself gets shorter: the
+  // keyboard coming up, or the box growing a line, covered the newest messages
+  // and left them a keyboard's height from the bottom, which nothing followed.
+  const listReady = !loading && thread !== null;
+  useEffect(() => {
+    const element = scroller.current;
+    if (!listReady || !element || typeof ResizeObserver === 'undefined') return;
+    let height = element.clientHeight;
+    const observer = new ResizeObserver(() => {
+      const before = height;
+      height = element.clientHeight;
+      if (height === before) return;
+      // Where they were before the height changed, as the top has not moved.
+      const distance = element.scrollHeight - element.scrollTop - before;
+      if (pin.holding() || shouldFollowScroll(distance)) snapToBottom();
+    });
+    observer.observe(element);
+    return () => {
+      observer.disconnect();
+    };
+  }, [listReady, pin, snapToBottom]);
 
   // The dots come into view for a reader at the bottom, as a message would;
   // one reading further up is left where they are.
