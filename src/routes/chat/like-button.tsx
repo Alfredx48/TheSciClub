@@ -4,7 +4,6 @@ import { Link } from 'react-router-dom';
 import { LevelHighlight } from '@/components/injury-stage-pill';
 import { MemberAvatar } from '@/components/member-avatar';
 import { SheetGrip } from '@/components/sheet-grip';
-import { WheelBadge } from '@/components/wheel-badge';
 import { useChatAuthors } from '@/lib/chat/authors';
 import type { PostVote, Vote } from '@/lib/chat/likes';
 import { useDialogFocus } from '@/lib/dialog-focus';
@@ -363,7 +362,6 @@ export function LikesSheet({
                           band={author.band}
                           injuryType={author.injuryType}
                         />
-                        <WheelBadge memberId={author.id} still className="ml-1.5" />
                       </span>
                     ) : null}
                   </span>

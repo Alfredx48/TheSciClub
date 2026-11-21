@@ -3,8 +3,9 @@ import { getSupabase } from '@/lib/supabase';
 
 /**
  * Wheelie points (20261121030000; the owner's 2-pager, 2026-11-20): what a
- * member has earned for taking part, shown as a wheel beside their name. Its
- * colour is their level; its seven spokes fill one at a time on the way to the
+ * member has earned for taking part, shown as a wheel on their journey in
+ * the club (the Me tab and their profile; the owner, 2026-11-20, took it off
+ * names everywhere else as too loud). Its colour is their level; its seven spokes fill one at a time on the way to the
  * next, and when all seven would be full the wheel takes the next colour and
  * they start over.
  */
@@ -62,74 +63,6 @@ export function pointsInWords(points: number): string {
   return points.toLocaleString('en-US');
 }
 
-// ------------------------------------------------------------ the totals --
-
-/**
- * Everybody's total, read in one go: the club is hundreds of members, and a
- * wheel is drawn beside nearly every name. The database works them out again
- * every five minutes, so they are kept that long here.
- */
-const KEEP_MS = 5 * 60 * 1000;
-
-let kept: { at: number; points: Map<string, number> } | null = null;
-let reading: Promise<Map<string, number> | null> | null = null;
-const listeners = new Set<(points: Map<string, number>) => void>();
-
-async function readAll(): Promise<Map<string, number> | null> {
-  const { data, error } = (await getSupabase()
-    .from('member_wheelies')
-    .select('member_id, points')) as {
-    data: { member_id: string; points: number }[] | null;
-    error: unknown;
-  };
-  // Not there yet (a database before 20261121030000), or signed out: no wheels.
-  if (error || !data) return null;
-  return new Map(data.map((row) => [row.member_id, row.points]));
-}
-
-function load(): Promise<Map<string, number> | null> {
-  if (kept && Date.now() - kept.at < KEEP_MS) return Promise.resolve(kept.points);
-  reading ??= readAll()
-    .then((points) => {
-      if (points) {
-        kept = { at: Date.now(), points };
-        for (const listener of listeners) listener(points);
-      }
-      return points;
-    })
-    .catch(() => null)
-    .finally(() => {
-      reading = null;
-    });
-  return reading;
-}
-
-/** Signing out, or into another account. */
-export function forgetWheelies(): void {
-  kept = null;
-}
-
-/** A member's points, or null until read (and for anybody without a wheel). */
-export function useWheeliePoints(memberId: string | null | undefined): number | null {
-  const [points, setPoints] = useState<Map<string, number> | null>(() => kept?.points ?? null);
-  useEffect(() => {
-    let live = true;
-    const listener = (next: Map<string, number>) => {
-      if (live) setPoints(next);
-    };
-    listeners.add(listener);
-    void load().then((found) => {
-      if (live && found) setPoints(found);
-    });
-    return () => {
-      live = false;
-      listeners.delete(listener);
-    };
-  }, []);
-  if (!memberId || !points) return null;
-  return points.get(memberId) ?? null;
-}
-
 // ------------------------------------------------- one member's, taken apart --
 
 /** What one post of theirs earned (public.member_wheelie_points). */
@@ -151,6 +84,20 @@ export interface WheeliePost {
   points: number;
 }
 
+/** An event that earned them points, with what for. */
+export interface WheelieEvent {
+  eventId: string;
+  title: string;
+  startTime: string;
+  /** The event's own time zone, for its date. */
+  timezone: string;
+  allDay: boolean;
+  rsvp: number;
+  checkIn: number;
+  review: number;
+  points: number;
+}
+
 export interface WheelieBreakdown {
   total: number;
   /** Points and how many times, by kind: 'rsvp', 'check_in', 'review', 'question', 'post',
@@ -159,6 +106,25 @@ export interface WheelieBreakdown {
   /** Days in a row up to today or yesterday. */
   streak: number;
   posts: WheeliePost[];
+  /** Their longest run of days. */
+  bestStreak: number;
+  /** Events the reader may see. */
+  events: WheelieEvent[];
+  /** The parts of their profile that earned ('photo', 'q:bio' …), to the member
+   * themselves; null to anybody else. */
+  parts: string[] | null;
+}
+
+interface EventRow {
+  event_id: string;
+  title: string;
+  start_time: string;
+  timezone: string | null;
+  all_day: boolean | null;
+  rsvp: number;
+  check_in: number;
+  review: number;
+  points: number;
 }
 
 interface PostRow {
@@ -187,6 +153,9 @@ export async function loadWheelieBreakdown(memberId: string): Promise<WheelieBre
       kinds: WheelieBreakdown['kinds'];
       streak: number;
       posts: PostRow[];
+      best_streak?: number;
+      events?: EventRow[];
+      parts?: string[] | null;
     } | null;
     error: unknown;
   };
@@ -209,10 +178,28 @@ export async function loadWheelieBreakdown(memberId: string): Promise<WheelieBre
       responses: p.responses,
       points: p.points,
     })),
+    // Absent from a database before 20261121070000.
+    bestStreak: data.best_streak ?? data.streak,
+    events: (data.events ?? []).map((e) => ({
+      eventId: e.event_id,
+      title: e.title,
+      startTime: e.start_time,
+      timezone: e.timezone ?? 'America/Los_Angeles',
+      allDay: e.all_day === true,
+      rsvp: e.rsvp,
+      checkIn: e.check_in,
+      review: e.review,
+      points: e.points,
+    })),
+    parts: data.parts ?? null,
   };
 }
 
-export function useWheelieBreakdown(memberId: string | null | undefined): WheelieBreakdown | null {
+/** A member's Wheelie points taken apart: undefined while it is read, null when there is
+ * nothing to show. */
+export function useWheelieBreakdown(
+  memberId: string | null | undefined,
+): WheelieBreakdown | null | undefined {
   const [found, setFound] = useState<{ id: string; breakdown: WheelieBreakdown | null } | null>(
     null,
   );
@@ -228,34 +215,8 @@ export function useWheelieBreakdown(memberId: string | null | undefined): Wheeli
       live = false;
     };
   }, [memberId]);
-  return found && found.id === memberId ? found.breakdown : null;
-}
-
-/** "one upvote", "3 upvotes". */
-function counted(n: number, one: string, many: string): string {
-  return n === 1 ? `one ${one}` : `${n} ${many}`;
-}
-
-/**
- * What a post earned, in words, as the 2-pager has it: "10 for asking, 30 for
- * three upvotes and 12 for four replies".
- */
-export function postPointsInWords(post: WheeliePost): string {
-  const parts: string[] = [];
-  if (post.opening) {
-    parts.push(`10 for ${post.isQuestion ? 'asking' : 'posting'}`);
-    if (post.first) parts.push('50 for a first question');
-  } else {
-    parts.push(`5 for ${post.isQuestion ? 'answering' : 'commenting'}`);
-  }
-  if (post.upvotes)
-    parts.push(`${post.upvotes * 10} for ${counted(post.upvotes, 'upvote', 'upvotes')}`);
-  if (post.responses)
-    parts.push(
-      `${post.responses * 3} for ${counted(post.responses, 'reply or reaction', 'replies and reactions')}`,
-    );
-  const last = parts.pop() ?? '';
-  return parts.length ? `${parts.join(', ')} and ${last}` : last;
+  if (!memberId) return null;
+  return found?.id === memberId ? found.breakdown : undefined;
 }
 
 // ------------------------------------------------------- the leaderboard --

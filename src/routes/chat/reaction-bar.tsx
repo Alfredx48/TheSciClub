@@ -4,7 +4,6 @@ import { createPortal } from 'react-dom';
 import { LevelHighlight } from '@/components/injury-stage-pill';
 import { MemberAvatar } from '@/components/member-avatar';
 import { SheetGrip } from '@/components/sheet-grip';
-import { WheelBadge } from '@/components/wheel-badge';
 import { useChatAuthors } from '@/lib/chat/authors';
 import {
   isReactionEmoji,
@@ -558,7 +557,6 @@ function WhoReactedSheet({
                             band={author.band}
                             injuryType={author.injuryType}
                           />
-                          <WheelBadge memberId={author.id} still className="ml-1.5" />
                         </span>
                       ) : null}
                     </span>

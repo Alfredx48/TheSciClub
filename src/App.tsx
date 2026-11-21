@@ -80,6 +80,7 @@ const StatsPage = lazy(() => import('@/routes/stats/page'));
 const SavedPage = lazy(() => import('@/routes/me/saved-page'));
 const WheeliePointsPage = lazy(() => import('@/routes/wheelies/page'));
 const LeaderboardPage = lazy(() => import('@/routes/wheelies/leaderboard-page'));
+const JourneyPage = lazy(() => import('@/routes/wheelies/journey-page'));
 const MyPostsPage = lazy(() => import('@/routes/me/my-posts-page'));
 const NotificationsPage = lazy(() => import('@/routes/notifications/page'));
 const MemberDetailPage = lazy(() => import('@/routes/peers/member-detail'));
@@ -315,6 +316,7 @@ function ShellContent() {
             <Route path="/home/new" element={<HomeNewPage />} />
             <Route path="/peers" element={null} />
             <Route path="/peers/:id" element={<MemberDetailPage />} />
+            <Route path="/peers/:id/journey" element={<JourneyPage />} />
             <Route path="/introductions/:id" element={<IntroductionPage />} />
             {/* What Anonymous is, from an anonymous name or face (20261120110000). */}
             <Route path="/anonymous" element={<AnonymousPage />} />
@@ -368,6 +370,7 @@ function ShellContent() {
             anybody else to Me. */}
             <Route path="/me/qr" element={<QrCodePage />} />
             <Route path="/me/saved" element={<SavedPage />} />
+            <Route path="/me/journey" element={<JourneyPage />} />
             <Route path="/me/posts" element={<MyPostsPage />} />
             {/* Unlisted in the tab bar: the bell on Home (phone) and at the end
             of the top bar (desktop) lead here. */}

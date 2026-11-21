@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { InjuryStageNote } from '@/components/injury-stage-pill';
 import { PartnerLabel } from '@/components/partner-label';
-import { WheelPoints } from '@/components/wheel-badge';
 import { organizationByName, useOrganizations } from '@/lib/organizations';
 import { usePhotoUrl } from '@/lib/photos';
 import { usePhoto } from '@/lib/use-photo';
@@ -293,10 +292,6 @@ function PersonCard({
           )}
         </span>
         <InjuryStageNote member={member} className="mt-1.5" />
-        <WheelPoints
-          memberId={member.id}
-          className="mt-1 font-semibold text-[0.8125rem] text-white [text-shadow:0_1px_10px_rgba(0,0,0,.8)]"
-        />
         {sortNote ? (
           <span className="mt-0.5 block font-semibold text-[0.84375rem] text-white leading-[1.45] [text-shadow:0_1px_10px_rgba(0,0,0,.8)]">
             {sortNote}

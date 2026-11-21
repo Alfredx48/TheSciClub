@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { BackLink } from '@/components/back-link';
-import { WheelIcon } from '@/components/wheel-badge';
+import { WheelIcon } from '@/components/wheel-icon';
 import { pointsInWords, SPOKES, WHEEL_LEVELS, wheelOf } from '@/lib/wheelies';
 
 /**
@@ -42,7 +42,7 @@ const RULES: readonly string[] = [
   'A downvote takes nothing away. Nobody loses Wheelie points because others didn’t like a question or an answer.',
   'Your own upvotes, replies and reactions don’t count, and neither does an administrator’s boost.',
   'A post an administrator removes earns nothing.',
-  'Anonymous questions, answers and reviews earn nothing, so the points beside your name never point back to them.',
+  'Anonymous questions, answers and reviews earn nothing, so the points on your profile never point back to them.',
   'An RSVP earns its points once for each event, and checking in earns more on top. Cancel, or don’t check in, and the RSVP’s points go.',
 ];
 
@@ -57,7 +57,8 @@ export default function WheeliePointsPage() {
           </h1>
           <p className="mt-1 text-[0.875rem] text-ink2 leading-[1.5]">
             Members earn Wheelie points for taking part in the club: asking and answering questions,
-            coming to events and writing reviews. The wheel beside each name shows how many.
+            coming to events and writing reviews. Your wheel, on your journey in the club, shows how
+            many.
           </p>
         </div>
       </header>

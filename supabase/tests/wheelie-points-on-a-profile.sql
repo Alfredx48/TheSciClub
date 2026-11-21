@@ -1,20 +1,27 @@
 -- ============================================================================
--- What a profile shows of somebody's Wheelie points (20261121050000)
+-- What a profile shows of somebody's Wheelie points (20261121050000), and
+-- their journey in the club (20261121070000)
 -- ============================================================================
 -- Ana asks a question in an open room; Cy upvotes it and reacts to it, and
 -- Ben answers it. Ana also asks one in a room nobody can read yet, and one
--- anonymously. Ana has blocked Dee. Ana was active yesterday and today.
+-- anonymously. Ana has blocked Dee. Ana was active yesterday and today. Ana is
+-- Going to two events still to come: one for the club, and one for groups
+-- Ben is not in.
 --
--- Ben, looking at Ana's profile, sees all her points counted, the question in
+-- Ben, looking at Ana's journey, sees all her points counted; the question in
 -- the open room listed with what it earned, and neither the one in the closed
--- room nor the anonymous one. Dee sees nothing; nor does somebody signed out.
+-- room nor the anonymous one; the club's event and not the groups' one; and
+-- not which parts of her profile earned. Ana sees both events and her parts.
+-- Dee sees nothing; nor does somebody signed out.
 --
 -- Expected:
---   "ben sees: total 91 | first_question 1/50, question 2/20, response 2/6,
---    streak 1/5, upvote 1/10 | streak 2 | Probe open: 60 own, 1 up, 2 resp = 76
---    | dee sees: null | signed out: refused"
--- (profile parts left out; the closed room's question counts in question 2/20
--- but is not listed, and the anonymous one is neither.)
+--   "ben sees: total 151 | first_question 1/50, question 2/20, response 2/6,
+--    rsvp 2/60, streak 1/5, upvote 1/10 | streak 2 | Probe open: 60 own, 1 up,
+--    2 resp = 76 | events: Probe club event | parts: hidden | ana sees: 2
+--    events, parts listed | dee sees: null | signed out: refused"
+-- (profile parts left out of the counts; the closed room's question counts in
+-- question 2/20 but is not listed, the anonymous one is neither, and the
+-- groups' event counts in rsvp 2/60 but is not listed to Ben.)
 -- Run against the test project on 2026-11-20: as expected.
 --
 --   node --env-file=.env.local <runner> supabase/tests/wheelie-points-on-a-profile.sql
@@ -30,6 +37,8 @@ declare
   dee constant uuid := 'a1ee0000-1121-0000-0000-000000000004';
   open_q constant uuid := 'a1ee0000-1121-0000-0000-0000000000a1';
   closed_q constant uuid := 'a1ee0000-1121-0000-0000-0000000000a2';
+  club_event constant uuid := 'a1ee0000-1121-0000-0000-0000000000e1';
+  group_event constant uuid := 'a1ee0000-1121-0000-0000-0000000000e2';
   hidden_q constant uuid := 'a1ee0000-1121-0000-0000-0000000000a3';
   asked constant uuid := 'a1ee0000-1121-0000-0000-0000000000b1';
   today date := (now() at time zone 'America/Los_Angeles')::date;
@@ -68,6 +77,12 @@ begin
 
   insert into private.member_active_days (member_id, day) values (ana, today - 1), (ana, today);
 
+  insert into public.events (id, title, host_name, start_time, audience) values
+    (club_event, 'Probe club event', 'Probe host', now() + interval '3 days', 'club'),
+    (group_event, 'Probe group event', 'Probe host', now() + interval '4 days', 'groups');
+  insert into public.event_rsvps (event_id, member_id, status) values
+    (club_event, ana, 'going'), (group_event, ana, 'going');
+
   -- Ben looks.
   perform set_config('request.jwt.claims', json_build_object('sub', ben, 'role', 'authenticated')::text, true);
   seen := public.member_wheelie_points(ana);
@@ -79,7 +94,16 @@ begin
                 (p ->> 'title') || ': ' || (p ->> 'own') || ' own, ' || (p ->> 'upvotes') || ' up, '
                 || (p ->> 'responses') || ' resp = ' || (p ->> 'points'), '; ')
               from jsonb_array_elements(seen -> 'posts') p), 'nothing listed')
+         || ' | events: '
+         || coalesce((select string_agg(e ->> 'title', ', ') from jsonb_array_elements(seen -> 'events') e), 'none')
+         || ' | parts: ' || case when jsonb_typeof(seen -> 'parts') = 'array' then 'listed' else 'hidden' end
     into result;
+
+  -- Ana looks at her own.
+  perform set_config('request.jwt.claims', json_build_object('sub', ana, 'role', 'authenticated')::text, true);
+  seen := public.member_wheelie_points(ana);
+  result := result || ' | ana sees: ' || jsonb_array_length(seen -> 'events') || ' events, parts '
+            || case when jsonb_typeof(seen -> 'parts') = 'array' then 'listed' else 'hidden' end;
 
   -- Dee, blocked, looks.
   perform set_config('request.jwt.claims', json_build_object('sub', dee, 'role', 'authenticated')::text, true);

@@ -3,7 +3,6 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { BackLink } from '@/components/back-link';
 import { LevelHighlight } from '@/components/injury-stage-pill';
 import { FormerMemberAvatar, GroupAvatar, MemberAvatar } from '@/components/member-avatar';
-import { WheelBadge } from '@/components/wheel-badge';
 import { useAccount } from '@/lib/account';
 import { useAttachmentUrls } from '@/lib/chat/attachments';
 import { useChatAuthors } from '@/lib/chat/authors';
@@ -216,13 +215,6 @@ export default function GroupMembersPage() {
                         stage={author.stage}
                         band={author.band}
                         injuryType={author.injuryType}
-                      />
-                    ) : null}
-                    {author ? (
-                      <WheelBadge
-                        memberId={author.id}
-                        name={author.displayName}
-                        className="ml-1.5"
                       />
                     ) : null}
                   </span>

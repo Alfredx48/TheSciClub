@@ -34,13 +34,12 @@ import { IntroduceSheet } from '@/routes/peers/introduce-sheet';
 import { gradientFor, initialsOf, SummaryLine } from '@/routes/peers/member-card';
 import { MentorSheet, mentorActionLabel, useMentorActions } from '@/routes/peers/mentor-controls';
 import { Chips, childrenLabel, DetailRow, Section } from '@/routes/peers/profile-parts';
+import { JourneyCard } from '@/routes/wheelies/journey-card';
 
 export { childrenLabel };
 
-import { NameAndWheel } from '@/components/wheel-badge';
 import { type Role, RoleOrganizations } from '@/routes/peers/representation-tags';
 import { isAdminOfAny, isMentor, RolePill } from '@/routes/peers/role-pill';
-import { WheelieSection } from '@/routes/peers/wheelie-section';
 import { type BrowseMember, cityAndState, type RepresentedOrganization } from '@/types/domain';
 
 /**
@@ -811,11 +810,7 @@ function MemberProfile({ onBlocked }: { onBlocked: () => void }) {
               ) : null}
               <div className="pointer-events-none absolute inset-x-0 bottom-0 px-[18px] pb-3.5">
                 <h1 className="font-extrabold font-display text-[1.875rem] text-white leading-tight tracking-[-0.01em]">
-                  <NameAndWheel
-                    name={member.displayName}
-                    memberId={member.id}
-                    className="pointer-events-auto ml-2 h-[0.75em] w-[0.75em] align-[-0.02em]"
-                  />
+                  {member.displayName}
                 </h1>
                 {member.username ? (
                   <p className="mt-0.5 font-semibold text-[0.9375rem] text-white">
@@ -984,7 +979,13 @@ function MemberProfile({ onBlocked }: { onBlocked: () => void }) {
               </div>
             </Section>
 
-            <WheelieSection memberId={member.id} name={member.displayName} />
+            <div className="mt-5">
+              <JourneyCard
+                memberId={member.id}
+                name={member.displayName}
+                own={member.id === account.userId}
+              />
+            </div>
 
             {/* The rooms this member's topics reach, after everything about
                 the member: the page is for reading the person, and these were

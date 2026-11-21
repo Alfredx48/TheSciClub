@@ -9,7 +9,6 @@ import {
   FormerMemberAvatar,
   MemberAvatar,
 } from '@/components/member-avatar';
-import { WheelBadge } from '@/components/wheel-badge';
 import { type Anonymity, anonymousName, useAnonymity } from '@/lib/chat/anonymous';
 import { useSeenOnHome } from '@/lib/chat/home-views';
 import type { PostVote } from '@/lib/chat/likes';
@@ -187,13 +186,6 @@ export function TopicCard({
                 injuryType={starter.injuryType}
               />
             </>
-          ) : null}
-          {starter && !asking?.anonymous ? (
-            <WheelBadge
-              memberId={starter.id}
-              name={starter.displayName}
-              className="relative z-[1] ml-1.5"
-            />
           ) : null}{' '}
           · {chatTime(topic.createdAt)}
         </span>
@@ -315,13 +307,6 @@ function QuotedReply({
                 injuryType={replier.injuryType}
               />
             </>
-          ) : null}
-          {replier && !anonymity?.anonymous ? (
-            <WheelBadge
-              memberId={replier.id}
-              name={replier.displayName}
-              className="relative z-[1] ml-1.5"
-            />
           ) : null}
           {/* When it came, on every reply quoted, the first one too (the
               owner, 2026-11-18: "a date/time/minutes ago of the first

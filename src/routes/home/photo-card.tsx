@@ -8,7 +8,6 @@ import {
   FormerMemberAvatar,
   MemberAvatar,
 } from '@/components/member-avatar';
-import { WheelBadge } from '@/components/wheel-badge';
 import { useAnonymity } from '@/lib/chat/anonymous';
 import { useSeenOnHome } from '@/lib/chat/home-views';
 import { chatTime } from '@/lib/chat/time';
@@ -117,11 +116,6 @@ export function PhotoCard({
                   stage={author.stage}
                   band={author.band}
                   injuryType={author.injuryType}
-                />
-                <WheelBadge
-                  memberId={author.id}
-                  name={author.displayName}
-                  className="relative z-[1] ml-1.5"
                 />
                 {' · '}
               </>

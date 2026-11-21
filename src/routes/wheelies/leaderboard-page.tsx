@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 import { BackLink } from '@/components/back-link';
 import { LevelHighlight } from '@/components/injury-stage-pill';
 import { FormerMemberAvatar, MemberAvatar } from '@/components/member-avatar';
-import { WheelBadge } from '@/components/wheel-badge';
 import { useAccount } from '@/lib/account';
 import { useChatAuthors } from '@/lib/chat/authors';
 import { describeThrown } from '@/lib/describe-error';
@@ -224,11 +223,6 @@ function Placings({
                     injuryType={author.injuryType}
                   />
                 ) : null}
-                <WheelBadge
-                  memberId={placing.memberId}
-                  name={author?.displayName}
-                  className={author?.level ? 'ml-1.5' : undefined}
-                />
               </span>
             </span>
             <span className="flex-none text-right">

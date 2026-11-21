@@ -40,6 +40,7 @@ import { loadDetails, type MemberDetails } from '@/routes/profile/details-api';
 import { loadAnswers } from '@/routes/profile/profile-api';
 import { nextStep, profilePercent, stepAction, stepHref } from '@/routes/profile/progress';
 import type { Answers } from '@/routes/profile/questions';
+import { JourneyCard } from '@/routes/wheelies/journey-card';
 import type { RsvpStatus } from '@/types/domain';
 
 /**
@@ -358,6 +359,7 @@ export default function MePage() {
                       percent={profileDone}
                     />
                   )}
+                  {userId ? <JourneyCard memberId={userId} own /> : null}
                   <ProfileLink
                     to="/me/posts"
                     title="My posts"
