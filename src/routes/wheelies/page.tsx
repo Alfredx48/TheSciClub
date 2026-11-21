@@ -45,10 +45,11 @@ const EARNING: readonly { what: string; points: string }[] = [
 
 const RULES: readonly string[] = [
   'A downvote takes nothing away. Nobody loses Wheelie points because others didn’t like a question or an answer.',
-  'Your own upvotes, replies and reactions don’t count, and neither does an administrator’s boost.',
+  'Upvoting, replying or reacting to your own post earns nothing, and neither does an administrator’s boost.',
+  'A vote or reaction you give earns its point while it stands. Take it back and the point goes; switch an upvote to a downvote and it stays.',
   'A post an administrator removes earns nothing.',
   'Anonymous questions, answers and reviews earn nothing, so the points on your profile never point back to them.',
-  'An RSVP earns its points once for each event, and checking in earns more on top. Cancel, or don’t check in, and the RSVP’s points go.',
+  'An RSVP earns its points once for each event, and checking in earns more on top. Cancel, or don’t check in, and the RSVP’s points are taken back.',
 ];
 
 export default function WheeliePointsPage() {
@@ -64,8 +65,8 @@ export default function WheeliePointsPage() {
           </h1>
           <p className="mt-1 text-[0.875rem] text-ink2 leading-[1.5]">
             Members earn Wheelie points for taking part in the club: asking and answering questions,
-            coming to events and writing reviews. Your wheel, on your journey in the club, shows how
-            many.
+            voting and reacting, coming to events and writing reviews. Your wheel shows how many you
+            have.
           </p>
         </div>
       </header>
@@ -85,7 +86,8 @@ export default function WheeliePointsPage() {
         <p className="mt-3 text-[0.8125rem] text-ink2 leading-[1.5]">
           Questions and comments earn more when other members upvote them and respond to them. An
           upvote is worth more than a response, because it says the post was good. Coming to an
-          event earns the most up front, because real life is the goal.
+          event earns the most up front, because real life is the goal. Voting and reacting earn a
+          little, so reading along and weighing in counts too.
         </p>
         <p className="mt-2 text-[0.8125rem] text-ink2 leading-[1.5]">
           A streak is the number of days in a row you use the club. Missing a day starts it over,

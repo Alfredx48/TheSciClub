@@ -115,6 +115,23 @@ function Journey({
         >
           How Wheelie points work
         </Link>
+        {/* My posts and Saved moved here from the Me tab (the owner, 2026-11-21). */}
+        {own ? (
+          <>
+            <Link
+              to="/me/posts"
+              className="inline-flex min-h-[44px] items-center font-semibold text-[0.8125rem] text-emphasis underline underline-offset-2"
+            >
+              My posts
+            </Link>
+            <Link
+              to="/me/saved"
+              className="inline-flex min-h-[44px] items-center font-semibold text-[0.8125rem] text-emphasis underline underline-offset-2"
+            >
+              Saved
+            </Link>
+          </>
+        ) : null}
         {admin ? (
           <Link
             to="/wheelie-points/leaderboard"

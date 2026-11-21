@@ -360,16 +360,6 @@ export default function MePage() {
                     />
                   )}
                   {userId ? <JourneyCard memberId={userId} own /> : null}
-                  <ProfileLink
-                    to="/me/posts"
-                    title="My posts"
-                    description="Questions and posts you started, by type and room."
-                  />
-                  <ProfileLink
-                    to="/me/saved"
-                    title="Saved"
-                    description="Posts and replies you saved. Only you can see them."
-                  />
                   {userId ? (
                     <ProfileLink
                       to={`/peers/${userId}`}

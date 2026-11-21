@@ -251,11 +251,6 @@ describe('MePage', () => {
     expect(screen.queryByText(/Invited by/)).not.toBeInTheDocument();
   });
 
-  it('leads to what the member saved', () => {
-    renderMe();
-    expect(screen.getByRole('link', { name: 'Saved' })).toHaveAttribute('href', '/me/saved');
-  });
-
   describe('the counters', () => {
     it('count real RSVPs', () => {
       rsvps.current = new Map([
