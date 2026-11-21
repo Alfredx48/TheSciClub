@@ -113,7 +113,7 @@ export function ThreadNotifyButton({
     (c) => c.value !== 'mentions' || group || notify === 'mentions',
   );
   // A bell alone, like Search beside it (the owner, 2026-11-21); the choice is told by the
-  // icon, and shaded when it is not All.
+  // icon, in the accent colour when it is not All (no shaded circle, the owner, 2026-11-21).
   const Icon = notify === 'off' ? BellOff : notify === 'mentions' ? AtSign : Bell;
   return (
     <span className={cn('inline-flex flex-col items-end', className)}>
@@ -129,7 +129,7 @@ export function ThreadNotifyButton({
         title={NOTIFY_CHOICES.find((c) => c.value === notify)?.title}
         className={cn(
           'flex h-[44px] w-[44px] items-center justify-center rounded-full transition-colors',
-          notify === 'all' ? 'text-ink hover:bg-tint' : 'bg-tint text-emphasis hover:bg-line',
+          notify === 'all' ? 'text-ink hover:bg-tint' : 'text-emphasis hover:bg-tint',
           busy ? 'opacity-50' : '',
         )}
       >
