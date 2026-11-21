@@ -69,6 +69,14 @@ rule of its own for four hours, where Netlify asked again every time.
   scripts/cloudflare-site-rules.test.mjs). A new host gets the same, and so
   does any other file src/lib/stay-current.ts or src/sw.ts reads to decide
   what is current. Leave those rules in place.
+- **Cloudflare's zone can override them.** thesciclub.com's DNS is on
+  Cloudflare (since 2026-11-20). For a proxied name (orange cloud), the
+  zone's Browser Cache TTL replaces a file's own `no-cache` with its own
+  value, 4 hours by default, on `.js` files among others. In the dashboard,
+  Caching › Configuration › Browser Cache TTL must be **Respect Existing
+  Headers**. Check with `curl -sI https://<domain>/sw.js`; anything but
+  `no-cache` is wrong. On 2026-11-21 tests.thesciclub.com still sent
+  `max-age=14400`, though the Worker behind it sends `no-cache`.
 - **Check what else differs.** Compare the new host's response headers and
   status codes with Netlify's for `/`, `/index.html`, `/sw.js`,
   `/version.json` and a file under `/assets/`, and explain every difference
