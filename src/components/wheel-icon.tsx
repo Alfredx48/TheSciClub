@@ -18,7 +18,7 @@ export function WheelIcon({ wheel, className }: { wheel: Wheel; className?: stri
   // The tyre's outer edge meets the box; the push rim sits a gap inside it,
   // and the spokes end at the push rim so the gap is one even ring.
   const rim = 11.6;
-  const pushRim = 9.2;
+  const pushRim = 10.2;
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true" className={className}>
       <circle cx="12" cy="12" r={rim} fill="none" stroke={color} strokeWidth="0.75" />
@@ -31,13 +31,13 @@ export function WheelIcon({ wheel, className }: { wheel: Wheel; className?: stri
             // biome-ignore lint/suspicious/noArrayIndexKey: the spokes are fixed and never move.
             key={i}
             // From the hub's edge, so thirteen do not meet in a blot.
-            x1={12 + 2.2 * Math.cos(angle)}
-            y1={12 + 2.2 * Math.sin(angle)}
+            x1={12 + 2.8 * Math.cos(angle)}
+            y1={12 + 2.8 * Math.sin(angle)}
             x2={12 + pushRim * Math.cos(angle)}
             y2={12 + pushRim * Math.sin(angle)}
             stroke={color}
             strokeOpacity={filled ? 1 : 0.35}
-            strokeWidth={filled ? 1 : 0.5}
+            strokeWidth={filled ? 0.9 : 0.5}
             strokeLinecap="round"
           />
         );
