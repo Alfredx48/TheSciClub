@@ -205,6 +205,7 @@ export function Composer({
   const [full, setFull] = useState(false);
   /** The visible screen, which the full-screen box covers exactly (above a phone's keyboard). */
   const [screen, setScreen] = useState<{ top: number; height: number } | null>(null);
+  const cover = useRef<HTMLDivElement | null>(null);
   const draftVersion = useRef(0);
   /** The member's own draft, put aside while they edit. */
   const setAside = useRef<{ text: string; version: number } | null>(null);
@@ -302,6 +303,31 @@ export function Composer({
     return () => {
       viewport?.removeEventListener('resize', measure);
       viewport?.removeEventListener('scroll', measure);
+    };
+  }, [full]);
+
+  // Full screen, nothing behind moves (the owner, 2026-11-21: a drag scrolled the conversation,
+  // and the page showed through as the cover caught up). A drag moves only the box's own words,
+  // and only when they run past it; the page itself is held still.
+  useEffect(() => {
+    const element = cover.current;
+    if (!full || !element) return;
+    const root = document.documentElement;
+    const was = { root: root.style.overflow, body: document.body.style.overflow };
+    root.style.overflow = 'hidden';
+    document.body.style.overflow = 'hidden';
+    const hold = (event: TouchEvent) => {
+      const words = box.current;
+      const inWords =
+        words !== null && event.target instanceof Node && words.contains(event.target);
+      if (inWords && words.scrollHeight > words.clientHeight) return;
+      event.preventDefault();
+    };
+    element.addEventListener('touchmove', hold, { passive: false });
+    return () => {
+      element.removeEventListener('touchmove', hold);
+      root.style.overflow = was.root;
+      document.body.style.overflow = was.body;
     };
   }, [full]);
 
@@ -461,7 +487,7 @@ export function Composer({
       }}
       className={`block min-h-[44px] w-full resize-none border-[1.6px] border-line bg-canvas py-[11px] pl-[15px] text-[0.9375rem] text-ink leading-[1.45] outline-none focus:border-emphasis focus:bg-paper ${
         full
-          ? 'rounded-[16px] pr-[15px]'
+          ? 'overscroll-contain rounded-[16px] pr-[15px]'
           : long
             ? 'rounded-[22px] pr-11'
             : 'rounded-[22px] pr-[15px]'
@@ -518,6 +544,7 @@ export function Composer({
 
   return (
     <div
+      ref={cover}
       className={
         full
           ? 'fixed inset-x-0 z-[70] flex flex-col bg-paper px-3.5 pt-2 pb-2.5'
