@@ -1,4 +1,4 @@
-import { SendHorizontal, X } from 'lucide-react';
+import { Maximize2, Minimize2, SendHorizontal, X } from 'lucide-react';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useAnnounce } from '@/lib/announce';
 import { MAX_ATTACHMENTS } from '@/lib/chat/attachments';
@@ -49,6 +49,9 @@ function maxHeight(visible: number): number {
   return Math.max(MIN_CAP, Math.floor(visible * SCREEN_SHARE));
 }
 
+/** Past about three lines the box offers to open full screen (the owner, 2026-11-21). */
+const OFFER_FULL_SCREEN = 100;
+
 function visibleHeight(): number {
   return window.visualViewport?.height ?? window.innerHeight;
 }
@@ -56,8 +59,16 @@ function visibleHeight(): number {
 /**
  * Grow the box to fit, up to maxHeight. Measured, not counted, as only the browser knows where
  * lines wrap. See the header: the lines that look redundant are the ones that matter.
+ * Full screen (`data-full`), the box fills what it is given. Says whether the words run past
+ * about three lines.
  */
-function fitToContent(element: HTMLTextAreaElement) {
+function fitToContent(element: HTMLTextAreaElement): boolean {
+  if (element.dataset.full === 'true') {
+    element.style.maxHeight = 'none';
+    element.style.height = '100%';
+    element.style.overflowY = 'auto';
+    return true;
+  }
   const cap = maxHeight(visibleHeight());
   element.style.maxHeight = `${cap}px`;
   element.style.overflowY = 'hidden';
@@ -67,6 +78,7 @@ function fitToContent(element: HTMLTextAreaElement) {
   const wanted = element.scrollHeight + (element.offsetHeight - element.clientHeight);
   element.style.height = `${Math.min(wanted, cap)}px`;
   element.style.overflowY = wanted > cap ? 'auto' : 'hidden';
+  return wanted > OFFER_FULL_SCREEN;
 }
 
 export interface ComposerEditing {
@@ -187,6 +199,12 @@ export function Composer({
   const [sending, setSending] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
   const box = useRef<HTMLTextAreaElement | null>(null);
+  /** Whether the words run long enough to offer full screen. */
+  const [long, setLong] = useState(false);
+  /** Writing full screen: the box covers the conversation until shrunk or sent. */
+  const [full, setFull] = useState(false);
+  /** The visible screen, which the full-screen box covers exactly (above a phone's keyboard). */
+  const [screen, setScreen] = useState<{ top: number; height: number } | null>(null);
   const draftVersion = useRef(0);
   /** The member's own draft, put aside while they edit. */
   const setAside = useRef<{ text: string; version: number } | null>(null);
@@ -197,7 +215,7 @@ export function Composer({
 
   useEffect(() => {
     const element = box.current;
-    if (element) fitToContent(element);
+    if (element) setLong(fitToContent(element));
   }, []);
 
   const editingId = editing?.id ?? null;
@@ -231,7 +249,7 @@ export function Composer({
   useLayoutEffect(() => {
     const element = box.current;
     if (swaps === 0 || !element) return;
-    fitToContent(element);
+    setLong(fitToContent(element));
     // Editing starts with the caret at the end, where somebody fixing a
     // sentence wants it.
     if (loaded.current !== null) {
@@ -248,15 +266,42 @@ export function Composer({
 
   function resize() {
     const element = box.current;
-    if (element) fitToContent(element);
+    if (element) setLong(fitToContent(element));
   }
+
+  useLayoutEffect(() => {
+    const element = box.current;
+    if (!element) return;
+    element.dataset.full = full ? 'true' : 'false';
+    setLong(fitToContent(element));
+    if (!full) {
+      setScreen(null);
+      return;
+    }
+    element.focus();
+    const viewport = window.visualViewport;
+    const measure = () => {
+      setScreen(
+        viewport
+          ? { top: viewport.offsetTop, height: viewport.height }
+          : { top: 0, height: window.innerHeight },
+      );
+    };
+    measure();
+    viewport?.addEventListener('resize', measure);
+    viewport?.addEventListener('scroll', measure);
+    return () => {
+      viewport?.removeEventListener('resize', measure);
+      viewport?.removeEventListener('scroll', measure);
+    };
+  }, [full]);
 
   // The keyboard opening or the window changing size changes how tall the box may be.
   useEffect(() => {
     const viewport = window.visualViewport ?? window;
     const refit = () => {
       const element = box.current;
-      if (element) fitToContent(element);
+      if (element) setLong(fitToContent(element));
     };
     viewport.addEventListener('resize', refit);
     return () => {
@@ -356,6 +401,7 @@ export function Composer({
         setRecoveredReply(undefined);
         photoDraft.clear();
         noteSent();
+        setFull(false);
         // The box shrinks back only once the words have actually gone.
         requestAnimationFrame(resize);
       })
@@ -385,6 +431,11 @@ export function Composer({
       }}
       onKeyDown={(event) => {
         if (mention.onKeyDown(event)) return;
+        if (event.key === 'Escape' && full) {
+          event.preventDefault();
+          setFull(false);
+          return;
+        }
         if (event.key === 'Escape' && editing) {
           event.preventDefault();
           if (!sending) finishEdit(editing, 'Edit cancelled.');
@@ -399,7 +450,13 @@ export function Composer({
           send();
         }
       }}
-      className="min-h-[44px] flex-1 resize-none rounded-[22px] border-[1.6px] border-line bg-canvas px-[15px] py-[11px] text-[0.9375rem] text-ink leading-[1.45] outline-none focus:border-emphasis focus:bg-paper"
+      className={`block min-h-[44px] w-full resize-none border-[1.6px] border-line bg-canvas py-[11px] pl-[15px] text-[0.9375rem] text-ink leading-[1.45] outline-none focus:border-emphasis focus:bg-paper ${
+        full
+          ? 'rounded-[16px] pr-[15px]'
+          : long
+            ? 'rounded-[22px] pr-11'
+            : 'rounded-[22px] pr-[15px]'
+      }`}
     />
   );
 
@@ -451,7 +508,31 @@ export function Composer({
   ) : null;
 
   return (
-    <div className="flex-none border-line border-t bg-paper px-3.5 py-2.5">
+    <div
+      className={
+        full
+          ? 'fixed inset-x-0 z-[70] flex flex-col bg-paper px-3.5 pt-2 pb-2.5'
+          : 'flex-none border-line border-t bg-paper px-3.5 py-2.5'
+      }
+      style={full ? { top: screen?.top ?? 0, height: screen?.height ?? '100dvh' } : undefined}
+    >
+      {full ? (
+        <div className="mx-auto mb-2 flex w-full max-w-[720px] flex-none items-center justify-between gap-2">
+          <p className="font-semibold text-[0.9375rem] text-ink">
+            {editing ? `Edit your ${editing.noun}` : 'Write your message'}
+          </p>
+          <button
+            type="button"
+            onClick={() => {
+              setFull(false);
+            }}
+            className="inline-flex min-h-11 items-center gap-1.5 rounded-full px-3 font-semibold text-[0.8125rem] text-emphasis hover:bg-line"
+          >
+            <Minimize2 className="h-4 w-4" aria-hidden="true" />
+            Shrink
+          </button>
+        </div>
+      ) : null}
       {failureLine}
       {editBar}
       {reply && !editing ? (
@@ -494,7 +575,9 @@ export function Composer({
           />
         </div>
       )}
-      <div className="mx-auto flex w-full max-w-[720px] items-end gap-[9px]">
+      <div
+        className={`mx-auto flex w-full max-w-[720px] items-end gap-[9px] ${full ? 'min-h-0 flex-1' : ''}`}
+      >
         {editing ? (
           editing.addPhotos ? (
             <PhotoPicker
@@ -514,7 +597,23 @@ export function Composer({
             compact
           />
         )}
-        {textarea}
+        <div className={`relative min-w-0 flex-1 ${full ? 'h-full' : ''}`}>
+          {textarea}
+          {long && !full ? (
+            <button
+              type="button"
+              onClick={() => {
+                setFull(true);
+              }}
+              aria-label="Write full screen"
+              title="Write full screen"
+              data-target="small"
+              className="absolute top-1.5 right-1.5 grid h-8 w-8 place-items-center rounded-full text-ink2 hover:bg-line"
+            >
+              <Maximize2 className="h-4 w-4" aria-hidden="true" />
+            </button>
+          ) : null}
+        </div>
         <button
           type="button"
           onClick={send}
