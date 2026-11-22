@@ -146,9 +146,13 @@ export function LinkPreviewCard({
             {playing && loadingPlayer ? (
               <span
                 role="status"
-                className="absolute bottom-2 left-2 rounded bg-black/80 px-2 py-1 text-sm text-white"
+                className="pointer-events-none absolute inset-0 grid place-items-center"
               >
-                Loading video…
+                <span
+                  aria-hidden="true"
+                  className="size-6 rounded-full border-2 border-white border-b-transparent drop-shadow-[0_0_2px_#000] motion-safe:animate-spin"
+                />
+                <span className="sr-only">Loading video…</span>
               </span>
             ) : null}
           </div>
