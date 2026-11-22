@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import { SegmentPills } from '@/components/segment-pills';
 import { describeError, describeThrown } from '@/lib/describe-error';
 import { ONE_VISIT_IN } from '@/lib/page-speed';
@@ -259,7 +259,45 @@ function TrendTable({ points, unit }: { points: TrendPoint[]; unit: 'hour' | 'da
   );
 }
 
+/** The server's own logs (20261122050000), fetched only once Server is chosen. */
+const ServerLogs = lazy(() => import('@/routes/admin/server-logs'));
+
+const VIEWS = [
+  ['phones', 'On phones'],
+  ['server', 'Server'],
+] as const;
+
+/**
+ * Speed & logs (the owner, 2026-11-21): how fast the app is on people's
+ * phones, and, under Server, how fast the club's server answered, from its own
+ * request logs. Reading one asks nothing of the other.
+ */
 export function PageSpeedSection() {
+  const [view, setView] = useState<'phones' | 'server'>('phones');
+  return (
+    <section aria-labelledby="page-speed-heading">
+      <h2 id="page-speed-heading" className="mb-3 font-extrabold font-head text-[1rem] text-ink">
+        Speed &amp; logs
+      </h2>
+      <SegmentPills segments={VIEWS} value={view} onChange={setView} className="pt-0" />
+      {view === 'phones' ? (
+        <PhoneSpeed />
+      ) : (
+        <Suspense
+          fallback={
+            <p role="status" className="py-4 text-[0.8125rem] text-grey">
+              Loading…
+            </p>
+          }
+        >
+          <ServerLogs />
+        </Suspense>
+      )}
+    </section>
+  );
+}
+
+function PhoneSpeed() {
   const [days, setDays] = useState<string>('7');
   const [speed, setSpeed] = useState<SpeedRow[] | null>(null);
   const [trend, setTrend] = useState<TrendPoint[] | null>(null);
@@ -310,10 +348,7 @@ export function PageSpeedSection() {
     .slice(0, 12);
 
   return (
-    <section aria-labelledby="page-speed-heading">
-      <h2 id="page-speed-heading" className="mb-3 font-extrabold font-head text-[1rem] text-ink">
-        Page speed
-      </h2>
+    <div>
       <SegmentPills segments={PERIODS} value={days} onChange={setDays} className="pt-0" />
       {error ? (
         <p role="alert" className="text-[0.8125rem] text-destructive">
@@ -466,6 +501,6 @@ export function PageSpeedSection() {
         real number. Typical (p50) is the middle time; the slow end (p90) is where one in ten took
         longer.
       </p>
-    </section>
+    </div>
   );
 }

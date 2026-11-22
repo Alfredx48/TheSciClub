@@ -87,7 +87,16 @@ const SERIES = [
  * How long the app took to be ready, over time: the typical time and the
  * slow end, one axis in seconds. Hover or tap for a bucket's numbers.
  */
-export function SpeedTrendChart({ points, unit }: { points: TrendPoint[]; unit: 'hour' | 'day' }) {
+export function SpeedTrendChart({
+  points,
+  unit,
+  what = 'How long the app took to be ready',
+}: {
+  points: TrendPoint[];
+  unit: 'hour' | 'day';
+  /** What the chart times, said first to a screen reader. */
+  what?: string;
+}) {
   const [box, width] = useWidth<HTMLDivElement>();
   const [hover, setHover] = useState<number | null>(null);
 
@@ -137,7 +146,7 @@ export function SpeedTrendChart({ points, unit }: { points: TrendPoint[]; unit: 
             width={width}
             height={height}
             role="img"
-            aria-label={`How long the app took to be ready, ${String(points.length)} ${unit === 'hour' ? 'hours' : 'days'}. The table below has the numbers.`}
+            aria-label={`${what}, ${String(points.length)} ${unit === 'hour' ? 'hours' : 'days'}. The table below has the numbers.`}
           >
             {ticks.map((t) => (
               <g key={t}>
