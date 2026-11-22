@@ -255,6 +255,77 @@ const CARD_TIMINGS = [
   ['cards-after-tap', 'From tapping in'],
 ] as const;
 
+/**
+ * Opening on Home, step by step (the owner, 2026-11-21), in the order they
+ * happen: each a time from the tap, except the processor's, which is how long
+ * it was held. From the steps each measured opening sends (openingSteps).
+ */
+const OPENING_STEPS = [
+  ['first-byte', 'The page arrives'],
+  ['data-asked', 'The club’s data is asked for'],
+  ['script-loaded', 'The app’s code has downloaded'],
+  ['first-paint', 'Something is on screen'],
+  ['feed-arrived', 'The feed has arrived'],
+  ['cards-after-open', 'The feed is shown'],
+  ['busy-before-content', 'Processor held before it showed (total)'],
+] as const;
+
+function OpeningBreakdown({ loads }: { loads: SpeedRow[] }) {
+  const [open, setOpen] = useState(false);
+  const home = (metric: string) => loads.find((r) => r.screen === '/home' && r.metric === metric);
+  return (
+    <div className="mt-2">
+      <button
+        type="button"
+        aria-expanded={open}
+        onClick={() => {
+          setOpen((was) => !was);
+        }}
+        className="min-h-11 rounded-full border border-line px-3.5 font-bold text-[0.8125rem] text-emphasis hover:bg-tint"
+      >
+        {open ? 'Hide' : 'Show'} how opening on Home breaks down
+      </button>
+      {open ? (
+        <>
+          <p className="mt-1.5 text-[0.75rem] text-ink2 leading-[1.45]">
+            Each step’s time from tapping the app, in the order they happen, from openings that
+            began on Home. Typical (p50) / slow end (p90).
+          </p>
+          <div className="mt-1.5 overflow-x-auto rounded-[12px] border border-line bg-paper">
+            <table className="w-full text-[0.8125rem] text-ink">
+              <thead className="text-grey">
+                <tr>
+                  <th className="px-2 py-1.5 text-left font-semibold">Step</th>
+                  <th className={HEAD}>Typical</th>
+                  <th className={HEAD}>Slow end</th>
+                  <th className={HEAD}>Openings</th>
+                </tr>
+              </thead>
+              <tbody>
+                {OPENING_STEPS.map(([metric, label]) => {
+                  const row = home(metric);
+                  return (
+                    <tr key={metric} className="border-line border-t">
+                      <td className="px-2 py-1.5 text-left">{label}</td>
+                      <td className={CELL}>{row ? seconds(row.p50) : '—'}</td>
+                      <td className={CELL}>{row ? seconds(row.p90) : '—'}</td>
+                      <td className={CELL}>{row ? row.samples : '—'}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          <p className="mt-1 text-[0.71875rem] text-grey leading-[1.45]">
+            “—” is a step not measured yet, from an app before Nov 22, or on an iPhone, which does
+            not say how long its processor was held.
+          </p>
+        </>
+      ) : null}
+    </div>
+  );
+}
+
 const CELL = 'px-2 py-1.5 text-right tabular-nums';
 const HEAD = 'px-2 py-1.5 text-right font-semibold';
 
@@ -469,6 +540,7 @@ function PhoneSpeed() {
             </table>
           </div>
           <p className="mt-1 text-[0.71875rem] text-grey">Typical (p50) / slow end (p90).</p>
+          <OpeningBreakdown loads={loads} />
 
           <Subheading>Cards after tapping in, {unit === 'hour' ? 'by hour' : 'by day'}</Subheading>
           {cardsTrend.length > 0 ? (

@@ -5,9 +5,11 @@ import { forgetTrail } from '@/lib/back-trail';
 import { resetAttachmentUrls } from '@/lib/chat/attachments';
 import { forgetDrafts } from '@/lib/chat/drafts';
 import { describeError, describeThrown } from '@/lib/describe-error';
+import { takeEarlyStart } from '@/lib/early-start';
 import { readHomeFeed } from '@/lib/home/feed-read';
+import { forgetLastSeen, lastMember, rememberMember } from '@/lib/home/last-seen';
 import { DEFAULT_HOME_VIEW } from '@/lib/home/types';
-import { ownRowChanged, readOwnRow } from '@/lib/own-row';
+import { ownRowChanged, readOwnRow, type SharedRow } from '@/lib/own-row';
 import { forgetThisDevice } from '@/lib/push/notifications';
 import { forgetSharedReads } from '@/lib/shared-reads';
 import { getSupabase } from '@/lib/supabase';
@@ -58,6 +60,12 @@ export interface Account {
   error?: string;
   retry?: () => void;
   takeInitialHomeFeed?: () => Promise<unknown[] | null> | undefined;
+  /**
+   * Let in on what this device last saw (lib/home/last-seen.ts) while the
+   * door's own read is still out: screens draw what they kept, and read the
+   * club's data only once this is gone (the owner, 2026-11-21).
+   */
+  provisional?: boolean;
 }
 
 /**
@@ -112,7 +120,8 @@ function same(a: Account, b: Account): boolean {
     a.isAdmin === b.isAdmin &&
     a.displayName === b.displayName &&
     a.error === b.error &&
-    a.takeInitialHomeFeed === b.takeInitialHomeFeed
+    a.takeInitialHomeFeed === b.takeInitialHomeFeed &&
+    a.provisional === b.provisional
   );
 }
 
@@ -128,11 +137,14 @@ export function useOwnAccount({
   enabled?: boolean;
   refresh?: unknown;
 } = {}): Account {
-  const [account, setAccount] = useState<Account>({
-    status: 'loading',
-    userId: null,
-    isAdmin: false,
-    displayName: null,
+  // The member this device last let in, while their session is still here:
+  // the app opens on what it kept rather than on a spinner, and the read
+  // below confirms them, or sends them on, a moment later.
+  const [account, setAccount] = useState<Account>(() => {
+    const last = enabled ? lastMember() : null;
+    return last
+      ? { status: 'member', ...last, provisional: true }
+      : { status: 'loading', userId: null, isAdmin: false, displayName: null };
   });
 
   // A good answer is in hand, so a failed refresh need not replace it.
@@ -156,6 +168,16 @@ export function useOwnAccount({
     const supabase = getSupabase();
     const settle = (next: Account) => {
       known.current = next.status !== 'error';
+      // What the next opening may start from: a member, and nobody else.
+      if (next.status === 'member' && next.userId) {
+        rememberMember({
+          userId: next.userId,
+          isAdmin: next.isAdmin,
+          displayName: next.displayName,
+        });
+      } else if (next.status !== 'error') {
+        forgetLastSeen();
+      }
       setAccount((current) => (same(current, next) ? current : next));
     };
     const fail = (next: Account) => {
@@ -189,12 +211,24 @@ export function useOwnAccount({
       try {
         // The shared row (lib/own-row.ts), but only one read since this
         // screen opened: a pause still shows on the next screen.
-        const membership = readOwnRow(GUARD_COLUMNS, { since });
+        // Opening on Home, index.html may have asked for both already, while
+        // the script downloaded (lib/early-start.ts); what did not come is read here.
+        const early = refresh === '/home' && !known.current ? takeEarlyStart(userId) : undefined;
+        const membership: Promise<SharedRow> = early
+          ? early.member.then(
+              (row): SharedRow => ({ row, error: null }),
+              () => readOwnRow(GUARD_COLUMNS, { since }),
+            )
+          : readOwnRow(GUARD_COLUMNS, { since });
         // First Home only. The feed obeys RLS and the shell still waits for membership.
         let initialHomeFeed: Promise<unknown[] | null> | undefined;
         if (refresh === '/home' && !known.current && session?.access_token) {
           earlyFeed = new AbortController();
-          initialHomeFeed = readHomeFeed(DEFAULT_HOME_VIEW, earlyFeed.signal, session.access_token);
+          const { signal } = earlyFeed;
+          const token = session.access_token;
+          initialHomeFeed = early
+            ? early.feed.then((rows) => rows ?? readHomeFeed(DEFAULT_HOME_VIEW, signal, token))
+            : readHomeFeed(DEFAULT_HOME_VIEW, signal, token);
         }
         const shared = await membership;
         if (aborted() || request !== revision) return;
@@ -268,7 +302,10 @@ export function useOwnAccount({
       // refresh TOKEN_REFRESHED, for the same person: their row has not
       // changed, so only another person, a sign-out, or their own account
       // changing reads again.
-      if (event === 'SIGNED_OUT') void forgetDrafts();
+      if (event === 'SIGNED_OUT') {
+        void forgetDrafts();
+        forgetLastSeen();
+      }
       if (event === 'INITIAL_SESSION' || !answered) return;
       const userId = session?.user.id ?? null;
       if (event !== 'USER_UPDATED' && userId !== null && userId === reading) return;
@@ -313,6 +350,8 @@ export async function signOut(): Promise<{ ok: boolean; error?: string }> {
     forgetTrail();
     // And anything else held in memory for the screens (lib/shared-reads.ts).
     forgetSharedReads();
+    // And what the next opening would have started from (lib/home/last-seen.ts).
+    forgetLastSeen();
   }
   return error
     ? { ok: false, error: describeError(error, 'You are still signed in.') }

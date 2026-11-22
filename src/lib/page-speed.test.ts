@@ -6,6 +6,7 @@ import {
   measuredVisit,
   noteScreen,
   ONE_VISIT_IN,
+  openingSteps,
   resetPageSpeed,
   screenOf,
   startPageSpeed,
@@ -187,6 +188,46 @@ describe('timing requests', () => {
       { metric: 'first-byte', ms: 120 },
       { metric: 'first-paint', ms: 640 },
     ]);
+    entries.mockRestore();
+  });
+
+  // The owner, 2026-11-21: the steps of an opening, for Admin's breakdown.
+  it('takes the opening apart from the page\u2019s own timings', () => {
+    const entries = vi.spyOn(performance, 'getEntriesByType').mockImplementation((type: string) =>
+      type === 'resource'
+        ? ([
+            {
+              initiatorType: 'script',
+              name: 'https://club/assets/index-AbC123.js',
+              startTime: 500,
+              responseEnd: 900,
+            },
+            {
+              initiatorType: 'script',
+              name: 'https://club/assets/page-Xyz.js',
+              startTime: 1800,
+              responseEnd: 1900,
+            },
+            {
+              initiatorType: 'fetch',
+              name: 'https://db/rest/v1/members?select=id',
+              startTime: 520,
+              responseEnd: 1100,
+            },
+            {
+              initiatorType: 'fetch',
+              name: 'https://db/rest/v1/rpc/home_feed',
+              startTime: 521,
+              responseEnd: 1300,
+            },
+          ] as unknown as PerformanceEntryList)
+        : [],
+    );
+    expect(Object.fromEntries(openingSteps())).toEqual({
+      'script-loaded': 900,
+      'data-asked': 520,
+      'feed-arrived': 1300,
+    });
     entries.mockRestore();
   });
 

@@ -66,6 +66,51 @@
     <!-- The club's data is on another origin (Supabase). Connecting while the
          script downloads saves the first read its DNS, TCP and TLS. -->
     <link rel="preconnect" href="%VITE_SUPABASE_URL%" crossorigin />
+    <!-- Opening on Home, the member's door check and Home's feed are asked for
+         here, while the app's script downloads, rather than once it has
+         started (the owner, 2026-11-21: a second on a slow phone). Only with a
+         session already on this device that is not about to run out; the app
+         takes them up in src/lib/early-start.ts, and asks again itself for
+         anything that did not come. The address and key come from this tag, so
+         the script's text, and its hash in the security policy, are the same
+         on every site. -->
+    <meta name="club-data" content="%VITE_SUPABASE_URL%" data-key="%VITE_SUPABASE_ANON_KEY%" />
+    <script>
+      try {
+        const data = document.querySelector('meta[name="club-data"]');
+        const url = data && data.content;
+        const key = data && data.dataset.key;
+        const home = location.pathname.replace(/\/+$/, '') === '/home';
+        if (home && url && key && url.indexOf('%') < 0 && window.fetch) {
+          const ref = new URL(url).hostname.split('.')[0];
+          const session = JSON.parse(localStorage.getItem('sb-' + ref + '-auth-token') || 'null');
+          if (
+            session &&
+            session.access_token &&
+            session.user &&
+            session.expires_at * 1000 > Date.now() + 60000
+          ) {
+            const headers = { apikey: key, Authorization: 'Bearer ' + session.access_token };
+            const json = (response) => (response.ok ? response.json() : Promise.reject(response.status));
+            const member = fetch(
+              url + '/rest/v1/members?select=id,is_admin,display_name,status&id=eq.' + session.user.id,
+              { headers: headers },
+            ).then(json);
+            const feed = fetch(url + '/rest/v1/rpc/home_feed', {
+              method: 'POST',
+              headers: Object.assign({ 'Content-Type': 'application/json' }, headers),
+              body: JSON.stringify({ p_show: 'all', p_sort: 'ranking', max_rows: 40 }),
+            }).then(json);
+            // Unclaimed, a failure stays quiet; the app reads again itself.
+            member.catch(() => undefined);
+            feed.catch(() => undefined);
+            window.__clubEarly = { user: session.user.id, at: Date.now(), member: member, feed: feed };
+          }
+        }
+      } catch {
+        // Nothing started: the app reads as it always did.
+      }
+    </script>
     <!-- Both faces are served from this site, never Google Fonts: a private
          club should not tell a third party each time a member opens it.
          Preloaded so the first screen is drawn in them rather than swapped

@@ -36,6 +36,9 @@ import { PhotoCard } from '@/routes/home/photo-card';
 import { ProfileCard, useProfileAsk } from '@/routes/home/profile-card';
 import { type CardLikes, TopicCard } from '@/routes/home/topic-card';
 
+/** Drawn first on opening; the rest come a frame later. Enough to fill a tall phone. */
+const FIRST_CARDS = 6;
+
 /**
  * Home: recent posts and photographs. Every card leads to something that
  * already exists; reporting, removal and mutes are theirs.
@@ -151,6 +154,25 @@ export default function HomePage() {
     [items, filters, filterContext],
   );
   const filterCount = activeFilterCount(filters) + (segment === 'everything' ? 0 : 1);
+
+  // The first cards are drawn alone, and the rest a frame later (the owner,
+  // 2026-11-21: drawing all forty at once held a slow phone a third of a
+  // second before any showed). Once all are drawn, they stay.
+  const [drawAll, setDrawAll] = useState(false);
+  useEffect(() => {
+    if (drawAll || !settled) return;
+    let second = 0;
+    const first = requestAnimationFrame(() => {
+      second = requestAnimationFrame(() => {
+        setDrawAll(true);
+      });
+    });
+    return () => {
+      cancelAnimationFrame(first);
+      cancelAnimationFrame(second);
+    };
+  }, [drawAll, settled]);
+  const drawn = drawAll ? shown : shown.slice(0, FIRST_CARDS);
 
   // Debug mode (the owner, 2026-11-18: "when the user sees the text of the
   // posts", and "what are the constituent parts"): the moment the posts are
@@ -323,7 +345,7 @@ export default function HomePage() {
               {shown.length > 0 ? (
                 <>
                   <ul className="arrive">
-                    {shown.map((item, index) => (
+                    {drawn.map((item, index) => (
                       <Fragment key={item.key}>
                         <li className="mb-[11px]">{draw(item)}</li>
                         {/* Below the first card (the owner, 2026-10-28): what

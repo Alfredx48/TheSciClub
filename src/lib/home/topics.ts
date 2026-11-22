@@ -6,6 +6,7 @@ import { POST_COLUMNS, type PostRow, toPost } from '@/lib/chat/topics';
 import type { ChatPost, ChatRoom } from '@/lib/chat/types';
 import { describeError, describeThrown, type Failure } from '@/lib/describe-error';
 import { HOME_TOPIC_LIMIT, readHomeFeed } from '@/lib/home/feed-read';
+import { lastHomeFeed, saveHomeFeed } from '@/lib/home/last-seen';
 import {
   DEFAULT_HOME_VIEW,
   type HomeReply,
@@ -254,26 +255,90 @@ export interface HomeTopicsState {
 
 const ATTEMPT = 'Could not load the posts.';
 
+/** home_feed's rows as cards, with their rooms when every card brought its own. */
+function fromFeed(feed: FeedRow[]): { topics: HomeTopicSummary[]; rooms?: ChatRoom[] } {
+  const byRoom = new Map<string, ChatRoom>();
+  for (const row of feed) {
+    if (row.room?.id === row.room_id && !byRoom.has(row.room_id)) {
+      byRoom.set(row.room_id, toRoom(row.room));
+    }
+  }
+  const rooms = feed.every((row) => byRoom.has(row.room_id))
+    ? [...byRoom.values()].sort((a, b) => a.sortOrder - b.sortOrder)
+    : undefined;
+  const topics = feed.map((row) =>
+    toSummary(
+      row,
+      row.previews ? { topic_id: row.id, previews: row.previews } : undefined,
+      row.ord,
+    ),
+  );
+  return rooms ? { topics, rooms } : { topics };
+}
+
+/** The posts the cards need, once each, with their authors remembered for the cards. */
+function postsOf(rows: readonly TopicRow[]): ChatPost[] {
+  const byId = new Map<string, ChatPost>();
+  for (const row of rows) {
+    for (const post of [...(row.opening ?? []), ...(row.replies ?? [])]) {
+      byId.set(post.id, toPost(post));
+    }
+  }
+  rememberChatAuthors(
+    rows
+      .flatMap((row) => [row.author, ...(row.replies ?? []).map((reply) => reply.author)])
+      .filter((author): author is ChatAuthorRow => Boolean(author)),
+  );
+  return [...byId.values()];
+}
+
+/**
+ * What Home showed last on this device (lib/home/last-seen.ts), drawn at once
+ * on opening while the new is read (the owner, 2026-11-21). Only the default
+ * view, the one a member opens on.
+ */
+function lastShown(userId: string | null, view: HomeView): HomeTopicsState | null {
+  if (!userId || view.show !== DEFAULT_HOME_VIEW.show || view.sort !== DEFAULT_HOME_VIEW.sort) {
+    return null;
+  }
+  const feed = lastHomeFeed(userId) as FeedRow[] | null;
+  if (!feed || feed.length === 0) return null;
+  try {
+    return { ...fromFeed(feed), posts: postsOf(feed), loading: false, error: null, readAt: null };
+  } catch {
+    // Kept by an older copy of the app in another shape: read as before.
+    return null;
+  }
+}
+
 /**
  * Read once, on arrival. Home does not subscribe to changes; the page's header
  * says why.
  */
 export function useHomeTopics(view: HomeView = DEFAULT_HOME_VIEW): HomeTopicsState {
-  const [state, setState] = useState<HomeTopicsState>({
-    topics: [],
-    posts: [],
-    loading: true,
-    error: null,
-    readAt: null,
-  });
+  const account = useContext(AccountContext);
+  const userId = account?.userId ?? null;
+  // Let in on what this device last saw: draw what was kept, read once the door has answered.
+  const provisional = account?.provisional === true;
+  const [state, setState] = useState<HomeTopicsState>(
+    () =>
+      lastShown(userId, view) ?? {
+        topics: [],
+        posts: [],
+        loading: true,
+        error: null,
+        readAt: null,
+      },
+  );
   const kept = useKeptRead();
-  const takeInitialHomeFeed = useContext(AccountContext)?.takeInitialHomeFeed;
+  const takeInitialHomeFeed = account?.takeInitialHomeFeed;
   const startingFeed = useRef<Promise<unknown[] | null> | undefined>(undefined);
   const { show, sort } = view;
   /** The choice the state now holds. */
   const held = useRef<string | null>(null);
 
   useEffect(() => {
+    if (provisional) return;
     // Shown again within the minute, nothing changed (lib/kept-reads.ts).
     const key = `home:${show}:${sort}`;
     // Unless what is held is another choice's: a choice gone back to is read again.
@@ -295,23 +360,13 @@ export function useHomeTopics(view: HomeView = DEFAULT_HOME_VIEW): HomeTopicsSta
 
     /** What came back, as the state: the posts once each, and their authors remembered. */
     function land(rows: readonly TopicRow[], topics: HomeTopicSummary[], rooms?: ChatRoom[]) {
-      // The opener can be in both lists; once each.
-      const byId = new Map<string, ChatPost>();
-      for (const row of rows) {
-        for (const post of [...(row.opening ?? []), ...(row.replies ?? [])]) {
-          byId.set(post.id, toPost(post));
-        }
-      }
-      // The cards' names and faces came with the topics: no second read.
-      rememberChatAuthors(
-        rows
-          .flatMap((row) => [row.author, ...(row.replies ?? []).map((reply) => reply.author)])
-          .filter((author): author is ChatAuthorRow => Boolean(author)),
-      );
+      // The opener can be in both lists once; the cards' names and faces came
+      // with the topics: no second read.
+      const posts = postsOf(rows);
       setState({
         topics,
         ...(rooms ? { rooms } : {}),
-        posts: [...byId.values()],
+        posts,
         loading: false,
         error: null,
         readAt: performance.now(),
@@ -333,26 +388,10 @@ export function useHomeTopics(view: HomeView = DEFAULT_HOME_VIEW): HomeTopicsSta
           | null;
         if (aborted()) return;
         if (feed) {
-          const byRoom = new Map<string, ChatRoom>();
-          for (const row of feed) {
-            if (row.room?.id === row.room_id && !byRoom.has(row.room_id)) {
-              byRoom.set(row.room_id, toRoom(row.room));
-            }
-          }
-          const rooms = feed.every((row) => byRoom.has(row.room_id))
-            ? [...byRoom.values()].sort((a, b) => a.sortOrder - b.sortOrder)
-            : undefined;
-          land(
-            feed,
-            feed.map((row) =>
-              toSummary(
-                row,
-                row.previews ? { topic_id: row.id, previews: row.previews } : undefined,
-                row.ord,
-              ),
-            ),
-            rooms,
-          );
+          const { topics, rooms } = fromFeed(feed);
+          land(feed, topics, rooms);
+          // What the next opening draws at once (lib/home/last-seen.ts).
+          if (!chosen && userId) saveHomeFeed(userId, feed);
           return;
         }
         const ranked = chosen ? null : await readRanked(controller.signal);
@@ -414,7 +453,7 @@ export function useHomeTopics(view: HomeView = DEFAULT_HOME_VIEW): HomeTopicsSta
     return () => {
       controller.abort();
     };
-  }, [kept, show, sort, takeInitialHomeFeed]);
+  }, [kept, show, sort, takeInitialHomeFeed, provisional, userId]);
 
   return state;
 }

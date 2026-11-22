@@ -273,6 +273,41 @@ function record(endpoint: string, ms: number, ok: boolean, failure?: string) {
 }
 
 /**
+ * How the opening spent its time (the owner, 2026-11-21: Admin › Speed & logs
+ * shows the steps behind a button): when the app's main script had come
+ * (script-loaded), when the first of the club's data was asked for
+ * (data-asked; index.html asks for Home's at once, src/lib/early-start.ts),
+ * when Home's feed came (feed-arrived), and how long the processor was held
+ * in long blocks before the screen showed its content (busy-before-content).
+ * Each from the page's own timings: nothing more is asked of the network.
+ */
+export function openingSteps(longTasks: readonly [number, number][] = []): [string, number][] {
+  const steps: [string, number][] = [];
+  try {
+    const resources = performance.getEntriesByType('resource') as PerformanceResourceTiming[];
+    const script = resources.find(
+      (entry) => entry.initiatorType === 'script' && /\/assets\/index-[^/]+\.js$/.test(entry.name),
+    );
+    if (script && script.responseEnd > 0) steps.push(['script-loaded', script.responseEnd]);
+    const data = resources.filter((entry) => entry.name.includes('/rest/v1/'));
+    const asked = Math.min(...data.map((entry) => entry.startTime));
+    if (Number.isFinite(asked)) steps.push(['data-asked', asked]);
+    const feed = data.find((entry) => entry.name.includes('/rest/v1/rpc/home_feed'));
+    if (feed && feed.responseEnd > 0) steps.push(['feed-arrived', feed.responseEnd]);
+  } catch {
+    // No resource timings here: the other steps still go.
+  }
+  if (openedContentAt !== null && longTasks.length > 0) {
+    const until = openedContentAt;
+    const busy = longTasks
+      .filter(([start]) => start < until)
+      .reduce((sum, [, duration]) => sum + duration, 0);
+    steps.push(['busy-before-content', busy]);
+  }
+  return steps;
+}
+
+/**
  * Starts reporting: the load's own timings once it has settled, and every
  * request from then on. `send` is the club's log call; it is given rather
  * than imported so the club's client can use timedFetch without a cycle.
@@ -288,6 +323,16 @@ export function startPageSpeed(send: Sender, measured = measuredVisit()): void {
   const screen = screenOf(window.location.pathname);
 
   let largestPaint: number | null = null;
+  // The processor's long blocks (50 ms or more), for the opening's breakdown.
+  // Safari has none to give; the breakdown then leaves that line out.
+  const longTasks: [number, number][] = [];
+  try {
+    new PerformanceObserver((list) => {
+      for (const entry of list.getEntries()) longTasks.push([entry.startTime, entry.duration]);
+    }).observe({ type: 'longtask', buffered: true });
+  } catch {
+    // Not offered here.
+  }
   try {
     const observer = new PerformanceObserver((list) => {
       const entries = list.getEntries();
@@ -330,6 +375,9 @@ export function startPageSpeed(send: Sender, measured = measuredVisit()): void {
     if (largestPaint !== null) {
       push({ kind: 'load', screen, metric: 'largest-paint', ms: largestPaint, ok: true });
     }
+    for (const [metric, ms] of openingSteps(longTasks)) {
+      push({ kind: 'load', screen, metric, ms, ok: true });
+    }
   };
 
   // Settled: some seconds after load, so the largest paint has happened.
@@ -368,6 +416,8 @@ interface ScreenVisit {
 }
 
 let current: ScreenVisit | null = null;
+/** When the screen the app opened on showed its content, for the opening's breakdown. */
+let openedContentAt: number | null = null;
 let touched = false;
 /** When somebody last tapped or pressed a key, for the start of a move. */
 let lastInput: number | null = null;
@@ -435,6 +485,7 @@ export function cardsShown(): void {
   visit.done = true;
   const finish = () => {
     debugCards(visit.path, performance.now() - visit.at);
+    if (visit.opened) openedContentAt = performance.now();
     if (visit.hidden || document.visibilityState === 'hidden') return;
     push({
       kind: 'load',
@@ -455,6 +506,7 @@ export function cardsShown(): void {
 export function resetPageSpeed(): void {
   sender = null;
   queue = [];
+  openedContentAt = null;
   requestsSeen = 0;
   skipped = false;
   current = null;
