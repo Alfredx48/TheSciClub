@@ -147,6 +147,9 @@ citing a HANDOFF section mean), `932a809` (product decisions). Comments citing
   `admin/address-field.tsx`; never Nominatim, whose policy forbids
   type-ahead); a pick fills street, city, state and ZIP, never the label.
   Privacy Policy names Photon (wording for the owner to approve). Probe: `organization-place-zip.sql`.
+- **Event and reaction validation**: event ZIPs use ASCII digits, missed
+  check-in help follows the event audience, and reactions accept one picker
+  emoji sequence. Probes: `findings-event-inputs.sql`, `reaction-emoji.sql`.
 - **App Store: 1.0.5 (build 6) submitted 2026-10-25, waiting for review**,
   manual release. Reviewer signs in as `review@thesciclub.com`; `peer@` and
   `deleteme@` are in the review notes (all Zoho aliases; passwords only in
