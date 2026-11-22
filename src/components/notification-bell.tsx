@@ -66,15 +66,15 @@ export function NotificationBell({
       to="/notifications"
       aria-label={label}
       className={cn(
-        'relative flex items-center gap-2 rounded-xl px-2 py-1.5 font-bold text-[0.875rem] text-grey hover:bg-tint lg:px-3',
+        'relative flex items-center gap-1.5 rounded-xl px-2 py-1 font-bold text-[0.8125rem] text-grey hover:bg-tint lg:px-2.5',
         className,
       )}
     >
-      <span className="relative grid h-7 w-7 place-items-center rounded-[10px]">
+      <span className="relative grid h-6 w-6 place-items-center rounded-[10px]">
         <Bell
           key={ring}
           aria-hidden="true"
-          className={cn('h-[20px] w-[20px]', ring > 0 && 'bell-ring')}
+          className={cn('h-[18px] w-[18px]', ring > 0 && 'bell-ring')}
         />
         {badge}
       </span>

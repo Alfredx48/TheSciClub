@@ -220,7 +220,7 @@ export function AppNav() {
       className={cn(
         'z-40 order-last flex-none bg-paper px-2',
         'border-line border-t pt-1 pb-[max(0.5rem,env(safe-area-inset-bottom))]',
-        'md:order-first md:border-t-0 md:border-b md:px-4 md:pt-1.5 md:pb-1.5',
+        'md:order-first md:border-t-0 md:border-b md:px-4 md:pt-1 md:pb-1',
         // Out of the keyboard's way on a phone; a desktop's top bar stays.
         typing && 'max-md:hidden',
       )}
@@ -273,15 +273,22 @@ export function AppNav() {
                 // it from a laptop's width, where the row is wide and the
                 // stacked label is needlessly small. Beside it on an upright
                 // iPad ran off at a larger text size (the owner, 2026-11-06).
-                'md:px-2.5 lg:flex-row lg:gap-2 lg:px-3 lg:py-1.5 lg:text-[0.875rem]',
+                'md:px-2.5 lg:flex-row lg:gap-1.5 lg:px-2.5 lg:py-1 lg:text-[0.8125rem]',
+                // Slimmer wherever the bar is on top (the owner, 2026-11-21).
+                'md:pt-0.5 md:pb-0',
                 isActive ? 'text-emphasis' : 'text-grey',
                 !isActive && 'md:hover:bg-tint',
               )}
             >
               {/* Every item gets the same row height, so the five labels sit
                   on one line. */}
-              <span className="relative grid h-7 w-7 place-items-center rounded-[10px]">
-                <Icon className={cn('h-[20px] w-[20px]', isActive && '[stroke-width:2.3]')} />
+              <span className="relative grid h-7 w-7 place-items-center rounded-[10px] md:h-6 md:w-6">
+                <Icon
+                  className={cn(
+                    'h-[20px] w-[20px] md:h-[18px] md:w-[18px]',
+                    isActive && '[stroke-width:2.3]',
+                  )}
+                />
                 {spinning === to ? (
                   // A ring turning round the icon while the tab reads again.
                   // Still for somebody who asks for less motion: the ring

@@ -186,7 +186,7 @@ export function BackLine() {
         // back links had.
         data-target="small"
         // The whole row, edge to edge, so a press need not find the words.
-        className="-ml-1.5 flex min-h-[36px] w-full items-center gap-0.5 py-1 text-left font-semibold text-[0.875rem] text-emphasis"
+        className="-ml-1.5 flex min-h-[36px] w-full items-center md:min-h-[32px] md:py-0.5 gap-0.5 py-1 text-left font-semibold text-[0.875rem] text-emphasis"
       >
         <ChevronLeft className="h-[18px] w-[18px] flex-none" strokeWidth={2.5} aria-hidden="true" />
         <span className="truncate">{shortName(label)}</span>
