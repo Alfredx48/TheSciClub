@@ -2,8 +2,8 @@
 <!--
   The store app's YouTube player. YouTube refuses a frame whose page is
   capacitor://localhost, so the app frames this page, and YouTube sees
-  thesciclub.com. Only ?v=<an 11-character id> is read; nothing else passes.
-  Headers: netlify/edge-functions/youtube-embed.ts. Tests: src/embed-youtube.test.ts.
+  thesciclub.com. Read the id from #v=, or ?v= for older app builds.
+  Headers: netlify/edge-functions/youtube-embed.ts.
 -->
 <html lang="en">
   <head>
@@ -42,7 +42,9 @@
     <p id="refused" hidden>This video can't be played here.</p>
     <script>
       (() => {
-        const id = new URLSearchParams(location.search).get('v');
+        const id =
+          new URLSearchParams(location.search).get('v') ??
+          new URLSearchParams(location.hash.slice(1)).get('v');
         if (id === null || !/^[A-Za-z0-9_-]{11}$/.test(id)) {
           document.getElementById('refused').hidden = false;
           return;

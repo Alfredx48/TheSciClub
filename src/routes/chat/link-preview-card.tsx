@@ -99,12 +99,13 @@ export function LinkPreviewCard({
       {video ? (
         playing ? (
           <>
-            {/* Black, not white, until the player paints. */}
+            {/* In dark mode WebKit can paint the blank frame white despite bg-black. */}
             <div className="aspect-video w-full bg-black">
               <iframe
+                key={video}
                 src={isNative() ? appYoutubeEmbedUrl(video) : youtubeEmbedUrl(video)}
                 title={`YouTube video: ${title}`}
-                className="block h-full w-full bg-black"
+                className="block h-full w-full bg-black [color-scheme:light]"
                 allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
                 allowFullScreen
                 referrerPolicy="strict-origin-when-cross-origin"

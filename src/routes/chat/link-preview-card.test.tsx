@@ -103,7 +103,7 @@ describe('a YouTube video', () => {
       const player = container.querySelector('iframe');
       expect(player).toHaveAttribute(
         'src',
-        'https://thesciclub.com/embed/youtube.html?v=dQw4w9WgXcQ',
+        'https://thesciclub.com/embed/youtube.html#v=dQw4w9WgXcQ',
       );
       expect(player).toHaveAttribute('title', 'YouTube video: A song');
       expect(player).toHaveAttribute('referrerpolicy', 'strict-origin-when-cross-origin');

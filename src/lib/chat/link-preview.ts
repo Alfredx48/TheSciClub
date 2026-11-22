@@ -39,10 +39,10 @@ export function youtubeEmbedUrl(id: string): string {
 
 /**
  * The store app's player: the club's page that frames the one above, since
- * YouTube refuses capacitor://localhost (public/embed/youtube.html).
+ * YouTube refuses capacitor://localhost. A fragment lets videos reuse the same page.
  */
 export function appYoutubeEmbedUrl(id: string): string {
-  return `${SITE_ORIGIN}/embed/youtube.html?v=${id}`;
+  return `${SITE_ORIGIN}/embed/youtube.html#v=${id}`;
 }
 
 /** "reeve.org", for the card's small line when the page names no site. */

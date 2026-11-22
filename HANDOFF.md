@@ -106,7 +106,8 @@ citing a HANDOFF section mean), `932a809` (product decisions). Comments citing
   YouTube cards in the app frame the club's player page
   (`public/embed/youtube.html`, its own headers in `netlify.toml`), since
   YouTube refused capacitor://localhost on 1.0.1; an "Open in YouTube" link
-  sits under it. Needs the page live on `main` before the next TestFlight.
+  sits under it. The player page supports the older query URL and caches
+  across videos with the new fragment URL. Ship the page before the app.
 - **Checks**: 4,891 tests in 378 files on 2026-11-08; `pnpm check` (alone),
   `pnpm test` and `pnpm build` gate every push. While working,
   `pnpm test:related <files>`; which tests to add: `CLAUDE.md`.

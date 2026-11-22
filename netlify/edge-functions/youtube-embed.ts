@@ -18,7 +18,7 @@ export const FRAME_ANCESTORS = [
 export const EMBED_HEADERS: Readonly<Record<string, string>> = {
   'Content-Security-Policy': [
     "default-src 'none'",
-    "script-src 'sha256-xV0u9Ur8udktvZYVkC5PqoFUTOjkQMR2lAsrZ7WJfkk='",
+    "script-src 'sha256-VD9mqexzzVRELswuLvp/8vQyyPj6rqtG47uhpk7/BZ4='",
     "style-src 'sha256-pTXWBUXwSv2U25eVaY4YmGaJreAcdJZXGVEK/Ol4afw='",
     'frame-src https://www.youtube-nocookie.com',
     "base-uri 'none'",
@@ -29,6 +29,7 @@ export const EMBED_HEADERS: Readonly<Record<string, string>> = {
   'X-Frame-Options': 'SAMEORIGIN',
   'X-Robots-Tag': 'noindex, nofollow',
   'X-Content-Type-Options': 'nosniff',
+  'Cache-Control': 'private, max-age=300',
   'Referrer-Policy': 'strict-origin-when-cross-origin',
 };
 

@@ -59,7 +59,7 @@ describe('youtubeEmbedUrl', () => {
 describe('appYoutubeEmbedUrl', () => {
   it("is the club's player page, passing only the id", () => {
     expect(appYoutubeEmbedUrl('dQw4w9WgXcQ')).toBe(
-      'https://thesciclub.com/embed/youtube.html?v=dQw4w9WgXcQ',
+      'https://thesciclub.com/embed/youtube.html#v=dQw4w9WgXcQ',
     );
   });
 });

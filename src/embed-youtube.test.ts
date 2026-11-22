@@ -30,9 +30,9 @@ async function sha256(text: string): Promise<string> {
   return `'sha256-${btoa(String.fromCharCode(...new Uint8Array(digest)))}'`;
 }
 
-/** Runs the page's script as if opened with this query. */
-function open(query: string) {
-  window.history.replaceState(null, '', `/embed/youtube.html${query}`);
+/** Runs the page's script as if opened with this URL suffix. */
+function open(suffix: string) {
+  window.history.replaceState(null, '', `/embed/youtube.html${suffix}`);
   document.body.innerHTML = /<body>([\s\S]*)<\/body>/.exec(PAGE)?.[1] ?? '';
   const script = document.createElement('script');
   script.textContent = SCRIPT;
@@ -49,18 +49,21 @@ afterEach(() => {
 });
 
 describe('the YouTube page', () => {
-  it('plays a video id with the same address the website uses', () => {
-    const { player, refused } = open('?v=dQw4w9WgXcQ');
-    expect(player).toHaveAttribute('src', youtubeEmbedUrl('dQw4w9WgXcQ'));
-    expect(player?.getAttribute('src')).toContain('playsinline=1');
-    expect(player).toHaveAttribute('title', 'YouTube video');
-    expect(player).toHaveAttribute('referrerpolicy', 'strict-origin-when-cross-origin');
-    expect(player).toHaveAttribute('allowfullscreen');
-    expect(refused).not.toBeVisible();
-  });
+  it.each(['#v=dQw4w9WgXcQ', '?v=dQw4w9WgXcQ'])(
+    'plays a video id with the same address the website uses (%s)',
+    (suffix) => {
+      const { player, refused } = open(suffix);
+      expect(player).toHaveAttribute('src', youtubeEmbedUrl('dQw4w9WgXcQ'));
+      expect(player?.getAttribute('src')).toContain('playsinline=1');
+      expect(player).toHaveAttribute('title', 'YouTube video');
+      expect(player).toHaveAttribute('referrerpolicy', 'strict-origin-when-cross-origin');
+      expect(player).toHaveAttribute('allowfullscreen');
+      expect(refused).not.toBeVisible();
+    },
+  );
 
   it('passes nothing but the id on to YouTube', () => {
-    const { player } = open('?list=PL123&v=dQw4w9WgXcQ&autoplay=0&start=60');
+    const { player } = open('#list=PL123&v=dQw4w9WgXcQ&autoplay=0&start=60');
     expect(player).toHaveAttribute('src', youtubeEmbedUrl('dQw4w9WgXcQ'));
   });
 
@@ -69,7 +72,7 @@ describe('the YouTube page', () => {
     ['an empty id', '?v='],
     ['ten characters', '?v=dQw4w9WgXc'],
     ['twelve characters', '?v=dQw4w9WgXcQQ'],
-    ['a path', '?v=..%2F..%2Fx%3Fa%3D'],
+    ['a path', '#v=..%2F..%2Fx%3Fa%3D'],
     ['a stray character', '?v=dQw4w9WgX%3C'],
     ['a trailing newline', '?v=dQw4w9WgXcQ%0A'],
     ['a space', '?v=dQw4w9WgX%20Q'],
