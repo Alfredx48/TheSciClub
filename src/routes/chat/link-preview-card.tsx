@@ -150,7 +150,7 @@ export function LinkPreviewCard({
               >
                 <span
                   aria-hidden="true"
-                  className="size-6 rounded-full border-2 border-white border-b-transparent drop-shadow-[0_0_2px_#000] motion-safe:animate-spin"
+                  className="size-8 rounded-full border-2 border-white border-b-transparent drop-shadow-[0_0_2px_#000] motion-safe:animate-spin"
                 />
                 <span className="sr-only">Loading video…</span>
               </span>
