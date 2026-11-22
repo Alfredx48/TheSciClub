@@ -275,6 +275,12 @@ content_path = "./supabase/templates/email_change.html"
 subject = "Your SCI Club confirmation code"
 content_path = "./supabase/templates/reauthentication.html"
 
+# Only the admin site asks for it (admin/site.tsx, the owner, 2026-11-22): a code to type, since a
+# link would open in Safari rather than the Home Screen app. Hosted: set by the Management API.
+[auth.email.template.magic_link]
+subject = "Your Sci Club Admin sign-in code"
+content_path = "./supabase/templates/magic_link.html"
+
 # Sent whenever a password is changed (the owner, 2026-10-14), so a change
 # somebody else made does not go unnoticed. Hosted: set by the Management API.
 [auth.email.notification.password_changed]

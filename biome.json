@@ -11,6 +11,7 @@
       "**",
       "!**/dist",
       "!**/dist-native",
+      "!**/dist-admin",
       "!ios",
       "!android",
       "!**/coverage",

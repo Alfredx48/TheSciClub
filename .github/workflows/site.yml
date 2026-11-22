@@ -1,5 +1,6 @@
 # Site: builds the app and deploys it to Cloudflare on every push to main
-# (thesciclub.com) and tests (tests.thesciclub.com). Netlify did this until
+# (thesciclub.com) and tests (tests.thesciclub.com), and the admin site beside
+# it (the admin job, below). Netlify did this until
 # 2026-11-20; its credits ran out on deploys (the owner).
 #
 # Each site's build settings are variables of a GitHub environment, site-live
@@ -106,3 +107,61 @@ jobs:
           gh api "repos/$GITHUB_REPOSITORY/git/refs" -f "ref=refs/tags/$tag" -f "sha=$GITHUB_SHA" >/dev/null \
             || echo "::warning::Could not tag $tag"
           echo "Tagged $tag at $GITHUB_SHA"
+
+  # The admin site (admin/, the owner, 2026-11-22): built and deployed apart from the app, to its
+  # own Worker, so that a broken app build or deploy does not keep administrators from it.
+  # admin.thesciclub.com and its test copy are custom domains on those Workers.
+  admin:
+    if: >-
+      github.repository == 'Alfredx48/TheSciClub' &&
+      (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/tests')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: ${{ github.ref == 'refs/heads/main' && 'site-live' || 'site-tests' }}
+
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          check-latest: true
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        env:
+          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY }}
+          TEST_SUPABASE_REF: ${{ vars.TEST_SUPABASE_REF }}
+        run: |
+          set -euo pipefail
+          for name in VITE_SUPABASE_URL VITE_SUPABASE_ANON_KEY; do
+            [ -n "${!name}" ] || { echo "::error::Set the $name variable of this environment"; exit 1; }
+          done
+          if [ "$GITHUB_REF" = refs/heads/main ]; then
+            [ -z "$TEST_SUPABASE_REF" ] || { echo "::error::site-live has TEST_SUPABASE_REF"; exit 1; }
+            export VITE_APP_ORIGIN=https://thesciclub.com
+          else
+            [[ "$VITE_SUPABASE_URL" == "https://$TEST_SUPABASE_REF.supabase.co" ]] \
+              || { echo "::error::site-tests must name its test project in both variables"; exit 1; }
+            export VITE_APP_ORIGIN=https://tests.thesciclub.com
+          fi
+          pnpm vite build --config vite.admin.config.ts
+
+      - name: Deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          site=()
+          [ "$GITHUB_REF" = refs/heads/main ] || site=(--env tests)
+          pnpm dlx --allow-build=esbuild --allow-build=workerd wrangler@4.149.0 deploy \
+            --config cloudflare/admin/wrangler.toml "${site[@]}"

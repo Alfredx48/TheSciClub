@@ -1,0 +1,25 @@
+# The admin site on Cloudflare (the owner, 2026-11-22): admin.thesciclub.com from main, its test
+# copy from tests (`--env tests`), each with its own Worker so a broken app deploy does not
+# reach it. .github/workflows/site.yml builds it (vite.admin.config.ts) and deploys it in a job
+# of its own. The address is a custom domain added to the Worker in Cloudflare's dashboard.
+
+name = "thesciclub-admin"
+main = "worker.ts"
+compatibility_date = "2026-10-01"
+workers_dev = true
+preview_urls = false
+
+[vars]
+APP_ORIGIN = "https://thesciclub.com"
+
+[assets]
+directory = "../../dist-admin"
+binding = "ASSETS"
+not_found_handling = "single-page-application"
+run_worker_first = ["/app-status"]
+
+[env.tests]
+name = "thesciclub-admin-tests"
+
+[env.tests.vars]
+APP_ORIGIN = "https://tests.thesciclub.com"

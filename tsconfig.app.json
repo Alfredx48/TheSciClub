@@ -32,6 +32,6 @@
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src"],
+  "include": ["src", "admin"],
   "exclude": ["src/sw.ts"]
 }

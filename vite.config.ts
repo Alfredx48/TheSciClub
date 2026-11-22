@@ -249,6 +249,13 @@ export default defineConfig(({ mode }) => ({
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
     css: true,
-    exclude: [...configDefaults.exclude, '.claude/**', 'dist-native/**', 'ios/**', 'android/**'],
+    exclude: [
+      ...configDefaults.exclude,
+      '.claude/**',
+      'dist-native/**',
+      'dist-admin/**',
+      'ios/**',
+      'android/**',
+    ],
   },
 }));

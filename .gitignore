@@ -8,6 +8,7 @@ node_modules
 dist
 # The store app's web build (pnpm build:native), copied into ios/ and android/ by cap sync.
 dist-native
+dist-admin
 dist-ssr
 *.local
 

@@ -25,5 +25,11 @@
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["vite.config.ts", "capacitor.config.ts", "native-csp.ts", "scripts"]
+  "include": [
+    "vite.config.ts",
+    "vite.admin.config.ts",
+    "capacitor.config.ts",
+    "native-csp.ts",
+    "scripts"
+  ]
 }

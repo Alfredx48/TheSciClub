@@ -1,0 +1,4 @@
+/* The app's stylesheet, and its classes found in the app's code as well as the admin site's:
+   this build's root is admin/, so Tailwind would otherwise look only here. */
+@import "../src/index.css";
+@source "../src";
