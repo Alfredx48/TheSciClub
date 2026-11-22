@@ -121,15 +121,62 @@ try {
   const signIn = await visible(byLabel('XCUIElementTypeButton', '\\s*sign in\\s*'));
   if (!signIn) throw new Error('no "Sign in" button');
   await signIn.click();
-  const tabBar = await waitFor(
-    () => visible(byLabel('XCUIElementTypeLink', '(Home|Events)(,.*)?')),
-    30000,
-  );
+  // The tab bar is read from the page source, one call: on Nov 21 a predicate query over a long feed timed out while the
+  // screenshot showed Home and its tab bar (the check said "no tab bar" at 10:44 with the app signed in).
+  const tabBar = await waitFor(async () => /name="Peers"/.test(await driver.getPageSource()), 60000);
   if (!tabBar) {
     await shot('01-sign-in-failed');
     throw new Error('the tab bar did not appear within 30 s of signing in');
   }
   note('signed in');
+
+  // How the app opens (owner, 2026-11-21: tests of how the iOS app loads). Cold: the app is quit, then opened as a tap on its icon
+  // does; timed until the tab bar is on screen, and until Home's feed is (a card's Upvote button, or the "Ask or post" box and a
+  // reply count). Warm: sent to the Home screen and brought back. The Simulator on GitHub's Mac is not a phone and the page source
+  // is read about every second, so these are the same measurement every night, good to a second. The app also reports its own
+  // opening (one visit in three) to the test project, for the steps inside it.
+  const BUNDLE = 'com.thesciclub.app';
+  const openings = { cold: [], warm: [] };
+  const timeOpen = async (how) => {
+    const t0 = Date.now();
+    await driver.activateApp(BUNDLE);
+    let bar = null;
+    let feed = null;
+    while (Date.now() - t0 < 60000 && (bar === null || feed === null)) {
+      const src = await driver.getPageSource().catch(() => '');
+      const at = Date.now() - t0;
+      if (bar === null && /name="Peers"/.test(src)) bar = at;
+      if (feed === null && /name="(Upvote |Score \d+|React to )/.test(src)) feed = at;
+    }
+    openings[how].push({ tabBar: bar, feed });
+    return { bar, feed };
+  };
+  for (let i = 1; i <= 6; i++) {
+    await driver.terminateApp(BUNDLE).catch(() => {});
+    await sleep(2500);
+    const c = await timeOpen('cold');
+    note(`opening ${i} cold: tab bar ${c.bar ?? 'not seen'} ms, feed ${c.feed ?? 'not seen'} ms`);
+    await sleep(3000); // the app settles and (one visit in three) reports
+    await driver.execute('mobile: pressButton', { name: 'home' }).catch(() => {});
+    await sleep(2500);
+    const w = await timeOpen('warm');
+    note(`opening ${i} warm: tab bar ${w.bar ?? 'not seen'} ms, feed ${w.feed ?? 'not seen'} ms`);
+    await sleep(2000);
+  }
+  const med = (xs) => {
+    const v = xs.filter((x) => x !== null).sort((a, b) => a - b);
+    return v.length ? v[Math.floor((v.length - 1) / 2)] : null;
+  };
+  report.openings = {
+    ...openings,
+    medians: {
+      coldTabBar: med(openings.cold.map((o) => o.tabBar)),
+      coldFeed: med(openings.cold.map((o) => o.feed)),
+      warmTabBar: med(openings.warm.map((o) => o.tabBar)),
+      warmFeed: med(openings.warm.map((o) => o.feed)),
+    },
+  };
+  note(`OPENINGS ${JSON.stringify(report.openings.medians)}`);
 
   // Each tab: something on it within 15 s, and not still "Loading…".
   for (const [i, tab] of ['Home', 'Peers', 'Chat', 'Events', 'Me'].entries()) {
