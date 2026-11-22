@@ -7,7 +7,7 @@ import {
   useLayoutEffect,
   useSyncExternalStore,
 } from 'react';
-import { useLocation, useNavigate, useNavigationType } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useNavigationType } from 'react-router-dom';
 import { litTab } from '@/components/lit-tab';
 import {
   arrive,
@@ -138,7 +138,24 @@ export function BackTrail() {
   return null;
 }
 
-export function BackLine() {
+/** Screens drawing the way back in their own header, so the line is left out. */
+let claims = 0;
+const claimListeners = new Set<() => void>();
+
+function subscribeClaims(listener: () => void): () => void {
+  claimListeners.add(listener);
+  return () => {
+    claimListeners.delete(listener);
+  };
+}
+
+function changeClaims(by: number) {
+  claims += by;
+  for (const listener of claimListeners) listener();
+}
+
+/** Where back goes from here, and the step there; null on a tab's first screen. */
+function useBackStep(): { label: string; back: () => void } | null {
   const location = useLocation();
   const navigate = useNavigate();
   const trail = useSyncExternalStore(subscribeTrail, currentTrail, currentTrail);
@@ -175,6 +192,18 @@ export function BackLine() {
     }
     void navigate(`${before.pathname}${before.search}`, { state: before.state });
   }
+  return { label, back };
+}
+
+export function BackLine() {
+  const step = useBackStep();
+  const claimed = useSyncExternalStore(
+    subscribeClaims,
+    () => claims > 0,
+    () => claims > 0,
+  );
+  if (!step || claimed) return null;
+  const { label, back } = step;
 
   return (
     <div className="flex-none border-line border-b bg-paper px-4 md:px-6">
@@ -192,5 +221,46 @@ export function BackLine() {
         <span className="truncate">{shortName(label)}</span>
       </button>
     </div>
+  );
+}
+
+/**
+ * The way back as an arrow at the start of a screen's own header, in place of
+ * the line (the owner, 2026-11-21: a conversation's back beside the name, with
+ * no row of its own). Outside the shell, a link to `to`, as BackLink.
+ */
+export function HeaderBack({ to, label }: Parent) {
+  const lined = useContext(LinedContext);
+  const step = useBackStep();
+  useLayoutEffect(() => {
+    if (!lined) return;
+    const mine: Parent = { to, label };
+    setParent(mine);
+    changeClaims(1);
+    return () => {
+      if (parent === mine) setParent(null);
+      changeClaims(-1);
+    };
+  }, [lined, to, label]);
+  const className =
+    '-ml-2.5 flex h-[44px] w-[36px] flex-none items-center justify-center rounded-full text-emphasis hover:bg-tint';
+  const arrow = <ChevronLeft className="h-[24px] w-[24px]" strokeWidth={2.5} aria-hidden="true" />;
+  if (!lined || !step) {
+    return (
+      <Link to={to} aria-label={`Back to ${label}`} className={className}>
+        {arrow}
+      </Link>
+    );
+  }
+  return (
+    <button
+      type="button"
+      onClick={step.back}
+      aria-label={`Back to ${step.label}`}
+      title={`Back to ${step.label}`}
+      className={className}
+    >
+      {arrow}
+    </button>
   );
 }

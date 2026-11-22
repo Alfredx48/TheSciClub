@@ -9,6 +9,7 @@ import {
   useState,
 } from 'react';
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { HeaderBack } from '@/components/back-line';
 import { BackLink } from '@/components/back-link';
 import { LevelHighlight } from '@/components/injury-stage-pill';
 import { FormerMemberAvatar, GroupAvatar, MemberAvatar } from '@/components/member-avatar';
@@ -565,8 +566,9 @@ function ThreadScreen({ threadId }: { threadId: string | undefined }) {
     <div className="flex flex-1 flex-col overflow-hidden">
       <header className="flex-none border-line border-b bg-paper px-[18px] pt-3 pb-3">
         <div className="mx-auto w-full max-w-[720px]">
-          <BackLink to="/chat" label="Chat" />
-          <div className="mt-1 flex items-center gap-2.5">
+          {/* Back sits beside the name, with no line of its own (the owner, 2026-11-21). */}
+          <div className="flex items-center gap-2.5">
+            <HeaderBack to="/chat" label="Chat" />
             {profileHref ? (
               <Link
                 to={profileHref}
