@@ -90,47 +90,57 @@ function service(endpoint: string): string {
   }
 }
 
-/** One message to one device, by the service it is on. */
-async function deliver(row: Owed, message: PushMessage): Promise<Delivery> {
+/** One message to one device, by the service it is on, and why it failed if it did. */
+async function deliver(
+  row: Owed,
+  message: PushMessage,
+): Promise<{ outcome: Delivery; reason?: string }> {
   const app = apnsDevice(row.endpoint);
   if (app) {
-    if (!APNS) return 'skipped';
+    if (!APNS) return { outcome: 'skipped', reason: 'APNs keys not set' };
     const result = await sendApns(app, message, APNS);
-    if (apnsGone(result)) return 'gone';
+    if (apnsGone(result)) return { outcome: 'gone', reason: `Apple: ${String(result.reason)}` };
     if (result.status !== 200) {
       console.error('push-notify: Apple said', result.status, result.reason, app.environment);
-      return 'failed';
+      return {
+        outcome: 'failed',
+        reason: `Apple ${String(result.status)}: ${String(result.reason)}`,
+      };
     }
-    return 'sent';
+    return { outcome: 'sent' };
   }
   const android = fcmDevice(row.endpoint);
   if (android) {
-    if (!FCM) return 'skipped';
+    if (!FCM) return { outcome: 'skipped', reason: 'FCM not set' };
     try {
       const result = await FCM(android, message);
-      if (result.unregistered) return 'gone';
-      if (result.status === 200) return 'sent';
+      if (result.unregistered) return { outcome: 'gone', reason: 'FCM: unregistered' };
+      if (result.status === 200) return { outcome: 'sent' };
       console.error('push-notify: FCM said', result.status);
+      return { outcome: 'failed', reason: `FCM ${String(result.status)}` };
     } catch {
       console.error('push-notify: FCM request failed');
+      return { outcome: 'failed', reason: 'FCM request failed' };
     }
-    return 'failed';
   }
-  if (!row.endpoint.startsWith('https://') || !row.p256dh || !row.auth) return 'failed';
-  if (!WEB_PUSH_CONFIGURED) return 'skipped';
+  if (!row.endpoint.startsWith('https://') || !row.p256dh || !row.auth) {
+    return { outcome: 'failed', reason: 'not a push address' };
+  }
+  if (!WEB_PUSH_CONFIGURED) return { outcome: 'skipped', reason: 'VAPID keys not set' };
   const status = await sendPush(
     { endpoint: row.endpoint, p256dh: row.p256dh, auth: row.auth },
     JSON.stringify(message),
     VAPID,
     SUBJECT,
   );
-  if (status === 404 || status === 410) return 'gone';
+  if (status === 404 || status === 410)
+    return { outcome: 'gone', reason: `answered ${String(status)}` };
   if (status >= 400) {
     // The endpoint's host names the service; the path is the device.
     console.error('push-notify: push service said', status, service(row.endpoint));
-    return 'failed';
+    return { outcome: 'failed', reason: `answered ${String(status)}` };
   }
-  return 'sent';
+  return { outcome: 'sent' };
 }
 
 /** A PostgREST rpc as the service role. A new-format key goes as `apikey` only. */
@@ -171,7 +181,11 @@ Deno.serve(async (request) => {
   // second; asked after that, push_owed no longer owes them this push.
   if (event === 'message') await new Promise((done) => setTimeout(done, MESSAGE_WAIT_MS));
 
-  const owedResponse = await rpc('push_owed', { p_secret: secret, p_event: event, p_key: key });
+  // The administrators' alerts (20261122090000): every administrator's devices.
+  const owedResponse =
+    event === 'admin_alert'
+      ? await rpc('push_admin_alert_owed', { p_secret: secret, p_key: key })
+      : await rpc('push_owed', { p_secret: secret, p_event: event, p_key: key });
   if (!owedResponse.ok) {
     // A wrong secret is 42501, which PostgREST answers with 401 or 403.
     const text = await owedResponse.text();
@@ -186,12 +200,21 @@ Deno.serve(async (request) => {
   const gone: string[] = [];
   let sent = 0;
   let skipped = 0;
+  // What became of each, for Admin's deliveries (20261122090000). The kind
+  // and the service, never the device.
+  const outcomes: { kind: string; outcome: string; reason?: string; service: string }[] = [];
   await Promise.all(
     owed.map(async (row) => {
       const message = compose(row);
       if (!message) return;
       try {
-        const delivery = await deliver(row, message);
+        const { outcome: delivery, reason } = await deliver(row, message);
+        outcomes.push({
+          kind: row.kind,
+          outcome: delivery,
+          service: service(row.endpoint),
+          ...(reason ? { reason } : {}),
+        });
         if (delivery === 'gone') {
           // Worth a line: a device forgotten by mistake is a member who
           // silently stops being told anything.
@@ -204,9 +227,22 @@ Deno.serve(async (request) => {
         else if (delivery === 'skipped') skipped++;
       } catch (e) {
         console.error('push-notify: send failed', service(row.endpoint), e);
+        outcomes.push({
+          kind: row.kind,
+          outcome: 'failed',
+          reason: String(e).slice(0, 200),
+          service: service(row.endpoint),
+        });
       }
     }),
   );
+  if (outcomes.length > 0) {
+    const logged = await rpc('log_push_deliveries', { p_secret: secret, p_rows: outcomes });
+    // A database without it yet (before 20261122090000) answers 404: nothing lost but the note.
+    if (!logged.ok && logged.status !== 404)
+      console.error('push-notify: log_push_deliveries failed', logged.status, await logged.text());
+  }
+
   if (skipped > 0) {
     console.log('push-notify: APNs secrets are not set; skipped', skipped, 'iPhone(s) in the app');
   }

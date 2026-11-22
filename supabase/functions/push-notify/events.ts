@@ -28,6 +28,8 @@ export const EVENTS: ReadonlySet<string> = new Set([
   'introduction',
   'event_notice',
   'family_link',
+  // The administrators' own (20261122090000): the app down or failing.
+  'admin_alert',
   'checked_in',
   'event_changed',
   'important',

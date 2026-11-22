@@ -28,8 +28,13 @@
  * A tap opens `url`. Anything that is not a path on this origin — another
  * site, `javascript:`, a protocol-relative `//elsewhere` — becomes `/`. The
  * sender is ours, but a notification that can open an arbitrary address is a
- * phishing page one bug away.
+ * phishing page one bug away. One address elsewhere is allowed, whole and
+ * exactly: the admin site's front page, which the administrators' alerts open
+ * because it works when the app does not (20261122090000).
  */
+
+/** The one address outside the app a notification may open. */
+export const ADMIN_SITE = 'https://admin.thesciclub.com/';
 
 export interface PushNotification {
   title: string;
@@ -65,6 +70,7 @@ export function safePath(candidate: unknown, origin: string): string {
   } catch {
     return '/';
   }
+  if (resolved.href === ADMIN_SITE) return ADMIN_SITE;
   if (resolved.origin !== origin) return '/';
   return `${resolved.pathname}${resolved.search}${resolved.hash}`;
 }

@@ -210,6 +210,15 @@ export function compose(owed: Owed): PushMessage | null {
   const many = unread(owed);
 
   switch (owed.kind) {
+    // To the administrators, from the database's watch on the app
+    // (20261122090000): opens the admin site, which works when the app does not.
+    case 'admin_alert':
+      return {
+        title: 'Sci Club Admin',
+        body: shorten(owed.body ?? '', 160),
+        url: owed.url,
+        tag: owed.tag,
+      };
     // A message with neither words nor photographs is a shared post
     // (20261025010000), which is never quoted.
     // The owner, 2026-11-13: the sender's name alone, as iMessage and

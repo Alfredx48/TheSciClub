@@ -444,6 +444,10 @@ deno_version = 2
 [functions.push-notify]
 verify_jwt = false
 
+# Resend's webhook: signed by Resend, not a member (resend-events/index.ts).
+[functions.resend-events]
+verify_jwt = false
+
 # The link previewer. Called by the database (pg_net, from
 # link_preview_enqueue) with the vault's link_preview_secret, which
 # link_preview_source and link_preview_save check; no member calls it.

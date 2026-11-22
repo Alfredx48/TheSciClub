@@ -24,6 +24,17 @@ describe('safePath', () => {
     expect(safePath('http://thesciclub.netlify.app/chat', origin)).toBe('/');
   });
 
+  // The administrators' alerts open the admin site (20261122090000): its front
+  // page exactly, and nothing else there or like it.
+  it('lets out only the admin site front page', () => {
+    expect(safePath('https://admin.thesciclub.com/', origin)).toBe('https://admin.thesciclub.com/');
+    expect(safePath('https://admin.thesciclub.com', origin)).toBe('https://admin.thesciclub.com/');
+    expect(safePath('https://admin.thesciclub.com/peers/x', origin)).toBe('/');
+    expect(safePath('https://admin.thesciclub.com/?next=//evil.example', origin)).toBe('/');
+    expect(safePath('http://admin.thesciclub.com/', origin)).toBe('/');
+    expect(safePath('https://admin.thesciclub.com.evil.example/', origin)).toBe('/');
+  });
+
   it('sends nothing, or not a string, home', () => {
     expect(safePath(undefined, origin)).toBe('/');
     expect(safePath('', origin)).toBe('/');
