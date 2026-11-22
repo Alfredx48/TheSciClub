@@ -456,6 +456,11 @@ verify_jwt = false
 [functions.sign-in-reminder]
 verify_jwt = false
 
+# Called every 30 minutes by private.copy_request_logs, with the vault's
+# request_logs_secret, which store_request_logs checks (20261122040000).
+[functions.copy-request-logs]
+verify_jwt = false
+
 # The Home Screen app has no session yet when it calls this; the single-use
 # code is what it presents (20261012100000).
 [functions.home-screen-handoff]
