@@ -71,6 +71,7 @@ export function MessageBubble({
   onBlock,
   important = null,
   onToggleImportant,
+  photosFirst = false,
 }: {
   message: ChatMessage;
   /** Null for a removed member, and also while the name is still loading. */
@@ -109,6 +110,8 @@ export function MessageBubble({
    * asked have acknowledged it, which opens who.
    */
   important?: { acknowledged: number; asked: number; onShowWho: () => void } | null;
+  /** One of the newest photographs: loaded at once, not as it is scrolled near. */
+  photosFirst?: boolean;
   /** The reader may mark it Important, or take that off. Absent draws nothing. */
   onToggleImportant?: (() => void) | undefined;
 }) {
@@ -171,7 +174,11 @@ export function MessageBubble({
       ) : null}
       {message.sharedPostId ? <SharedPostCard post={sharedPost} /> : null}
       {message.attachments.length > 0 ? (
-        <AttachmentGrid paths={message.attachments} from={mine ? 'you' : name} />
+        <AttachmentGrid
+          paths={message.attachments}
+          from={mine ? 'you' : name}
+          eager={photosFirst ? 'first' : undefined}
+        />
       ) : null}
       {clubLink ? (
         <ClubLinkCard link={clubLink} />

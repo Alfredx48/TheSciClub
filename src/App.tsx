@@ -34,6 +34,7 @@ import { afterFirstContent, noteScreen } from '@/lib/page-speed';
 import { FollowNotification } from '@/lib/push/follow-notification';
 import { OpenedNotification } from '@/lib/push/opened-notification';
 import { countVisit } from '@/lib/web-analytics';
+import { whenIdle } from '@/lib/when-idle';
 import DevLoginPage from '@/routes/dev-login/page';
 import HomePage from '@/routes/home/page';
 import NotFoundPage from '@/routes/not-found/page';
@@ -156,21 +157,6 @@ const SCREENS: [RegExp, () => Promise<unknown>][] = [
 export function preloadScreen(pathname: string): void {
   const load = SCREENS.find(([pattern]) => pattern.test(pathname))?.[1];
   if (load) void load().catch(() => undefined);
-}
-
-/** Runs `task` when the page is idle; returns a cancel. */
-function whenIdle(task: () => void): () => void {
-  // Safari before 26 has no requestIdleCallback.
-  if (typeof (window.requestIdleCallback as unknown) === 'function') {
-    const id = window.requestIdleCallback(task, { timeout: 4000 });
-    return () => {
-      window.cancelIdleCallback(id);
-    };
-  }
-  const id = window.setTimeout(task, 2000);
-  return () => {
-    window.clearTimeout(id);
-  };
 }
 
 /**

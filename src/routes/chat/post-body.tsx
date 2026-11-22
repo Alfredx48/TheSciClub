@@ -26,6 +26,7 @@ export function PostBody({
   className,
   photos = [],
   from = '',
+  eager,
 }: {
   text: string;
   className?: string;
@@ -33,6 +34,8 @@ export function PostBody({
   photos?: readonly string[];
   /** Whose post, for a photograph's description. */
   from?: string;
+  /** Its photographs load at once: one of the topic's first (AttachmentGrid). */
+  eager?: 'first' | undefined;
 }) {
   const navigate = useNavigate();
   const members = useMentionedMembers(text);
@@ -107,7 +110,7 @@ export function PostBody({
         return photos.includes(piece.path) ? (
           // biome-ignore lint/suspicious/noArrayIndexKey: see above.
           <div key={index} className="[&>div]:mt-0">
-            <AttachmentGrid paths={[piece.path]} from={from} />
+            <AttachmentGrid paths={[piece.path]} from={from} eager={eager} />
           </div>
         ) : null;
       })}

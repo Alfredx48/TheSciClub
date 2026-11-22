@@ -11,6 +11,7 @@ import { useMapData } from '@/lib/map-data';
 import { useBrowseMembers } from '@/lib/members';
 import type { NearHomeStatus } from '@/lib/near-home';
 import { useSession } from '@/lib/session';
+import { useAfterSettled } from '@/lib/when-idle';
 import { type MapProblem, MapProblemNote, MapView } from '@/routes/map/map-view';
 import { useListOrMap, ViewSwitch } from '@/routes/map/view-switch';
 import { FilterSheet } from '@/routes/peers/filter-sheet';
@@ -49,6 +50,12 @@ import {
   type MemberFilters,
   type PeersSegment,
 } from '@/types/domain';
+
+/**
+ * The first cards' photographs load at once; the rest once the screen is up and idle, so they
+ * are there by the time somebody scrolls (the owner, 2026-11-22).
+ */
+const FIRST_PHOTOS = 6;
 
 /**
  * Peers — the deck of members, and the first thing somebody sees after joining.
@@ -140,6 +147,7 @@ export default function PeersPage() {
   );
   const canSortByDistance = miles.size > 0;
   const shownSort: PeerSort = sort === 'nearest' && !canSortByDistance ? 'name' : sort;
+  const settled = useAfterSettled();
   const visible = useMemo(
     () =>
       sortMembers(
@@ -285,7 +293,8 @@ export default function PeersPage() {
                   <MemberCard
                     key={member.id}
                     member={member}
-                    priority={index < 2}
+                    priority={index < FIRST_PHOTOS}
+                    later={settled}
                     sortNote={sortNote(member, shownSort, miles)}
                     onOpen={() => {
                       void navigate(`/peers/${member.id}`);

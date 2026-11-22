@@ -70,6 +70,9 @@ import { ReportSheet } from '@/routes/chat/report-sheet';
 import { SharePostButton } from '@/routes/chat/share-post';
 import { BlockMemberSheet } from '@/routes/peers/block-sheet';
 
+/** How many of the first photographs load at once. */
+const FIRST_PHOTOS = 6;
+
 const PostComposer = lazy(async () => {
   const { PostComposer } = await import('@/routes/chat/post-composer');
   return { default: PostComposer };
@@ -130,6 +133,21 @@ export default function TopicPage() {
       ),
     [posts, blocks.ids, blockedHere],
   );
+  // The first photographs, top to bottom, load at once; the rest as they are
+  // scrolled near (the owner, 2026-11-22).
+  const photosFirst = useMemo(() => {
+    const first = new Set<string>();
+    const walk = (list: readonly PostThread[]) => {
+      for (const thread of list) {
+        if (first.size >= FIRST_PHOTOS) return;
+        if (thread.post.attachments.length > 0) first.add(thread.post.id);
+        walk(thread.replies);
+      }
+    };
+    walk(threads);
+    return first;
+  }, [threads]);
+
   useEffect(() => {
     if (blockedCount > 0) heading.current?.focus();
   }, [blockedCount]);
@@ -634,6 +652,7 @@ export default function TopicPage() {
       <Post
         key={thread.post.id}
         {...postProps(thread.post)}
+        photosFirst={photosFirst.has(thread.post.id)}
         composer={replyingUnder?.id === thread.post.id ? replyBox(replyingUnder) : undefined}
         {...(index === undefined || first
           ? {}

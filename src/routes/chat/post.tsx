@@ -82,6 +82,7 @@ export function Post({
   flash = false,
   hideBody = false,
   opening = false,
+  photosFirst = false,
   place,
   composer,
   answers = false,
@@ -160,6 +161,8 @@ export function Post({
    * not as a card that reads like an answer. The header names who started it.
    */
   opening?: boolean;
+  /** One of the topic's first photographs: loaded at once, not as it is scrolled near. */
+  photosFirst?: boolean;
   /** The replies, as `<Post nested>` elements. */
   children?: ReactNode;
 }) {
@@ -361,6 +364,7 @@ export function Post({
         <PostBody
           text={post.body}
           photos={post.attachments}
+          eager={photosFirst ? 'first' : undefined}
           from={anonymous ? name : (author?.displayName ?? 'a deleted member')}
           className={POST_TEXT}
         />
@@ -369,6 +373,7 @@ export function Post({
         <AttachmentGrid
           paths={below}
           from={anonymous ? name : (author?.displayName ?? 'a deleted member')}
+          eager={photosFirst ? 'first' : undefined}
         />
       ) : null}
       {clubLink ? (

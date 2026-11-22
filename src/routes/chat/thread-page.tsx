@@ -52,6 +52,9 @@ import { ThreadSearch } from '@/routes/chat/thread-search';
 import { TypingDots, typingSentence } from '@/routes/chat/typing-dots';
 import { BlockMemberSheet } from '@/routes/peers/block-sheet';
 
+/** How many of the newest photographs load at once. */
+const FIRST_PHOTOS = 6;
+
 /**
  * One conversation: the bubbles, and the box to add to it.
  *
@@ -166,6 +169,18 @@ function ThreadScreen({ threadId }: { threadId: string | undefined }) {
         (m) => !m.authorId || !(blocks.ids.has(m.authorId) || blockedHere.has(m.authorId)),
       ),
     [messages, blocks.ids, blockedHere],
+  );
+  // The newest photographs load at once; older ones as they are scrolled
+  // near (the owner, 2026-11-22).
+  const photosFirst = useMemo(
+    () =>
+      new Set(
+        shown
+          .filter((m) => m.attachments.length > 0)
+          .slice(-FIRST_PHOTOS)
+          .map((m) => m.id),
+      ),
+    [shown],
   );
   useEffect(() => {
     if (blockedCount > 0) heading.current?.focus();
@@ -739,6 +754,7 @@ function ThreadScreen({ threadId }: { threadId: string | undefined }) {
                     <MessageBubble
                       key={message.id}
                       message={message}
+                      photosFirst={photosFirst.has(message.id)}
                       reactions={
                         <ReactionBar
                           target={message.id}

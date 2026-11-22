@@ -115,6 +115,8 @@ export interface MemberCardProps {
   onOpen: () => void;
   /** The first cards on screen: the photo is fetched first, not lazily. */
   priority?: boolean;
+  /** The screen is up and idle: the small photo is fetched now, behind the first cards'. */
+  later?: boolean;
   /** About us, for anybody: the age and city blurred (routes/about/blurred.tsx). */
   publicView?: boolean;
   /** About us: a last name was left off, and is drawn blurred after the first. */
@@ -134,6 +136,7 @@ export function MemberCard({
   member,
   onOpen,
   priority = false,
+  later = false,
   publicView = false,
   lastNameHidden = false,
   sortNote = null,
@@ -143,6 +146,7 @@ export function MemberCard({
       member={member}
       onOpen={onOpen}
       priority={priority}
+      later={later}
       publicView={publicView}
       lastNameHidden={lastNameHidden}
       sortNote={sortNote}
@@ -154,6 +158,7 @@ function PersonCard({
   member,
   onOpen,
   priority = false,
+  later = false,
   publicView = false,
   lastNameHidden = false,
   sortNote = null,
@@ -196,10 +201,10 @@ function PersonCard({
         <img
           src={small}
           alt=""
-          // The first cards are the screen's largest picture; the rest wait
-          // until they are scrolled near.
-          loading={priority ? 'eager' : 'lazy'}
-          fetchPriority={priority ? 'high' : 'auto'}
+          // The first cards are the screen's largest picture; the rest come
+          // once the screen is up and idle (Peers' `later`), else when near.
+          loading={priority || later ? 'eager' : 'lazy'}
+          fetchPriority={priority ? 'high' : later ? 'low' : 'auto'}
           decoding="async"
           className="absolute inset-0 h-full w-full object-cover object-[50%_28%]"
           onError={smallFailed}
