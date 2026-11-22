@@ -33,8 +33,8 @@ export function toLinkPreview(raw: unknown): LinkPreview | null {
 }
 
 /** The player's address, from YouTube's privacy-enhanced host. Only ever built from a checked id. */
-export function youtubeEmbedUrl(id: string, autoplay = true): string {
-  return `https://www.youtube-nocookie.com/embed/${id}?autoplay=${autoplay ? 1 : 0}&rel=0&playsinline=1`;
+export function youtubeEmbedUrl(id: string): string {
+  return `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&rel=0&playsinline=1`;
 }
 
 /**

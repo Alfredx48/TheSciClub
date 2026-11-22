@@ -17,7 +17,7 @@ import { cn } from '@/lib/utils';
  * A YouTube video plays where it is, on a press and not before: the button
  * swaps the picture for YouTube's privacy-enhanced player, which is the
  * first moment anything reaches YouTube. On the Home Screen the thumbnail
- * stays until the player loads, then YouTube's own Play button takes over.
+ * stays until the player loads, then the player takes over.
  * The store app plays it in place
  * too, through the club's player page (YouTube refuses capacitor://localhost),
  * with an "Open in YouTube" link under it. Everything else, Instagram included
@@ -111,7 +111,7 @@ export function LinkPreviewCard({
             {playing ? (
               <iframe
                 key={video}
-                src={native ? appYoutubeEmbedUrl(video) : youtubeEmbedUrl(video, !waitForPlayer)}
+                src={native ? appYoutubeEmbedUrl(video) : youtubeEmbedUrl(video)}
                 title={`YouTube video: ${title}`}
                 className={cn(
                   'absolute inset-0 block h-full w-full bg-black [color-scheme:light]',
