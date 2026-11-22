@@ -3,6 +3,7 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import type { LinkPreview } from '@/lib/chat/types';
+import * as standalone from '@/lib/standalone';
 import { LinkPreviewCard } from '@/routes/chat/link-preview-card';
 
 const signed = vi.hoisted(() => ({ asked: [] as [string[], string][] }));
@@ -77,6 +78,37 @@ describe('a YouTube video', () => {
     );
     expect(player).toHaveAttribute('title', 'YouTube video: A song');
     expect(screen.queryByRole('button', { name: /Play video/ })).toBeNull();
+  });
+
+  it('on the Home Screen, keeps the thumbnail until YouTube loads without autoplay', async () => {
+    const homeScreen = vi.spyOn(standalone, 'isStandalone').mockReturnValue(true);
+    try {
+      const { container } = render(<LinkPreviewCard preview={video} />);
+      expect(container.querySelector('iframe')).toBeNull();
+      const thumbnail = container.querySelector('img');
+
+      await userEvent.click(screen.getByRole('button', { name: 'Play video: A song' }));
+
+      const player = container.querySelector('iframe');
+      if (!player) throw new Error('no player');
+      expect(player).toHaveAttribute(
+        'src',
+        'https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?autoplay=0&rel=0&playsinline=1',
+      );
+      expect(player).toHaveAttribute('aria-hidden', 'true');
+      expect(thumbnail).toBeVisible();
+      expect(container.querySelector('img')).toBe(thumbnail);
+      expect(screen.getByRole('status')).toBeVisible();
+
+      fireEvent.load(player);
+
+      expect(player).not.toHaveAttribute('aria-hidden');
+      expect(player).not.toHaveClass('invisible');
+      expect(container.querySelector('img')).toBeNull();
+      expect(screen.queryByRole('status')).toBeNull();
+    } finally {
+      homeScreen.mockRestore();
+    }
   });
 
   it('on the website, no "Open in YouTube" link is added under the player', async () => {

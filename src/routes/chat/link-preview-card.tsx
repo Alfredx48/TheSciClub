@@ -1,9 +1,9 @@
 import { Play } from 'lucide-react';
-import { type ReactNode, useState } from 'react';
+import { useState } from 'react';
 import { useAttachmentUrls } from '@/lib/chat/attachments';
 import { appYoutubeEmbedUrl, siteOf, youtubeEmbedUrl } from '@/lib/chat/link-preview';
 import type { LinkPreview } from '@/lib/chat/types';
-import { isNative } from '@/lib/standalone';
+import { isNative, isStandalone } from '@/lib/standalone';
 import { cn } from '@/lib/utils';
 
 /**
@@ -16,7 +16,9 @@ import { cn } from '@/lib/utils';
  *
  * A YouTube video plays where it is, on a press and not before: the button
  * swaps the picture for YouTube's privacy-enhanced player, which is the
- * first moment anything reaches YouTube. The store app plays it in place
+ * first moment anything reaches YouTube. On the Home Screen the thumbnail
+ * stays until the player loads, then YouTube's own Play button takes over.
+ * The store app plays it in place
  * too, through the club's player page (YouTube refuses capacitor://localhost),
  * with an "Open in YouTube" link under it. Everything else, Instagram included
  * at the owner's choice, opens its page in a new tab the way the link in the
@@ -39,6 +41,7 @@ export function LinkPreviewCard({
   className?: string;
 }) {
   const [playing, setPlaying] = useState(false);
+  const [loadedVideo, setLoadedVideo] = useState<string>();
   // A picture too small to be a banner (Instagram offers a 100px profile
   // picture) is drawn as a thumbnail beside the words instead of blown up.
   // Known only once it has loaded, so the card starts as a banner and may
@@ -49,6 +52,9 @@ export function LinkPreviewCard({
   const site = preview.siteName ?? siteOf(preview.url);
   const title = preview.title ?? site;
   const video = preview.youtubeId;
+  const native = !!video && isNative();
+  const waitForPlayer = !!video && !native && isStandalone();
+  const loadingPlayer = waitForPlayer && loadedVideo !== video;
 
   const words = (
     <span className="block min-w-0 flex-1 px-3 py-2.5 [overflow-wrap:anywhere]">
@@ -97,44 +103,59 @@ export function LinkPreviewCard({
       )}
     >
       {video ? (
-        playing ? (
-          <>
-            {/* In dark mode WebKit can paint the blank frame white despite bg-black. */}
-            <div className="aspect-video w-full bg-black">
+        <>
+          <div className="relative aspect-video w-full bg-black">
+            {!playing || loadingPlayer
+              ? (image ?? <span className="block h-full bg-tint" />)
+              : null}
+            {playing ? (
               <iframe
                 key={video}
-                src={isNative() ? appYoutubeEmbedUrl(video) : youtubeEmbedUrl(video)}
+                src={native ? appYoutubeEmbedUrl(video) : youtubeEmbedUrl(video, !waitForPlayer)}
                 title={`YouTube video: ${title}`}
-                className="block h-full w-full bg-black [color-scheme:light]"
+                className={cn(
+                  'absolute inset-0 block h-full w-full bg-black [color-scheme:light]',
+                  loadingPlayer && 'invisible',
+                )}
+                aria-hidden={loadingPlayer || undefined}
+                onLoad={waitForPlayer ? () => setLoadedVideo(video) : undefined}
                 allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
                 allowFullScreen
                 referrerPolicy="strict-origin-when-cross-origin"
               />
-            </div>
-            {isNative() ? (
-              <a
-                href={preview.url}
-                target="_blank"
-                rel="noopener noreferrer nofollow ugc"
-                className="flex min-h-[44px] items-center px-3 font-semibold text-[0.875rem] text-emphasis underline underline-offset-2"
+            ) : (
+              <button
+                type="button"
+                onClick={() => setPlaying(true)}
+                aria-label={`Play video: ${title}`}
+                className="absolute inset-0 grid w-full place-items-center"
               >
-                Open in YouTube
-                <span className="sr-only"> (opens in the in-app browser)</span>
-              </a>
+                <span className="grid h-14 w-14 place-items-center rounded-full bg-black/70 text-white">
+                  <Play className="ml-0.5 h-7 w-7" fill="currentColor" aria-hidden="true" />
+                </span>
+              </button>
+            )}
+            {playing && loadingPlayer ? (
+              <span
+                role="status"
+                className="absolute bottom-2 left-2 rounded bg-black/80 px-2 py-1 text-sm text-white"
+              >
+                Loading video…
+              </span>
             ) : null}
-          </>
-        ) : (
-          <button
-            type="button"
-            onClick={() => {
-              setPlaying(true);
-            }}
-            aria-label={`Play video: ${title}`}
-            className="relative block w-full"
-          >
-            <PlayFace image={image} />
-          </button>
-        )
+          </div>
+          {playing && native ? (
+            <a
+              href={preview.url}
+              target="_blank"
+              rel="noopener noreferrer nofollow ugc"
+              className="flex min-h-[44px] items-center px-3 font-semibold text-[0.875rem] text-emphasis underline underline-offset-2"
+            >
+              Open in YouTube
+              <span className="sr-only"> (opens in the in-app browser)</span>
+            </a>
+          ) : null}
+        </>
       ) : null}
       <a
         href={preview.url}
@@ -147,19 +168,5 @@ export function LinkPreviewCard({
         {words}
       </a>
     </div>
-  );
-}
-
-/** The video's picture with a play mark over it. */
-function PlayFace({ image }: { image: ReactNode }) {
-  return (
-    <>
-      {image ?? <span className="block aspect-video w-full bg-tint" />}
-      <span className="absolute inset-0 grid place-items-center">
-        <span className="grid h-14 w-14 place-items-center rounded-full bg-black/70 text-white">
-          <Play className="ml-0.5 h-7 w-7" fill="currentColor" aria-hidden="true" />
-        </span>
-      </span>
-    </>
   );
 }
