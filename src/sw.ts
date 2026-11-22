@@ -24,8 +24,9 @@
 
 /// <reference lib="webworker" />
 
-import { clientsClaim } from 'workbox-core';
+import { clientsClaim, copyResponse } from 'workbox-core';
 import {
+  addPlugins,
   cleanupOutdatedCaches,
   createHandlerBoundToURL,
   precacheAndRoute,
@@ -45,6 +46,15 @@ declare const self: ServiceWorkerGlobalScope;
 
 void self.skipWaiting();
 clientsClaim();
+// A page fetched after a redirect is handed on as a plain copy: Safari will not show one the
+// worker serves with its redirect still on it ("Response served by service worker has
+// redirections"; the owner, 2026-11-21, after Cloudflare redirected /index.html to /).
+addPlugins([
+  {
+    fetchDidSucceed: async ({ response }) =>
+      response.redirected ? await copyResponse(response) : response,
+  },
+]);
 precacheAndRoute(self.__WB_MANIFEST);
 cleanupOutdatedCaches();
 // Not for an address that is a file. Opened in a tab, an image is a

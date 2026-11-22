@@ -43,10 +43,17 @@ export default {
     const url = new URL(request.url);
     // The assets answer a .html path with a redirect to the path without; the
     // app frames /embed/youtube.html, so that page is served where it is asked.
+    //
+    // And /index.html is the page itself, not a redirect to / (the owner, 2026-11-21: "Response
+    // served by service worker has redirections"). The installed app's worker asks for it by that
+    // name when its copy of the site is gone, and Safari will not show a page that was redirected.
+    // Netlify answered it with a 200.
     const asset =
       url.pathname === '/embed/youtube.html'
         ? new Request(new URL(`/embed/youtube${url.search}`, url), request)
-        : request;
+        : url.pathname === '/index.html'
+          ? new Request(new URL(`/${url.search}`, url), request)
+          : request;
     const next = () => env.ASSETS.fetch(asset);
     const handler = handlerFor(url.pathname);
     return handler ? await handler(request, { next }) : await next();
