@@ -148,7 +148,7 @@ function SignIn({ refused }: { refused: boolean }) {
     setProblem(null);
     const { error } = await getSupabase().auth.signInWithOtp({
       email: address,
-      options: { shouldCreateUser: false, emailRedirectTo: window.location.origin },
+      options: { shouldCreateUser: false, emailRedirectTo: `${window.location.origin}/` },
     });
     setBusy(false);
     // An address with no account says the same as one with: nothing to learn here.
