@@ -17,10 +17,20 @@ const state = vi.hoisted(() => ({
   reject: false,
   /** A restored session announcing itself before getSession answers. */
   restoring: false,
+  refreshSession: vi.fn(),
+  /** Errors for the next reads, in turn, before `error` applies. */
+  next: [] as ({ message: string; code?: string } | null)[],
 }));
 vi.mock('@/lib/supabase', () => ({
   getSupabase: () => ({
     auth: {
+      refreshSession: () => {
+        state.refreshSession();
+        return Promise.resolve({
+          data: { session: { user: { id: 'me' }, access_token: 'session-renewed' } },
+          error: null,
+        });
+      },
       getSession: () =>
         new Promise((resolve) => {
           setTimeout(() => {
@@ -61,11 +71,10 @@ vi.mock('@/lib/supabase', () => ({
         maybeSingle: () => {
           state.lookup();
           if (state.reject) return Promise.reject(new Error('Offline'));
+          const error = state.next.length > 0 ? (state.next.shift() ?? null) : state.error;
           return Promise.resolve({
-            data: state.error
-              ? null
-              : { id: state.memberId, status: 'active', display_name: 'Member' },
-            error: state.error,
+            data: error ? null : { id: state.memberId, status: 'active', display_name: 'Member' },
+            error,
           });
         },
       };
@@ -79,6 +88,8 @@ beforeEach(() => {
   state.reject = false;
   state.restoring = false;
   state.lookup.mockClear();
+  state.refreshSession.mockClear();
+  state.next = [];
   state.feedHeader.mockClear();
   state.feedSignal = null;
   state.feed = null;
@@ -107,13 +118,41 @@ describe('membership outages', () => {
       );
       await screen.findByRole('button', { name: 'Try again' });
       expect(screen.queryByText('Join screen')).toBeNull();
+      // The door read once, then once more quietly, before saying so.
+      expect(state.lookup).toHaveBeenCalledTimes(2);
       state.error = null;
       state.reject = false;
       fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
       await screen.findByText('Original conversation');
-      expect(state.lookup).toHaveBeenCalledTimes(2);
+      expect(state.lookup).toHaveBeenCalledTimes(3);
     },
   );
+  // The owner, 2026-11-22, 8:16: an opening renewed its expired sign-in and
+  // the door's read a second later was refused (401), so the app said Could
+  // not open the club until Try again.
+  it('renews a refused sign-in and reads again before showing the error', async () => {
+    state.error = null;
+    state.next = [{ message: 'JWT expired', code: 'PGRST303' }];
+    render(
+      <MemoryRouter initialEntries={['/home']}>
+        <Routes>
+          <Route
+            path="/home"
+            element={
+              <RequireMember>
+                <p>Home</p>
+              </RequireMember>
+            }
+          />
+        </Routes>
+      </MemoryRouter>,
+    );
+    await screen.findByText('Home');
+    expect(screen.queryByRole('button', { name: 'Try again' })).toBeNull();
+    expect(state.refreshSession).toHaveBeenCalledTimes(1);
+    expect(state.lookup).toHaveBeenCalledTimes(2);
+  });
+
   it('still redirects after a real sign-out', async () => {
     state.error = null;
     render(

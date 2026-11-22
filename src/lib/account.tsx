@@ -125,6 +125,16 @@ function same(a: Account, b: Account): boolean {
   );
 }
 
+/** PostgREST's refusal of the token itself (PGRST30x, "JWT expired"), not of the row. */
+function refusedSignIn(error: unknown): boolean {
+  if (typeof error !== 'object' || error === null) return false;
+  const { code, message } = error as { code?: unknown; message?: unknown };
+  return (
+    (typeof code === 'string' && code.startsWith('PGRST30')) ||
+    (typeof message === 'string' && /jwt/i.test(message))
+  );
+}
+
 /**
  * The read itself. `refresh` reads again without going back to loading, and
  * a refresh that fails keeps what was already known rather than turning a
@@ -195,6 +205,10 @@ export function useOwnAccount({
     // was a second read of the same row at every start).
     let answered = false;
     let earlyFeed: AbortController | undefined;
+    // One quiet second try before Could not open the club (the owner,
+    // 2026-11-22: at 8:16 an opening renewed its expired sign-in and the
+    // door's read a second later was refused, 401; Try again then worked).
+    let retried = false;
     async function resolve(session: Session | null) {
       if (aborted()) return;
       earlyFeed?.abort();
@@ -269,6 +283,21 @@ export function useOwnAccount({
       } catch (error) {
         if (aborted() || request !== revision) return;
         earlyFeed?.abort();
+        if (!retried) {
+          retried = true;
+          ownRowChanged();
+          // Refused for the sign-in: renew it. Anything else: read again with
+          // the session as it stands now.
+          const again = await (refusedSignIn(error)
+            ? supabase.auth.refreshSession()
+            : supabase.auth.getSession()
+          ).catch(() => null);
+          if (aborted() || request !== revision) return;
+          if (again && !again.error && again.data.session) {
+            void resolve(again.data.session);
+            return;
+          }
+        }
         fail({
           status: 'error',
           userId,
