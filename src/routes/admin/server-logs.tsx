@@ -55,7 +55,8 @@ interface EndpointRow {
 interface SlowRequest {
   at: string;
   endpoint: string;
-  ms: number;
+  /** Null only for a failed request that was never answered. */
+  ms: number | null;
   status: number | null;
   device: string | null;
   visit: string | null;
@@ -67,6 +68,8 @@ interface WindowRead {
   endpoints: EndpointRow[];
   devices: { device: string; requests: number; p50_ms: number; p90_ms: number }[];
   slowest: SlowRequest[];
+  /** Refused or failed, earliest first (20261122080000); absent before it. */
+  failed?: SlowRequest[];
 }
 
 interface VisitStep {
@@ -114,6 +117,19 @@ function when(iso: string, withDay = true): string {
   });
 }
 
+/** To the second, with the day: when a failure happened. */
+function whenToSecond(iso: string): string {
+  return new Date(iso).toLocaleString('en-US', {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    second: '2-digit',
+    timeZone: 'America/Los_Angeles',
+  });
+}
+
 /** A datetime-local value, in Pacific time as the club's are. */
 function localInput(date: Date): string {
   const pacific = new Date(date.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }));
@@ -128,6 +144,18 @@ function fromInput(value: string): Date | null {
   const pacific = new Date(naive.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }));
   const utc = new Date(naive.toLocaleString('en-US', { timeZone: 'UTC' }));
   return new Date(naive.getTime() + (utc.getTime() - pacific.getTime()));
+}
+
+/** What a failed request's status means, in a few words. */
+function failureMeaning(status: number | null): string {
+  if (!status) return 'never answered: the connection dropped or the phone gave up';
+  if (status === 401) return 'not signed in: the sign-in was missing or had run out';
+  if (status === 403) return 'not allowed';
+  if (status === 404) return 'not found';
+  if (status === 409) return 'clashed with something already saved';
+  if (status === 429) return 'too many requests at once';
+  if (status >= 500) return 'the server failed';
+  return 'refused: the request was not one the server would take';
 }
 
 function Subheading({ children }: { children: React.ReactNode }) {
@@ -316,7 +344,7 @@ function RangePicker({
 function Moment({ range }: { range: { from: Date; to: Date } }) {
   const [moment, setMoment] = useState<Read<WindowRead> | null>(null);
   const [queries, setQueries] = useState<Read<QueryRow[]> | null>(null);
-  const [visit, setVisit] = useState<SlowRequest | null>(null);
+  const [visit, setVisit] = useState<(SlowRequest & { list: 'failed' | 'slowest' }) | null>(null);
 
   useEffect(() => {
     let live = true;
@@ -396,6 +424,59 @@ function Moment({ range }: { range: { from: Date; to: Date } }) {
         </tbody>
       </Table>
 
+      <Subheading>Failed requests</Subheading>
+      {m.failed === undefined ? null : m.failed.length === 0 ? (
+        <p className="text-[0.8125rem] text-ink2">None failed then.</p>
+      ) : (
+        <>
+          <p className="text-[0.75rem] text-ink2">
+            Every request refused or failed then, earliest first. Open one to see what that visit
+            did around it.
+          </p>
+          <ul className="mt-1.5 divide-y divide-line rounded-[12px] border border-line bg-paper">
+            {m.failed.map((f, i) => (
+              <li key={`${f.at}-${String(i)}`}>
+                <button
+                  type="button"
+                  disabled={!f.visit}
+                  onClick={() => {
+                    setVisit({ ...f, list: 'failed' });
+                  }}
+                  className="flex min-h-11 w-full items-center justify-between gap-2 px-2.5 py-1.5 text-left text-[0.8125rem] hover:bg-tint disabled:cursor-default disabled:hover:bg-transparent"
+                >
+                  <span className="min-w-0">
+                    <span className="block truncate font-mono text-[0.75rem] text-ink">
+                      {f.endpoint}
+                    </span>
+                    <span className="block text-[0.71875rem] text-grey">
+                      {whenToSecond(f.at)} · {DEVICES[f.device ?? 'unknown'] ?? f.device}
+                      {f.visit ? '' : ' · before signing in'}
+                    </span>
+                    <span className="block text-[0.71875rem] text-destructive">
+                      {f.status ? String(f.status) : 'No answer'}: {failureMeaning(f.status)}
+                    </span>
+                  </span>
+                  {f.ms === null ? null : (
+                    <span className="flex-none font-bold tabular-nums">{seconds(f.ms)}</span>
+                  )}
+                </button>
+              </li>
+            ))}
+          </ul>
+          {visit?.visit && visit.list === 'failed' ? (
+            <VisitTrail
+              key={`${visit.visit}-${visit.at}`}
+              visit={visit.visit}
+              around={visit.at}
+              slow={visit}
+              onClose={() => {
+                setVisit(null);
+              }}
+            />
+          ) : null}
+        </>
+      )}
+
       <Subheading>The slowest requests</Subheading>
       <p className="text-[0.75rem] text-ink2">
         Open one to see what that visit did, in order. Nobody is named: a visit is a scrambled
@@ -408,7 +489,7 @@ function Moment({ range }: { range: { from: Date; to: Date } }) {
               type="button"
               disabled={!s.visit}
               onClick={() => {
-                setVisit(s);
+                setVisit({ ...s, list: 'slowest' });
               }}
               className="flex min-h-11 w-full items-center justify-between gap-2 px-2.5 py-1.5 text-left text-[0.8125rem] hover:bg-tint disabled:cursor-default disabled:hover:bg-transparent"
             >
@@ -422,12 +503,12 @@ function Moment({ range }: { range: { from: Date; to: Date } }) {
                   {s.visit ? '' : ' · before signing in'}
                 </span>
               </span>
-              <span className="flex-none font-bold tabular-nums">{seconds(s.ms)}</span>
+              <span className="flex-none font-bold tabular-nums">{seconds(s.ms ?? 0)}</span>
             </button>
           </li>
         ))}
       </ul>
-      {visit?.visit ? (
+      {visit?.visit && visit.list === 'slowest' ? (
         <VisitTrail
           key={`${visit.visit}-${visit.at}`}
           visit={visit.visit}
