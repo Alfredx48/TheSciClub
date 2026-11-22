@@ -10,7 +10,7 @@
 import { answersFrom } from '@/routes/profile/profile-api';
 import { progressOf } from '@/routes/profile/questions';
 
-export const MENTOR_ASK_SUBJECT = 'Help theSCIclub and complete your profile';
+export const MENTOR_ASK_SUBJECT = 'We need your help';
 export const ME_TAB_URL = 'https://thesciclub.com/me';
 
 /**
