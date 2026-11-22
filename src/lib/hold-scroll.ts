@@ -60,6 +60,9 @@ export function useHoldScroll(
         place.current?.();
       });
       observer.observe(inner);
+      // The list itself getting shorter too: the keyboard coming up would
+      // otherwise cover the newest message a member is holding at the bottom.
+      observer.observe(box);
     }
 
     return () => {

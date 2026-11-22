@@ -58,7 +58,6 @@ import { usePostViews } from '@/lib/chat/views';
 import { describeThrown } from '@/lib/describe-error';
 import { useHoldScroll } from '@/lib/hold-scroll';
 import { photoPaths } from '@/lib/markdown';
-import { isNative } from '@/lib/standalone';
 import { backFromTopic } from '@/routes/chat/back';
 import { ChatBreadcrumb } from '@/routes/chat/breadcrumb';
 import { FlagSheet } from '@/routes/chat/flag-sheet';
@@ -224,7 +223,9 @@ export default function TopicPage() {
   const place = useHoldScroll(scroller, list, drawn);
   useEffect(() => {
     const frame = scroller.current;
-    if (!drawn || !frame || !isNative() || typeof ResizeObserver === 'undefined') return;
+    // The store app and the Home Screen app both mark the keyboard
+    // (native-shell.ts, keyboard-room.ts).
+    if (!drawn || !frame || typeof ResizeObserver === 'undefined') return;
     const observer = new ResizeObserver(() => {
       const field = document.activeElement;
       if (

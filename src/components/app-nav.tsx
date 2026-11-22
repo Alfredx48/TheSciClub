@@ -11,6 +11,7 @@ import { useUnprovenEmail } from '@/lib/email-proof';
 import { useIconBadge } from '@/lib/icon-badge';
 import { onReadsInFlight, readsInFlight, refreshTabReads } from '@/lib/kept-reads';
 import { useUnseenNotifications } from '@/lib/notifications';
+import { takesTyping } from '@/lib/takes-typing';
 import { cn } from '@/lib/utils';
 
 /**
@@ -134,15 +135,6 @@ function useTabSpinner(location: Location): {
       return true;
     },
   };
-}
-
-const TEXT_INPUTS = new Set(['text', 'search', 'email', 'url', 'tel', 'password', 'number']);
-
-/** Whether the focused element brings up a phone's keyboard. */
-function takesTyping(element: Element | null): boolean {
-  if (!(element instanceof HTMLElement)) return false;
-  if (element.isContentEditable || element instanceof HTMLTextAreaElement) return true;
-  return element instanceof HTMLInputElement && TEXT_INPUTS.has(element.type);
 }
 
 /**

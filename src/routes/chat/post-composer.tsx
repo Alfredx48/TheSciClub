@@ -570,14 +570,15 @@ export function PostComposer({
           <span className="min-w-0 truncate text-[0.78125rem] text-ink2">
             Replying to <span className="font-semibold text-ink">{replyingTo.name}</span>
           </span>
+          {/* A full-size target to close the box (the owner, 2026-11-22: no
+            easy way to x it out); the words stay as a draft. */}
           <button
             type="button"
             onClick={replyingTo.onCancel}
             aria-label="Stop replying"
-            data-target="small"
-            className="grid h-7 w-7 flex-none place-items-center rounded-full text-ink2 hover:bg-line"
+            className="-my-2 -mr-2 grid h-11 w-11 flex-none place-items-center rounded-full text-ink2 hover:bg-line"
           >
-            <X className="h-4 w-4" aria-hidden="true" />
+            <X className="h-5 w-5" aria-hidden="true" />
           </button>
         </div>
       ) : null}

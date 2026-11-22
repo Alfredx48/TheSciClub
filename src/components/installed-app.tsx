@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { startKeyboardRoom } from '@/lib/keyboard-room';
 import { isNative, isStandalone } from '@/lib/standalone';
 
 /**
@@ -29,7 +30,10 @@ export function InstalledApp() {
       document.addEventListener('touchmove', move, { passive: false });
       document.addEventListener('gesturestart', gesture, { passive: false });
       document.addEventListener('gesturechange', gesture, { passive: false });
+      // The store app has the keyboard's own height (native-shell.ts).
+      const stopKeyboardRoom = isNative() ? () => undefined : startKeyboardRoom();
       remove = () => {
+        stopKeyboardRoom();
         delete document.documentElement.dataset.installedApp;
         document.removeEventListener('touchmove', move);
         document.removeEventListener('gesturestart', gesture);
