@@ -10,7 +10,7 @@
 import { answersFrom } from '@/routes/profile/profile-api';
 import { progressOf } from '@/routes/profile/questions';
 
-export const MENTOR_ASK_SUBJECT = 'We need your help';
+export const MENTOR_ASK_SUBJECT = 'I need your help';
 export const ME_TAB_URL = 'https://thesciclub.com/me';
 
 /**
@@ -39,7 +39,9 @@ export function mentorAskBody({ member, admin }: { member: string; admin: string
     // The owner's words of 2026-11-21, for members whose profile is not complete
     // (the only ones offered the button). The link is written out, as a
     // mailto: body can carry no more, and the mail app makes it tappable.
-    `Thank you for joining the SCI Club. We need your help to build our team of mentors before we launch! You are definitely mentor material, but your profile is empty. If you could complete your profile, you could really help us out. The last question “Topics you are happy to talk about” is particularly important as it helps us send questions from newly injured to the right “topic experts”. You can complete your profile here ${ME_TAB_URL}.`,
+    'Thank you for joining the SCI Club. We need your help to build our team of mentors before we launch! You are definitely mentor material, but your profile is empty.',
+    '',
+    `If you could complete your profile, you could really help us out. The last question “Topics you are happy to talk about,” is particularly important because it helps us send questions from newly injured people to the right “topic experts.” You can complete your profile here: ${ME_TAB_URL}.`,
     '',
     "Thank you so much for your help. Let's build this club one wheeler at a time.",
     '',
