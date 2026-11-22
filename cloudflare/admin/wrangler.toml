@@ -6,6 +6,10 @@
 name = "thesciclub-admin"
 main = "worker.ts"
 compatibility_date = "2026-10-01"
+# /app-status fetches thesciclub.com from inside the same zone: without this, Cloudflare sends a
+# Worker's fetch of its own zone past the app's Worker to the zone's origin (the old Netlify site),
+# which answered with a release from the morning (2026-11-22).
+compatibility_flags = ["global_fetch_strictly_public"]
 workers_dev = true
 preview_urls = false
 
