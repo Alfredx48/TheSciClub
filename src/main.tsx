@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import App, { preloadPublicPage, preloadScreen } from '@/App';
 import { startActiveDay } from '@/lib/active-day';
+import { noteError, startAppErrors } from '@/lib/app-errors';
 import { startDeviceCheck } from '@/lib/device-check';
 import { takeHandoff } from '@/lib/home-screen-handoff';
 import { startPageSpeed } from '@/lib/page-speed';
@@ -35,6 +36,8 @@ startDeviceCheck();
 startActiveDay();
 // How long this load and each request take, for administrators (page-speed.ts).
 startPageSpeed((samples) => Promise.resolve(getSupabase().rpc('log_page_speed', { samples })));
+// The app's crashes, for administrators (app-errors.ts): never who.
+startAppErrors((errors) => Promise.resolve(getSupabase().rpc('log_app_errors', { errors })));
 
 const pathname = window.location.pathname;
 preloadScreen(pathname);
@@ -47,7 +50,13 @@ if (!root) throw new Error('No #root element in index.html');
 const mount = root;
 
 function render() {
-  createRoot(mount).render(
+  createRoot(mount, {
+    // A screen that failed to draw: reported as well as logged as before.
+    onUncaughtError: (error, info) => {
+      noteError('render', error);
+      console.error(error, info.componentStack);
+    },
+  }).render(
     <StrictMode>
       <BrowserRouter>
         <App />
