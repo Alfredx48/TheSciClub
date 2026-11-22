@@ -171,7 +171,7 @@ function HouseRules() {
     <Link
       to={`/terms#${LOSING_MEMBERSHIP_ID}`}
       data-target="small"
-      className="rounded font-semibold text-[0.78125rem] text-emphasis underline decoration-emphasis/30 underline-offset-2 transition-colors hover:decoration-emphasis"
+      className="inline-flex min-h-6 items-center rounded font-semibold text-[0.78125rem] text-emphasis underline decoration-emphasis/30 underline-offset-2 transition-colors hover:decoration-emphasis"
     >
       What can end a membership
     </Link>

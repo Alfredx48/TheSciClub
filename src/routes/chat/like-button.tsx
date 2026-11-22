@@ -193,7 +193,7 @@ export function PostLikes({
             aria-label={`Score ${score} on ${what}. Show who upvoted.`}
             data-target="small"
             className={cn(
-              'min-w-[1.4em] px-[0.1em] text-center font-semibold underline-offset-2 hover:underline',
+              'min-h-6 min-w-6 px-[0.1em] text-center font-semibold underline-offset-2 hover:underline',
               VOTED[myVote],
             )}
           >

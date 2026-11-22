@@ -136,7 +136,7 @@ function ProfileNextCard({ to, next, percent }: { to: string; next: string; perc
         <Link
           to="/profile/answers"
           data-target="small"
-          className="relative z-10 mt-1.5 inline-block font-semibold text-[0.8125rem] text-emphasis underline decoration-line underline-offset-2 hover:decoration-emphasis"
+          className="relative z-10 mt-1.5 inline-flex min-h-6 items-center font-semibold text-[0.8125rem] text-emphasis underline decoration-line underline-offset-2 hover:decoration-emphasis"
         >
           Edit profile
         </Link>
