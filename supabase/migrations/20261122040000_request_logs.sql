@@ -183,6 +183,8 @@ begin
      where s.queryid is not null
      group by s.queryid;
 
+  -- The first run only notes where things stand: its totals go back months.
+  if exists (select 1 from private.query_stats_last) then
   insert into public.query_stats (at, queryid, query, calls, total_ms)
   select now_at, n.queryid, left(n.query, 400),
          n.calls - coalesce(l.calls, 0), n.total_ms - coalesce(l.total_ms, 0)
@@ -193,6 +195,7 @@ begin
    order by n.total_ms - coalesce(l.total_ms, 0) desc
    limit 50
   on conflict do nothing;
+  end if;
 
   delete from private.query_stats_last;
   insert into private.query_stats_last (queryid, calls, total_ms)
