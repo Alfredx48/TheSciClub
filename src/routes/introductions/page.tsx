@@ -1,5 +1,6 @@
 import { type RefObject, useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { ScreenBack } from '@/components/back-line';
 import { MemberAvatar } from '@/components/member-avatar';
 import { useAnnounce } from '@/lib/announce';
 import { PARTNER_ROLE_NAME } from '@/lib/club-partners';
@@ -73,8 +74,9 @@ export default function IntroductionPage() {
 
   return (
     <div className="flex flex-1 flex-col overflow-y-auto">
-      <header className="flex-none border-line border-b bg-paper px-[18px] pt-[18px] pb-3">
-        <div className="mx-auto w-full max-w-[var(--events-measure)]">
+      <header className="flex-none border-line border-b bg-paper px-[18px] pt-2 pb-3">
+        <div className="mx-auto flex w-full max-w-[var(--events-measure)] flex-col">
+          <ScreenBack />
           <h1 className="font-extrabold font-display text-[1.5625rem] text-ink tracking-[-0.01em]">
             Introduction
           </h1>

@@ -84,7 +84,7 @@ describe('the line back', () => {
     expect(screen.queryByRole('button', { name: /^Back to/ })).toBeNull();
   });
 
-  it('goes where the screen’s own link went when nothing is remembered, and draws only the line', async () => {
+  it('goes where the screen’s own link went when nothing is remembered, drawn in the screen in place of the line', async () => {
     const user = userEvent.setup();
     // Opened from a notification or a shared link: no screen before it.
     renderApp('/peers/ana');

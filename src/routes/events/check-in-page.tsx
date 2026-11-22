@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { ScreenBack } from '@/components/back-line';
 import { useAccount } from '@/lib/account';
 import { missedCheckInHelpOpen, useCheckInPhase } from '@/lib/check-ins';
 import { fetchPublicEvent, type PublicEvent } from '@/lib/event-audience';
@@ -33,7 +34,8 @@ export default function CheckInPage() {
 
   return (
     <div className="flex-1 overflow-y-auto">
-      <div className="mx-auto w-full max-w-[var(--events-measure)] px-4 pt-6 pb-10">
+      <div className="mx-auto flex w-full max-w-[var(--events-measure)] flex-col px-4 pt-2 pb-10">
+        <ScreenBack />
         {error ? (
           <p role="alert" className="text-[0.875rem] text-destructive">
             {error}

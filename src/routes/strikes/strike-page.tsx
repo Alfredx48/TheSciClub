@@ -1,4 +1,5 @@
 import { useParams } from 'react-router-dom';
+import { ScreenBack } from '@/components/back-line';
 import { useAccount } from '@/lib/account';
 import { isStrikeKind } from '@/lib/strike-conversations';
 import { StrikeConversation } from '@/routes/strikes/strike-conversation';
@@ -10,7 +11,8 @@ export default function StrikePage() {
 
   return (
     <div className="flex flex-1 flex-col overflow-y-auto bg-canvas">
-      <div className="mx-auto w-full max-w-[640px] px-[18px] pt-6 pb-16">
+      <div className="mx-auto flex w-full max-w-[640px] flex-col px-[18px] pt-2 pb-16">
+        <ScreenBack />
         {isStrikeKind(kind) && id ? (
           <StrikeConversation key={`${kind}:${id}`} kind={kind} id={id} isAdmin={isAdmin} />
         ) : (

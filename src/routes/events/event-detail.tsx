@@ -254,9 +254,9 @@ export default function EventDetailPage() {
   return (
     <>
       <div className="flex-1 overflow-y-auto">
-        <div className="bg-plate px-4 pt-[18px] pb-5 text-white">
+        <div className="bg-plate px-4 pt-2 pb-5 text-white">
           <div className="mx-auto w-full max-w-[var(--events-measure)]">
-            <div className="flex items-start justify-between gap-3">
+            <div className="flex items-center justify-between gap-3">
               <OwnBack to={back} label={backLabel(location)} state={backState(location)} spacer>
                 <button
                   type="button"

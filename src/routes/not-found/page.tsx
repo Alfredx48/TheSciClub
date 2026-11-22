@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { ScreenBack } from '@/components/back-line';
 
 /**
  * The page for an address that is not one.
@@ -21,7 +22,8 @@ import { Link } from 'react-router-dom';
 export default function NotFoundPage() {
   return (
     <div className="flex flex-1 flex-col overflow-y-auto">
-      <header className="flex-none border-line border-b bg-paper px-[18px] pt-[18px] pb-3">
+      <header className="flex flex-none flex-col border-line border-b bg-paper px-[18px] pt-2 pb-3">
+        <ScreenBack />
         <h1 className="font-extrabold font-display text-[1.5625rem] text-ink">Page not found</h1>
       </header>
       <div className="flex flex-1 flex-col items-center justify-center gap-3 px-10 text-center">

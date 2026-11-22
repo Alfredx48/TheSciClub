@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { ScreenBack } from '@/components/back-line';
 import { AnonymousAvatar } from '@/components/member-avatar';
 import { pauseEnds, useAnonymousStanding } from '@/lib/chat/anonymous';
 import { LOSING_MEMBERSHIP_ID } from '@/routes/legal/legal-page';
@@ -15,8 +16,9 @@ export default function AnonymousPage() {
 
   return (
     <div className="flex flex-1 flex-col overflow-y-auto bg-canvas">
-      <div className="mx-auto w-full max-w-[640px] px-[18px] pt-8 pb-16">
-        <div className="flex flex-col items-center text-center">
+      <div className="mx-auto flex w-full max-w-[640px] flex-col px-[18px] pt-2 pb-16">
+        <ScreenBack />
+        <div className="mt-4 flex flex-col items-center text-center">
           <AnonymousAvatar className="h-[5.5rem] w-[5.5rem] rounded-[26px]" />
           <h1 className="mt-3 font-display font-extrabold text-[1.5625rem] text-ink tracking-[-0.01em]">
             Anonymous

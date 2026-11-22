@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { ScreenBack } from '@/components/back-line';
 import { LoadingCards } from '@/components/loading-cards';
 import { MemberAvatar } from '@/components/member-avatar';
 import {
@@ -207,7 +208,10 @@ export default function NotificationsPage() {
 
   return (
     <div className="flex flex-1 flex-col overflow-y-auto">
-      <header className="flex-none border-line border-b bg-paper px-[18px] pt-[18px] pb-3">
+      <header className="flex-none border-line border-b bg-paper px-[18px] pt-2 pb-3">
+        <div className="mx-auto flex w-full max-w-[var(--events-measure)] flex-col">
+          <ScreenBack />
+        </div>
         <div className="mx-auto flex w-full max-w-[var(--events-measure)] flex-wrap items-center justify-between gap-2">
           <div>
             <h1 className="font-extrabold font-display text-[1.5625rem] text-ink tracking-[-0.01em]">

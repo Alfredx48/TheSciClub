@@ -3,7 +3,6 @@ import {
   createContext,
   type ReactNode,
   useContext,
-  useEffect,
   useLayoutEffect,
   useSyncExternalStore,
 } from 'react';
@@ -17,6 +16,7 @@ import {
   subscribeTrail,
   TAB_ROOTS,
 } from '@/lib/back-trail';
+import { cn } from '@/lib/utils';
 
 /**
  * The line at the top of every deeper screen: "‹ Life stories", the screen
@@ -62,32 +62,85 @@ function subscribeParent(listener: () => void): () => void {
   };
 }
 
+/** Screens drawing the way back in their own header, so the line is left out. */
+let claims = 0;
+const claimListeners = new Set<() => void>();
+
+function subscribeClaims(listener: () => void): () => void {
+  claimListeners.add(listener);
+  return () => {
+    claimListeners.delete(listener);
+  };
+}
+
+function changeClaims(by: number) {
+  claims += by;
+  for (const listener of claimListeners) listener();
+}
+
 /**
  * A screen's own back link. Drawn as it always was where there is no line
- * (a screen on its own, outside the member's shell). Under the line it is
- * left out, and says where back goes when nothing is remembered.
- *
- * `spacer` keeps an empty box in its place, for a row that puts the link at
- * one end and something else at the other.
+ * (a screen on its own, outside the member's shell). Under the shell it is
+ * drawn in the same place but goes back along the trail, and the line is left
+ * out (the owner, 2026-11-21: no bar only for back); it also says where back
+ * goes when nothing is remembered.
  */
 export function OwnBack({
   to,
   label,
   state,
-  spacer = false,
   children,
 }: Parent & { spacer?: boolean; children: ReactNode }) {
+  const lined = useClaimLine({ to, label, state });
+  const step = useBackStep();
+  if (!lined || !step) return children;
+  return <InlineBack step={step} />;
+}
+
+/**
+ * Back at the top of a screen with no back link of its own, in place of the
+ * line; back along the trail, or to the screen's tab. Nothing outside the shell.
+ */
+export function ScreenBack() {
+  const lined = useClaimLine(null);
+  const step = useBackStep();
+  if (!lined || !step) return null;
+  return <InlineBack step={step} />;
+}
+
+function InlineBack({ step }: { step: { label: string; back: () => void } }) {
+  return (
+    <button
+      type="button"
+      onClick={step.back}
+      aria-label={`Back to ${step.label}`}
+      data-target="small"
+      className="-ml-1.5 inline-flex min-h-[36px] min-w-0 max-w-full items-center gap-0.5 self-start py-1.5 text-left font-semibold text-[0.875rem] text-emphasis"
+    >
+      <ChevronLeft className="h-4 w-4 flex-none" strokeWidth={2.5} aria-hidden="true" />
+      <span className="truncate">{shortName(step.label)}</span>
+    </button>
+  );
+}
+
+/** Under the shell: says where back goes, and keeps the line out while mounted. */
+function useClaimLine(own: Parent | null): boolean {
   const lined = useContext(LinedContext);
-  useEffect(() => {
+  const to = own?.to;
+  const label = own?.label;
+  const state = own?.state;
+  useLayoutEffect(() => {
     if (!lined) return;
-    const mine: Parent = { to, label, state };
-    setParent(mine);
+    const mine: Parent | null =
+      to !== undefined && label !== undefined ? { to, label, state } : null;
+    if (mine) setParent(mine);
+    changeClaims(1);
     return () => {
-      if (parent === mine) setParent(null);
+      if (mine && parent === mine) setParent(null);
+      changeClaims(-1);
     };
   }, [lined, to, label, state]);
-  if (!lined) return children;
-  return spacer ? <span /> : null;
+  return lined;
 }
 
 // ---------------------------------------------------------------------------
@@ -136,22 +189,6 @@ export function BackTrail() {
     // entry changes nothing.
   }, [location.key, location.pathname, location.search, location.state, move]);
   return null;
-}
-
-/** Screens drawing the way back in their own header, so the line is left out. */
-let claims = 0;
-const claimListeners = new Set<() => void>();
-
-function subscribeClaims(listener: () => void): () => void {
-  claimListeners.add(listener);
-  return () => {
-    claimListeners.delete(listener);
-  };
-}
-
-function changeClaims(by: number) {
-  claims += by;
-  for (const listener of claimListeners) listener();
 }
 
 /** Where back goes from here, and the step there; null on a tab's first screen. */
@@ -229,21 +266,13 @@ export function BackLine() {
  * the line (the owner, 2026-11-21: a conversation's back beside the name, with
  * no row of its own). Outside the shell, a link to `to`, as BackLink.
  */
-export function HeaderBack({ to, label }: Parent) {
-  const lined = useContext(LinedContext);
+export function HeaderBack({ to, label, className: extra }: Parent & { className?: string }) {
+  const lined = useClaimLine({ to, label });
   const step = useBackStep();
-  useLayoutEffect(() => {
-    if (!lined) return;
-    const mine: Parent = { to, label };
-    setParent(mine);
-    changeClaims(1);
-    return () => {
-      if (parent === mine) setParent(null);
-      changeClaims(-1);
-    };
-  }, [lined, to, label]);
-  const className =
-    '-ml-2.5 flex h-[44px] w-[36px] flex-none items-center justify-center rounded-full text-emphasis hover:bg-tint';
+  const className = cn(
+    '-ml-2.5 flex h-[44px] w-[36px] flex-none items-center justify-center rounded-full text-emphasis hover:bg-tint',
+    extra,
+  );
   const arrow = <ChevronLeft className="h-[24px] w-[24px]" strokeWidth={2.5} aria-hidden="true" />;
   if (!lined || !step) {
     return (

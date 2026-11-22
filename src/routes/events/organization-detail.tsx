@@ -155,10 +155,10 @@ export default function OrganizationDetailPage() {
 
   return (
     <div className="flex-1 overflow-y-auto">
-      <div className="bg-plate px-4 pt-[18px] pb-5 text-white">
+      <div className="bg-plate px-4 pt-2 pb-5 text-white">
         <div className="mx-auto w-full max-w-[var(--events-measure)]">
           {/* Share across from Back, as on an event (the owner, 2026-11-03). */}
-          <div className="flex items-start justify-between gap-2">
+          <div className="flex items-center justify-between gap-2">
             <OwnBack to={back} label={backLabel(location)} spacer>
               <button
                 type="button"
