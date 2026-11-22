@@ -158,6 +158,38 @@ describe('timing requests', () => {
     expect(base.mock.lastCall?.[1]).toMatchObject({ keepalive: true });
   });
 
+  // The owner, 2026-11-21: a visit put away within 5 seconds sent no opening times.
+  it('sends the opening times at once if the app is put away before they settle', () => {
+    const entries = vi
+      .spyOn(performance, 'getEntriesByType')
+      .mockImplementation((type: string) =>
+        type === 'paint'
+          ? ([{ name: 'first-contentful-paint', startTime: 640 }] as PerformanceEntryList)
+          : type === 'navigation'
+            ? ([
+                { responseStart: 120, domContentLoadedEventEnd: 0 },
+              ] as unknown as PerformanceEntryList)
+            : [],
+      );
+    const sent: { metric: string; ms: number }[][] = [];
+    startPageSpeed((samples) => {
+      sent.push(samples);
+      return Promise.resolve();
+    }, true);
+    Object.defineProperty(document, 'visibilityState', { value: 'hidden', configurable: true });
+    document.dispatchEvent(new Event('visibilitychange'));
+    Object.defineProperty(document, 'visibilityState', { value: 'visible', configurable: true });
+    const opening = sent
+      .flat()
+      .filter((s) => ['first-byte', 'ready', 'first-paint'].includes(s.metric));
+    // Ready had not happened yet, so it is left out rather than sent as 0.
+    expect(opening.map(({ metric, ms }) => ({ metric, ms }))).toEqual([
+      { metric: 'first-byte', ms: 120 },
+      { metric: 'first-paint', ms: 640 },
+    ]);
+    entries.mockRestore();
+  });
+
   it('never throws when sending fails', async () => {
     startPageSpeed(() => {
       throw new Error('not configured');

@@ -299,15 +299,23 @@ export function startPageSpeed(send: Sender, measured = measuredVisit()): void {
     // Safari has no largest paint; the other timings still go.
   }
 
+  // Once: after the load has settled, or sooner if the app is put away first
+  // (the owner, 2026-11-21: a quick look at the app sent no opening times).
+  let reported = false;
   const report = () => {
+    if (reported) return;
+    reported = true;
     const navigation = performance.getEntriesByType('navigation')[0] as
       | PerformanceNavigationTiming
       | undefined;
     const firstPaint = performance
       .getEntriesByType('paint')
       .find((entry) => entry.name === 'first-contentful-paint');
-    if (navigation) {
+    // A time not reached yet is 0: put away before the page was ready.
+    if (navigation && navigation.responseStart > 0) {
       push({ kind: 'load', screen, metric: 'first-byte', ms: navigation.responseStart, ok: true });
+    }
+    if (navigation && navigation.domContentLoadedEventEnd > 0) {
       push({
         kind: 'load',
         screen,
@@ -330,10 +338,15 @@ export function startPageSpeed(send: Sender, measured = measuredVisit()): void {
   else window.addEventListener('load', afterLoad, { once: true });
 
   // Everything goes when the page is put away or closed, never while in use.
+  // The opening's own times go too if they have not yet.
+  const putAway = () => {
+    report();
+    flush();
+  };
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'hidden') flush();
+    if (document.visibilityState === 'hidden') putAway();
   });
-  window.addEventListener('pagehide', flush);
+  window.addEventListener('pagehide', putAway);
 }
 
 /*
@@ -399,7 +412,24 @@ export function noteScreen(pathname: string): void {
  * Called once a screen's cards are drawn with their data. Timed at the next
  * frame after, which is when they are painted.
  */
+let firstShown: (() => void) | null = null;
+const firstContent = new Promise<void>((done) => {
+  firstShown = done;
+});
+
+/**
+ * Resolves once the first screen shows its content (or after `fallbackMs`),
+ * so work that can wait, such as fetching the other tabs' scripts, does not
+ * compete with it (the owner, 2026-11-21: on a slow phone the other tabs'
+ * scripts started while Home's feed was being drawn).
+ */
+export function afterFirstContent(fallbackMs = 8000): Promise<void> {
+  return Promise.race([firstContent, new Promise<void>((done) => setTimeout(done, fallbackMs))]);
+}
+
 export function cardsShown(): void {
+  firstShown?.();
+  firstShown = null;
   const visit = current;
   if (!visit || visit.done || visit.path !== window.location.pathname) return;
   visit.done = true;

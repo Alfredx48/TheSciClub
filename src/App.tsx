@@ -30,7 +30,7 @@ import {
   useRequestedTabReadVersion,
 } from '@/lib/kept-reads';
 import { prefetchMap } from '@/lib/map';
-import { noteScreen } from '@/lib/page-speed';
+import { afterFirstContent, noteScreen } from '@/lib/page-speed';
 import { FollowNotification } from '@/lib/push/follow-notification';
 import { OpenedNotification } from '@/lib/push/opened-notification';
 import { countVisit } from '@/lib/web-analytics';
@@ -173,10 +173,25 @@ function whenIdle(task: () => void): () => void {
   };
 }
 
+/**
+ * Once the first screen shows its content, then when idle (the owner,
+ * 2026-11-21): fetched while Home's feed was still coming, the other tabs'
+ * scripts were started up just as the feed was drawn, on a slow phone a third
+ * of a second of it.
+ */
 function prefetchTabs(): () => void {
-  return whenIdle(() => {
-    void Promise.allSettled([loadPeers(), loadChat(), loadEvents(), loadMe()]);
+  let cancel: (() => void) | null = null;
+  let stopped = false;
+  void afterFirstContent().then(() => {
+    if (stopped) return;
+    cancel = whenIdle(() => {
+      void Promise.allSettled([loadPeers(), loadChat(), loadEvents(), loadMe()]);
+    });
   });
+  return () => {
+    stopped = true;
+    cancel?.();
+  };
 }
 
 const TABS = [

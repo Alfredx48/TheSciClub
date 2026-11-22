@@ -2,6 +2,7 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Link, MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type * as PageSpeed from '@/lib/page-speed';
 
 const tabs = vi.hoisted(() => ({ loaded: [] as string[] }));
 const prefetchMap = vi.fn();
@@ -55,6 +56,11 @@ vi.mock('@/routes/me/page', () => {
 const { default: App } = await import('@/App');
 
 // Run idle work on the next tick.
+// The stand-in Home draws no content, so the tabs' scripts need not wait for it.
+vi.mock('@/lib/page-speed', async (original) => ({
+  ...(await original<typeof PageSpeed>()),
+  afterFirstContent: () => Promise.resolve(),
+}));
 vi.stubGlobal('requestIdleCallback', (task: () => void) => window.setTimeout(task, 0));
 vi.stubGlobal('cancelIdleCallback', (id: number) => {
   window.clearTimeout(id);
