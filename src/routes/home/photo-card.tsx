@@ -42,6 +42,7 @@ export function PhotoCard({
   likes,
   viewCount,
   reactions,
+  first = false,
 }: {
   topic: HomeTopic;
   /** Null for a former member, and while the name is still loading. */
@@ -51,6 +52,8 @@ export function PhotoCard({
   likes?: CardLikes | undefined;
   viewCount?: number | null | undefined;
   reactions?: ReactNode;
+  /** One of the cards drawn first: its photographs load ahead of the rest. */
+  first?: boolean;
 }) {
   useMinute();
   const navigate = useNavigate();
@@ -135,6 +138,7 @@ export function PhotoCard({
             paths={opening.attachments}
             from={name}
             fill
+            eager={first ? 'first' : 'later'}
             onOpen={() => {
               void navigate(to, { state: linkState });
             }}

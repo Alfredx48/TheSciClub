@@ -19,6 +19,7 @@ export function AttachmentGrid({
   fill = false,
   onOpen,
   openLabel,
+  eager,
 }: {
   paths: readonly string[];
   from: string;
@@ -27,6 +28,11 @@ export function AttachmentGrid({
   /** Home opens the containing topic; Chat keeps the full-picture viewer. */
   onOpen?: (() => void) | undefined;
   openLabel?: string | undefined;
+  /**
+   * Home's cards (the owner, 2026-11-22: "I don't like that they lazy load in"): loaded at once
+   * rather than as they near the screen, the first cards' ahead of the rest.
+   */
+  eager?: 'first' | 'later' | undefined;
 }) {
   // Tiles draw the small copy; the viewer opens the photograph.
   const { small, full } = useSmallCopies(paths);
@@ -63,7 +69,8 @@ export function AttachmentGrid({
             <img
               src={small.get(path)}
               alt=""
-              loading="lazy"
+              loading={eager ? 'eager' : 'lazy'}
+              fetchPriority={eager === 'first' ? 'high' : eager === 'later' ? 'low' : undefined}
               className={
                 single && !filled
                   ? 'block h-auto max-h-[20rem] w-auto max-w-full'
