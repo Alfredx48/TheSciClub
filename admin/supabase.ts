@@ -18,6 +18,8 @@ export function getSupabase(): SupabaseClient {
       'Supabase is not configured: set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.',
     );
   }
-  client = createClient(url, key, { auth: { detectSessionInUrl: false } });
+  // A sign-in link is read from the address: the test project's email carries one, not a code
+  // (its default email provider cannot have the code template).
+  client = createClient(url, key, { auth: { detectSessionInUrl: true } });
   return client;
 }

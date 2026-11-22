@@ -148,7 +148,7 @@ function SignIn({ refused }: { refused: boolean }) {
     setProblem(null);
     const { error } = await getSupabase().auth.signInWithOtp({
       email: address,
-      options: { shouldCreateUser: false },
+      options: { shouldCreateUser: false, emailRedirectTo: window.location.origin },
     });
     setBusy(false);
     // An address with no account says the same as one with: nothing to learn here.
@@ -214,7 +214,7 @@ function SignIn({ refused }: { refused: boolean }) {
         >
           <p className="text-ink2">
             If <strong className="text-ink">{sentTo}</strong> has an account, a 6-digit code is on
-            its way from hello@thesciclub.com.
+            its way. If the email has a link instead, open it on this device.
           </p>
           <label className="mt-4 block font-bold text-[0.8125rem]">
             Code
