@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('workbox-core', () => ({ clientsClaim: vi.fn() }));
+vi.mock('workbox-core', () => ({ clientsClaim: vi.fn(), copyResponse: vi.fn() }));
 vi.mock('workbox-precaching', () => ({
+  addPlugins: vi.fn(),
   cleanupOutdatedCaches: vi.fn(),
   createHandlerBoundToURL: vi.fn(),
   precacheAndRoute: vi.fn(),
