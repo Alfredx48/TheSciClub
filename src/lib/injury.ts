@@ -159,7 +159,10 @@ export function injuryBandText(band: InjuryBand, injuryType?: string | null): st
   return injuryType === 'condition' ? words.replace('Injured', 'Diagnosed') : words;
 }
 
-/** A year inside each stage, for ordering and matching where the date is hidden. */
+/** Midpoints in years for profiles that share a band. */
+const BAND_YEARS = [0.25, 0.75, 1.5, 3.5, 7.5, 15, 25, 35, 45, 55] as const;
+
+/** A year inside each legacy stage, for profiles without a band. */
 const STAGE_YEARS: Record<InjuryStage, number> = {
   new: 0.25,
   recent: 1.25,
@@ -169,15 +172,15 @@ const STAGE_YEARS: Record<InjuryStage, number> = {
 };
 
 /**
- * Years since injury from the date, or from the stage where the date is
- * hidden. For ordering and matching only; never shown as a number.
+ * Years since injury from the date or the shared band. Used for ordering and matching.
  */
 export function roughYearsSinceInjury(
-  member: InjuryDated & { injuryStage?: InjuryStage | null },
+  member: InjuryDated & { injuryBand?: InjuryBand | null; injuryStage?: InjuryStage | null },
   now?: Date,
 ): number | null {
   const years = yearsSinceInjury(member, now);
   if (years !== null) return years;
+  if (member.injuryBand != null) return BAND_YEARS[member.injuryBand];
   return member.injuryStage ? STAGE_YEARS[member.injuryStage] : null;
 }
 

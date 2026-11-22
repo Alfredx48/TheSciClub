@@ -6,6 +6,7 @@ import {
   injuryStageOf,
   isAdult,
   isNewlyInjured,
+  roughYearsSinceInjury,
   timeSinceLabel,
   yearsSinceInjury,
 } from '@/lib/injury';
@@ -14,6 +15,16 @@ const NOW = new Date('2026-09-11T00:00:00Z');
 const dated = (injuryDate: string | null, p: 'day' | 'month' | 'year' | null = 'day') => ({
   injuryDate,
   injuryDatePrecision: p,
+});
+
+it('orders shared injury bands even when the date is private', () => {
+  const member = { ...dated(null), injuryStage: 'og' as const };
+  const bands = [0, 1, 2, 5, 6, 7] as const;
+  expect(bands.map((injuryBand) => roughYearsSinceInjury({ ...member, injuryBand }, NOW))).toEqual([
+    0.25, 0.75, 1.5, 15, 25, 35,
+  ]);
+  expect(roughYearsSinceInjury(member, NOW)).toBe(25);
+  expect(roughYearsSinceInjury({ ...dated('2016-09-11'), injuryBand: 7 }, NOW)).toBeCloseTo(10);
 });
 
 describe('yearsSinceInjury', () => {
