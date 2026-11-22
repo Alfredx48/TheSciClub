@@ -8,7 +8,8 @@
  * the vault's request_logs_secret, which store_request_logs checks. Deployed
  * with verify_jwt = false, like push-notify: the caller is the database.
  *
- * Reads the logs through the Management API (GET
+ * Reads the logs page by page (the API gives 1,000 rows a call; found
+ * 2026-11-21 when a busy 40 minutes copied only its oldest 1,000) through the Management API (GET
  * /v1/projects/{ref}/analytics/endpoints/logs, ClickHouse SQL), and asks only
  * for the fields kept: no IP address, city, browser words or member id. The
  * sign-in session goes on to the database, which scrambles it with the day's
@@ -31,9 +32,14 @@ const SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
 const LOGS_READ_TOKEN = Deno.env.get('LOGS_READ_TOKEN') ?? '';
 const PROJECT_REF = new URL(SUPABASE_URL || 'https://x.supabase.co').hostname.split('.')[0];
 const WINDOW_MINUTES = 40;
-const LIMIT = 5000;
+/** The logs answer at most 1,000 rows a call: read page after page, oldest first. */
+const PAGE = 1000;
+/** 30,000 requests in 40 minutes is far past the club's busiest; a guard, not a goal. */
+const MAX_PAGES = 30;
 
-const SQL = `
+/** Each page starts after the last row of the one before (`after`). */
+function sqlAfter(after: string | null): string {
+  return `
 select id, timestamp,
        log_attributes['request.method'] as method,
        log_attributes['request.path'] as path,
@@ -44,9 +50,10 @@ select id, timestamp,
        log_attributes['request.headers.user_agent'] as agent,
        log_attributes['request.cf.colo'] as colo
   from logs
- where source = 'edge_logs'
- order by timestamp
- limit ${LIMIT}`;
+ where source = 'edge_logs'${after ? `\n   and timestamp >= parseDateTime64BestEffort('${after.replace(/[^0-9T:.\-Z ]/g, '')}', 6)` : ''}
+ order by timestamp, id
+ limit ${PAGE}`;
+}
 
 function reply(status: number, body: Record<string, unknown>): Response {
   return new Response(JSON.stringify(body), {
@@ -64,44 +71,63 @@ Deno.serve(async (request) => {
 
   const end = new Date();
   const start = new Date(end.getTime() - WINDOW_MINUTES * 60_000);
-  const query = new URLSearchParams({
-    sql: SQL,
-    iso_timestamp_start: start.toISOString(),
-    iso_timestamp_end: end.toISOString(),
-  });
-  const logs = await fetch(
-    `https://api.supabase.com/v1/projects/${PROJECT_REF}/analytics/endpoints/logs?${query}`,
-    { headers: { Authorization: `Bearer ${LOGS_READ_TOKEN}` } },
-  );
-  if (!logs.ok) {
-    console.error(`copy-request-logs: the logs answered ${logs.status}`);
-    return reply(502, { error: `logs ${logs.status}` });
-  }
-  const read = (await logs.json()) as { result?: LogRow[]; error?: unknown };
-  if (!Array.isArray(read.result)) {
-    console.error('copy-request-logs: no result', JSON.stringify(read.error ?? read).slice(0, 300));
-    return reply(502, { error: 'no result' });
-  }
-
   const headers: Record<string, string> = {
     apikey: SERVICE_KEY,
     'Content-Type': 'application/json',
   };
   if (!SERVICE_KEY.startsWith('sb_')) headers.Authorization = `Bearer ${SERVICE_KEY}`;
-  const stored = await fetch(`${SUPABASE_URL}/rest/v1/rpc/store_request_logs`, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify({
-      p_secret: request.headers.get('x-request-logs-secret') ?? '',
-      p_rows: read.result.map(keep),
-    }),
-  });
-  if (!stored.ok) {
-    if (stored.status === 401 || stored.status === 403)
-      return reply(401, { error: 'not the copy' });
-    console.error(`copy-request-logs: storing answered ${stored.status}`);
-    return reply(502, { error: `store ${stored.status}` });
+  const secret = request.headers.get('x-request-logs-secret') ?? '';
+
+  let after: string | null = null;
+  let read = 0;
+  let added = 0;
+  let pages = 0;
+  const seen = new Set<string>();
+  while (pages < MAX_PAGES) {
+    pages += 1;
+    const query = new URLSearchParams({
+      sql: sqlAfter(after),
+      iso_timestamp_start: start.toISOString(),
+      iso_timestamp_end: end.toISOString(),
+    });
+    const logs = await fetch(
+      `https://api.supabase.com/v1/projects/${PROJECT_REF}/analytics/endpoints/logs?${query}`,
+      { headers: { Authorization: `Bearer ${LOGS_READ_TOKEN}` } },
+    );
+    if (!logs.ok) {
+      console.error(`copy-request-logs: the logs answered ${logs.status}`);
+      return reply(502, { error: `logs ${logs.status}`, read, added });
+    }
+    const body = (await logs.json()) as { result?: LogRow[]; error?: unknown };
+    if (!Array.isArray(body.result)) {
+      console.error(
+        'copy-request-logs: no result',
+        JSON.stringify(body.error ?? body).slice(0, 300),
+      );
+      return reply(502, { error: 'no result', read, added });
+    }
+    // A page starts at the last one's last moment (>=), so rows sharing it are
+    // not lost; those already taken are skipped here and refused by id there.
+    const fresh = body.result.filter((row) => !seen.has(row.id));
+    for (const row of fresh) seen.add(row.id);
+    read += fresh.length;
+    if (fresh.length > 0) {
+      const stored = await fetch(`${SUPABASE_URL}/rest/v1/rpc/store_request_logs`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ p_secret: secret, p_rows: fresh.map(keep) }),
+      });
+      if (!stored.ok) {
+        if (stored.status === 401 || stored.status === 403)
+          return reply(401, { error: 'not the copy' });
+        console.error(`copy-request-logs: storing answered ${stored.status}`);
+        return reply(502, { error: `store ${stored.status}`, read, added });
+      }
+      added += (await stored.json()) as number;
+    }
+    const last = body.result.at(-1);
+    if (body.result.length < PAGE || !last || fresh.length === 0) break;
+    after = String(last.timestamp);
   }
-  const added = (await stored.json()) as number;
-  return reply(200, { read: read.result.length, added, full: read.result.length >= LIMIT });
+  return reply(200, { read, added, pages, full: pages >= MAX_PAGES });
 });
