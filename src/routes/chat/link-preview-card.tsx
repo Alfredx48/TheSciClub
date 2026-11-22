@@ -118,7 +118,13 @@ export function LinkPreviewCard({
                   loadingPlayer && 'invisible',
                 )}
                 aria-hidden={loadingPlayer || undefined}
-                onLoad={waitForPlayer ? () => setLoadedVideo(video) : undefined}
+                onLoad={
+                  waitForPlayer
+                    ? () => {
+                        setLoadedVideo(video);
+                      }
+                    : undefined
+                }
                 allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
                 allowFullScreen
                 referrerPolicy="strict-origin-when-cross-origin"
@@ -126,7 +132,9 @@ export function LinkPreviewCard({
             ) : (
               <button
                 type="button"
-                onClick={() => setPlaying(true)}
+                onClick={() => {
+                  setPlaying(true);
+                }}
                 aria-label={`Play video: ${title}`}
                 className="absolute inset-0 grid w-full place-items-center"
               >
