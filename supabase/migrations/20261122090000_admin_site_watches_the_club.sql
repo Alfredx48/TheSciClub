@@ -144,7 +144,9 @@ begin
   update private.uptime_checks c
      set status = r.status_code,
          ms = greatest(0, (extract(epoch from (r.created - c.asked_at)) * 1000)::integer),
-         ok = (r.status_code = 200 and not coalesce(r.timed_out, false)),
+         -- No answer code at all (a name that does not resolve, a refused
+         -- connection) is a failure too, not unknown.
+         ok = coalesce(r.status_code = 200, false) and not coalesce(r.timed_out, false),
          error = case
                    when r.timed_out then 'took over 10 seconds'
                    when r.error_msg is not null then left(r.error_msg, 200)
