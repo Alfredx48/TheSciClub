@@ -251,9 +251,19 @@ const CARD_SCREENS = [
 
 /** Cards shown, timed from opening the app and from tapping in. */
 const CARD_TIMINGS = [
-  ['cards-after-open', 'From opening the app'],
   ['cards-after-tap', 'From tapping in'],
+  ['cards-after-open', 'From opening the app'],
 ] as const;
+
+/**
+ * Where an opening is worth showing (the owner, 2026-11-21): Home, where nearly
+ * everybody opens, and an event's page, where a shared link lands. Elsewhere an
+ * opening is a reload or a bookmark, rare and misleading.
+ */
+const OPENING_SHOWN = new Set<string>(['/home', '/events/:id']);
+
+/** Fewer samples than this say little: shown, but as too few to trust. */
+const FEW = 5;
 
 /**
  * Opening on Home, step by step (the owner, 2026-11-21), in the order they
@@ -518,14 +528,20 @@ function PhoneSpeed() {
                   <tr key={screen} className="border-line border-t">
                     <td className="px-2 py-1.5 text-left font-bold">{name}</td>
                     {CARD_TIMINGS.map(([timing]) => {
+                      if (timing === 'cards-after-open' && !OPENING_SHOWN.has(screen)) {
+                        return <td key={timing} className={CELL} />;
+                      }
                       const row = cardsOf(screen, timing);
+                      const few = row !== undefined && row.samples < FEW;
                       return (
-                        <td key={timing} className={CELL}>
+                        <td key={timing} className={`${CELL} ${few ? 'text-grey' : ''}`}>
                           {row ? (
                             <>
                               {seconds(row.p50)} / {seconds(row.p90)}
                               <span className="block text-[0.6875rem] text-grey">
-                                {row.samples} sampled {row.samples === 1 ? 'time' : 'times'}
+                                {few
+                                  ? `${String(row.samples)} sampled: too few to trust`
+                                  : `${String(row.samples)} sampled times`}
                               </span>
                             </>
                           ) : (
@@ -539,7 +555,10 @@ function PhoneSpeed() {
               </tbody>
             </table>
           </div>
-          <p className="mt-1 text-[0.71875rem] text-grey">Typical (p50) / slow end (p90).</p>
+          <p className="mt-1 text-[0.71875rem] text-grey">
+            Typical (p50) / slow end (p90). Opening times only for Home and an event’s page, where
+            people open the app; elsewhere it is a reload, and rare.
+          </p>
           <OpeningBreakdown loads={loads} />
 
           <Subheading>Cards after tapping in, {unit === 'hour' ? 'by hour' : 'by day'}</Subheading>

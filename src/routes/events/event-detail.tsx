@@ -96,20 +96,23 @@ export default function EventDetailPage() {
   useRecordEventView(memberId && event ? event.id : null, false);
 
   const { saved: rsvpSheetFor, sheet: rsvpSheet } = useRsvpSheet(memberId);
-  // Can't go (20261114080000): the member's own, read apart from the RSVPs.
+  // Can't go (20261114080000): the member's own, read apart from the RSVPs,
+  // by the address's id so it comes with the event rather than after it (the
+  // owner, 2026-11-21).
   const eventId = event?.id ?? null;
+  const askedId = id ?? null;
   const [declined, setDeclined] = useState(false);
   useEffect(() => {
     setDeclined(false);
-    if (!memberId || !eventId) return;
+    if (!memberId || !askedId) return;
     let cancelled = false;
-    void fetchMyEventDeclined(eventId).then((value) => {
+    void fetchMyEventDeclined(askedId).then((value) => {
       if (!cancelled) setDeclined(value);
     });
     return () => {
       cancelled = true;
     };
-  }, [memberId, eventId]);
+  }, [memberId, askedId]);
 
   const onRsvp = useCallback(
     (next: RsvpStatus | null) => {

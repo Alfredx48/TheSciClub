@@ -58,6 +58,9 @@ import {
   type RsvpStatus,
 } from '@/types/domain';
 
+/** Drawn first; the rest come a frame later. Enough to fill a tall phone. */
+const FIRST_EVENT_CARDS = 5;
+
 /**
  * Events — what there is to go to, from the partner organizations' own
  * calendars.
@@ -228,6 +231,25 @@ export default function EventsPage() {
   const goingRead = useEvents({ ids: goingIds });
   const [sheetOpen, setSheetOpen] = useState(false);
   const [writeError, setWriteError] = useState<string | null>(null);
+  // The first cards are drawn alone, and the rest a frame later (the owner,
+  // 2026-11-21: on a slow phone the whole list was drawn, and drawn again as
+  // each of its other reads came, before any of it showed). Once all are
+  // drawn, they stay.
+  const [drawAll, setDrawAll] = useState(false);
+  const listReady = !loading;
+  useEffect(() => {
+    if (drawAll || !listReady) return;
+    let second = 0;
+    const first = requestAnimationFrame(() => {
+      second = requestAnimationFrame(() => {
+        setDrawAll(true);
+      });
+    });
+    return () => {
+      cancelAnimationFrame(first);
+      cancelAnimationFrame(second);
+    };
+  }, [drawAll, listReady]);
 
   const home = useHome();
   // Organizations start at the distance with at least 20 in it (the owner,
@@ -632,78 +654,80 @@ export default function EventsPage() {
                     ...goingFirst.rest,
                   ]
                 : grouped
-              ).map((group) => {
-                if ('heading' in group) {
-                  return (
-                    <h2
-                      key={group.heading}
-                      className="mt-1 mb-2 font-extrabold font-head text-[0.71875rem] text-grey uppercase tracking-[0.13em]"
-                    >
-                      {group.heading}
-                    </h2>
+              )
+                .slice(0, drawAll ? undefined : FIRST_EVENT_CARDS)
+                .map((group) => {
+                  if ('heading' in group) {
+                    return (
+                      <h2
+                        key={group.heading}
+                        className="mt-1 mb-2 font-extrabold font-head text-[0.71875rem] text-grey uppercase tracking-[0.13em]"
+                      >
+                        {group.heading}
+                      </h2>
+                    );
+                  }
+                  const isOpen = group.seriesId !== null && expanded.has(group.seriesId);
+                  const hasMore = group.rest.length > 0;
+                  const card = (event: ClubEvent, asLine: boolean) => (
+                    <EventCard
+                      key={event.id}
+                      event={event}
+                      past={!asLine && isPastEvent(event)}
+                      occurrence={asLine}
+                      attached={asLine}
+                      footer={
+                        !asLine && hasMore && group.seriesId ? (
+                          <SeriesFooter
+                            group={group}
+                            expanded={isOpen}
+                            onToggle={() => {
+                              if (group.seriesId) toggleSeries(group.seriesId);
+                            }}
+                          />
+                        ) : undefined
+                      }
+                      status={viewer.rsvps.get(event.id) ?? null}
+                      mapHref={
+                        !asLine && canShowOnMap(event) ? mapLinkFor(event.id, segment) : undefined
+                      }
+                      organization={
+                        event.organizationId
+                          ? (organizationsById.get(event.organizationId) ?? null)
+                          : null
+                      }
+                      onOpen={() => {
+                        void navigate(`/events/${event.id}`, { state: { segment } });
+                      }}
+                      onOpenOrganization={(id) => {
+                        void navigate(`/events/organizations/${id}`, { state: { segment } });
+                      }}
+                      onOpenMember={(id) => {
+                        void navigate(`/peers/${id}`, { state: { segment } });
+                      }}
+                      onRsvp={(next) => {
+                        onRsvp(event, next);
+                      }}
+                    />
                   );
-                }
-                const isOpen = group.seriesId !== null && expanded.has(group.seriesId);
-                const hasMore = group.rest.length > 0;
-                const card = (event: ClubEvent, asLine: boolean) => (
-                  <EventCard
-                    key={event.id}
-                    event={event}
-                    past={!asLine && isPastEvent(event)}
-                    occurrence={asLine}
-                    attached={asLine}
-                    footer={
-                      !asLine && hasMore && group.seriesId ? (
-                        <SeriesFooter
-                          group={group}
-                          expanded={isOpen}
-                          onToggle={() => {
-                            if (group.seriesId) toggleSeries(group.seriesId);
-                          }}
-                        />
-                      ) : undefined
-                    }
-                    status={viewer.rsvps.get(event.id) ?? null}
-                    mapHref={
-                      !asLine && canShowOnMap(event) ? mapLinkFor(event.id, segment) : undefined
-                    }
-                    organization={
-                      event.organizationId
-                        ? (organizationsById.get(event.organizationId) ?? null)
-                        : null
-                    }
-                    onOpen={() => {
-                      void navigate(`/events/${event.id}`, { state: { segment } });
-                    }}
-                    onOpenOrganization={(id) => {
-                      void navigate(`/events/organizations/${id}`, { state: { segment } });
-                    }}
-                    onOpenMember={(id) => {
-                      void navigate(`/peers/${id}`, { state: { segment } });
-                    }}
-                    onRsvp={(next) => {
-                      onRsvp(event, next);
-                    }}
-                  />
-                );
 
-                return (
-                  <div key={group.lead.id} className="mb-[11px]">
-                    {card(group.lead, false)}
-                    {/* The other dates as lines, the same shape a past event
+                  return (
+                    <div key={group.lead.id} className="mb-[11px]">
+                      {card(group.lead, false)}
+                      {/* The other dates as lines, the same shape a past event
                         takes: the title and host are already above, so what is
                         left to read is when. Each keeps its own RSVP through
                         its own detail page. */}
-                    {isOpen ? (
-                      // Indented, so a bare date reads as another date of the
-                      // card above rather than as an event of its own.
-                      <div className="mt-1 pl-3">
-                        {group.rest.map((event) => card(event, true))}
-                      </div>
-                    ) : null}
-                  </div>
-                );
-              })}
+                      {isOpen ? (
+                        // Indented, so a bare date reads as another date of the
+                        // card above rather than as an event of its own.
+                        <div className="mt-1 pl-3">
+                          {group.rest.map((event) => card(event, true))}
+                        </div>
+                      ) : null}
+                    </div>
+                  );
+                })}
               {visible.length === 0 && !goingFirst ? <EmptyList segment={segment} /> : null}
             </div>
           )}

@@ -342,6 +342,23 @@ describe('cards shown', () => {
     ]);
   });
 
+  // The owner, 2026-11-21: a return to Events by the browser's Back, a minute in,
+  // was timed as a 12-second opening.
+  it('times an address change after the first seconds as a move, not the opening', () => {
+    const sent = sending();
+    const now = vi.spyOn(performance, 'now').mockReturnValue(1000);
+    go('/events');
+    go('/peers');
+    now.mockReturnValue(60_000);
+    go('/events');
+    cardsShown();
+    flush();
+    expect(sent).toEqual([
+      expect.objectContaining({ metric: 'cards-after-tap', screen: '/events' }),
+    ]);
+    now.mockRestore();
+  });
+
   it('times from the tap once somebody has moved to the screen', () => {
     const sent = sending();
     go('/home');

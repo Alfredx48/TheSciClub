@@ -434,15 +434,21 @@ function watchVisit() {
   });
 }
 
+/** How long after the page loads a new address can still be the opening's redirect. */
+export const OPENING_REDIRECT_MS = 5000;
+
 /**
  * Called as the address changes (App.tsx). Until somebody has touched the
  * app, a new address is still the opening: a redirect from / to /home is
- * not a tap.
+ * not a tap. Only in the first seconds, though (the owner, 2026-11-21): the
+ * browser's own Back is no touch either, and a return to Events that way a
+ * minute later was timed as a 12-second opening.
  */
 export function noteScreen(pathname: string): void {
   if (current?.path === pathname) return;
   const hidden = typeof document !== 'undefined' && document.visibilityState === 'hidden';
-  if (current === null || (!touched && current.opened && !current.done)) {
+  const early = typeof performance !== 'undefined' && performance.now() < OPENING_REDIRECT_MS;
+  if (current === null || (!touched && early && current.opened && !current.done)) {
     if (current === null && typeof window !== 'undefined') watchVisit();
     current = { path: pathname, at: 0, opened: true, done: false, hidden };
     debugScreen(pathname, 0, true);

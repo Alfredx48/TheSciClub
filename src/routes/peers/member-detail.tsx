@@ -194,13 +194,13 @@ const MEMBER_OF_SHOWN = 5;
  * survey, one list and each once.
  */
 function MemberOf({
-  memberId,
+  ids,
   affiliations,
 }: {
-  memberId: string;
+  /** The organizations they belong to, read with the profile (useMemberOrganizations). */
+  ids: readonly string[];
   affiliations: readonly string[];
 }) {
-  const ids = useMemberOrganizations(memberId);
   const { organizations: directory, byId } = useOrganizations();
   const [all, setAll] = useState(false);
 
@@ -283,19 +283,28 @@ export default function MemberDetailPage() {
   const { id } = useParams<{ id: string }>();
   const blocks = useMyBlocks();
   const [justBlocked, setJustBlocked] = useState(false);
-  if (blocks.loading) return <Centered role="status">Loading…</Centered>;
-  if (id && blocks.ids.has(id)) {
+  if (!blocks.loading && id && blocks.ids.has(id)) {
     return <BlockedProfile id={id} focusHeading={justBlocked} onUnblocked={blocks.reload} />;
   }
+  // The profile reads alongside the blocks, not after them (the owner,
+  // 2026-11-21: three rounds of reads, one after another, on a slow phone).
+  // It is not shown until the blocks say it may be: a member blocked gets
+  // the page above, and this, read meanwhile, is never drawn.
   return (
-    <MemberProfile
-      // Read again after Unblock: the profile was hidden until now.
-      key={blocks.blocked.length}
-      onBlocked={() => {
-        setJustBlocked(true);
-        blocks.reload();
-      }}
-    />
+    <>
+      {blocks.loading ? <Centered role="status">Loading…</Centered> : null}
+      <div className={blocks.loading ? 'hidden' : 'contents'}>
+        <MemberProfile
+          // No key from the blocks: the profile is read once, alongside them.
+          // After Unblock it is a fresh page anyway, the blocked one between.
+          held={blocks.loading}
+          onBlocked={() => {
+            setJustBlocked(true);
+            blocks.reload();
+          }}
+        />
+      </div>
+    </>
   );
 }
 
@@ -406,7 +415,7 @@ function withMentorOf(member: BrowseMember, mentorOf: RepresentedOrganization[])
   return { ...member, mentorOrganizations: mentorOf, type };
 }
 
-function MemberProfile({ onBlocked }: { onBlocked: () => void }) {
+function MemberProfile({ onBlocked, held }: { onBlocked: () => void; held: boolean }) {
   // Which role pill's organizations are listed, if any.
   const [openRole, setOpenRole] = useState<Role | null>(null);
   const rolesId = useId();
@@ -437,7 +446,9 @@ function MemberProfile({ onBlocked }: { onBlocked: () => void }) {
   const [introducing, setIntroducing] = useState(false);
   const [choosingMentor, setChoosingMentor] = useState(false);
   const [linkingFamily, setLinkingFamily] = useState(false);
-  const { family, reload: reloadFamily } = useMemberFamily(member?.id);
+  // By the address's id, so it is read with the profile rather than after it.
+  const { family, reload: reloadFamily } = useMemberFamily(id);
+  const memberOrganizations = useMemberOrganizations(id);
   const me = useOwnMember(account.userId).member;
   const canConnect = useICanConnect(account.userId);
   const reports = useMyReports();
@@ -499,7 +510,7 @@ function MemberProfile({ onBlocked }: { onBlocked: () => void }) {
   return (
     <div className="flex-1 overflow-y-auto">
       {/* The profile is on screen: page speed times it. */}
-      <CardsShown />
+      {held ? null : <CardsShown />}
       <div className="relative mx-auto w-full max-w-[62rem] lg:px-4 lg:pt-3">
         {/* The way back on the left and, for a mentor, a gold chip on the
             right — the deck's own colour for the word.
@@ -948,7 +959,7 @@ function MemberProfile({ onBlocked }: { onBlocked: () => void }) {
             ) : null}
 
             {/* Above the equipment (the owner, 2026-10-31). */}
-            <MemberOf memberId={member.id} affiliations={member.affiliations} />
+            <MemberOf ids={memberOrganizations} affiliations={member.affiliations} />
 
             {member.sportsEquipment ? (
               <Section title="Adaptive sports equipment">
