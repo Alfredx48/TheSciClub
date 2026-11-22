@@ -19,15 +19,15 @@ import {
 import { cn } from '@/lib/utils';
 
 /**
- * The line at the top of every deeper screen: "‹ Life stories", the screen
- * the member was on, one press back (the owner, 2026-11-18, who chose the
- * thin line an iPhone draws over an arrow button). It stays while the screen
- * scrolls, and is not drawn on the five tabs' first screens.
+ * The way back on every deeper screen: "‹ Life stories", the screen the
+ * member was on, one press back (the owner, 2026-11-18). Each screen draws it
+ * in its own place (the owner, 2026-11-21: no bar only for back); from that
+ * day there is no line across the top, not even while a screen loads.
  *
  * Where it goes is lib/back-trail.ts. With nothing remembered (a screen
  * opened from a notification, a shared link or a refresh) it goes where the
- * screen's own back link went, which the screen says with `OwnBack`; a screen
- * that says nothing goes to its tab.
+ * screen's own back link went (`OwnBack`); a screen that says nothing goes to
+ * its tab.
  */
 
 /** True under the shell that draws the line, so a screen leaves its own link out. */
@@ -60,22 +60,6 @@ function subscribeParent(listener: () => void): () => void {
   return () => {
     parentListeners.delete(listener);
   };
-}
-
-/** Screens drawing the way back in their own header, so the line is left out. */
-let claims = 0;
-const claimListeners = new Set<() => void>();
-
-function subscribeClaims(listener: () => void): () => void {
-  claimListeners.add(listener);
-  return () => {
-    claimListeners.delete(listener);
-  };
-}
-
-function changeClaims(by: number) {
-  claims += by;
-  for (const listener of claimListeners) listener();
 }
 
 /**
@@ -134,10 +118,8 @@ function useClaimLine(own: Parent | null): boolean {
     const mine: Parent | null =
       to !== undefined && label !== undefined ? { to, label, state } : null;
     if (mine) setParent(mine);
-    changeClaims(1);
     return () => {
       if (mine && parent === mine) setParent(null);
-      changeClaims(-1);
     };
   }, [lined, to, label, state]);
   return lined;
@@ -230,35 +212,6 @@ function useBackStep(): { label: string; back: () => void } | null {
     void navigate(`${before.pathname}${before.search}`, { state: before.state });
   }
   return { label, back };
-}
-
-export function BackLine() {
-  const step = useBackStep();
-  const claimed = useSyncExternalStore(
-    subscribeClaims,
-    () => claims > 0,
-    () => claims > 0,
-  );
-  if (!step || claimed) return null;
-  const { label, back } = step;
-
-  return (
-    <div className="flex-none border-line border-b bg-paper px-4 md:px-6">
-      <button
-        type="button"
-        onClick={back}
-        aria-label={`Back to ${label}`}
-        // A thin line by the owner's choice, at the height the pages' own
-        // back links had.
-        data-target="small"
-        // The whole row, edge to edge, so a press need not find the words.
-        className="-ml-1.5 flex min-h-[36px] w-full items-center md:min-h-[32px] md:py-0.5 gap-0.5 py-1 text-left font-semibold text-[0.875rem] text-emphasis"
-      >
-        <ChevronLeft className="h-[18px] w-[18px] flex-none" strokeWidth={2.5} aria-hidden="true" />
-        <span className="truncate">{shortName(label)}</span>
-      </button>
-    </div>
-  );
 }
 
 /**

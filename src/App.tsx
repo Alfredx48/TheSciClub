@@ -11,7 +11,7 @@ import {
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { AppNav } from '@/components/app-nav';
 import { AskAfterSending } from '@/components/ask-after-sending';
-import { BackLine, BackLineProvider, BackTrail } from '@/components/back-line';
+import { BackLineProvider, BackTrail } from '@/components/back-line';
 import { DebugPanel } from '@/components/debug-panel';
 import { DisplaySheetProvider, useOpenDisplaySheet } from '@/components/display-sheet';
 import { InstallNudge } from '@/components/install-nudge';
@@ -303,9 +303,6 @@ function ShellContent() {
         {/* While a screen's script arrives the tab bar stays and the slot is
             empty; a route change keeps the old screen up meanwhile, since
             React Router changes routes in a transition. */}
-        {/* The way back, on every screen below a tab's first (the owner,
-            2026-11-18; back-line.tsx). */}
-        <BackLine />
         <Suspense fallback={<div className="flex-1" />}>
           <KeptTabs />
           <Routes>

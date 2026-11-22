@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { useEffect } from 'react';
 import { Link, MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { BackLine, BackLineProvider, BackTrail, HeaderBack } from '@/components/back-line';
+import { BackLineProvider, BackTrail, HeaderBack } from '@/components/back-line';
 import { BackLink } from '@/components/back-link';
 import { forgetTrail, nameScreen } from '@/lib/back-trail';
 
@@ -26,7 +26,6 @@ function renderApp(start: string) {
     <MemoryRouter initialEntries={[start]}>
       <BackTrail />
       <BackLineProvider>
-        <BackLine />
         <Routes>
           <Route
             path="/chat"
