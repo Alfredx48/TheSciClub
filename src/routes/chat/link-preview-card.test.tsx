@@ -80,7 +80,7 @@ describe('a YouTube video', () => {
     expect(screen.queryByRole('button', { name: /Play video/ })).toBeNull();
   });
 
-  it('on the Home Screen, keeps the thumbnail until the autoplay player loads', async () => {
+  it('on the Home Screen, keeps the thumbnail until the muted autoplay player loads', async () => {
     const homeScreen = vi.spyOn(standalone, 'isStandalone').mockReturnValue(true);
     try {
       const { container } = render(<LinkPreviewCard preview={video} />);
@@ -93,7 +93,7 @@ describe('a YouTube video', () => {
       if (!player) throw new Error('no player');
       expect(player).toHaveAttribute(
         'src',
-        'https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?autoplay=1&rel=0&playsinline=1',
+        'https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?autoplay=1&rel=0&playsinline=1&mute=1',
       );
       expect(player).toHaveAttribute('aria-hidden', 'true');
       expect(thumbnail).toBeVisible();

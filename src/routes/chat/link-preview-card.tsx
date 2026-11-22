@@ -17,7 +17,7 @@ import { cn } from '@/lib/utils';
  * A YouTube video plays where it is, on a press and not before: the button
  * swaps the picture for YouTube's privacy-enhanced player, which is the
  * first moment anything reaches YouTube. On the Home Screen the thumbnail
- * stays until the player loads, then the player takes over.
+ * stays until the player loads and requests muted playback.
  * The store app plays it in place
  * too, through the club's player page (YouTube refuses capacitor://localhost),
  * with an "Open in YouTube" link under it. Everything else, Instagram included
@@ -53,8 +53,8 @@ export function LinkPreviewCard({
   const title = preview.title ?? site;
   const video = preview.youtubeId;
   const native = !!video && isNative();
-  const waitForPlayer = !!video && !native && isStandalone();
-  const loadingPlayer = waitForPlayer && loadedVideo !== video;
+  const homeScreen = !!video && !native && isStandalone();
+  const loadingPlayer = homeScreen && loadedVideo !== video;
 
   const words = (
     <span className="block min-w-0 flex-1 px-3 py-2.5 [overflow-wrap:anywhere]">
@@ -111,7 +111,7 @@ export function LinkPreviewCard({
             {playing ? (
               <iframe
                 key={video}
-                src={native ? appYoutubeEmbedUrl(video) : youtubeEmbedUrl(video)}
+                src={native ? appYoutubeEmbedUrl(video) : youtubeEmbedUrl(video, homeScreen)}
                 title={`YouTube video: ${title}`}
                 className={cn(
                   'absolute inset-0 block h-full w-full bg-black [color-scheme:light]',
@@ -119,7 +119,7 @@ export function LinkPreviewCard({
                 )}
                 aria-hidden={loadingPlayer || undefined}
                 onLoad={
-                  waitForPlayer
+                  homeScreen
                     ? () => {
                         setLoadedVideo(video);
                       }
