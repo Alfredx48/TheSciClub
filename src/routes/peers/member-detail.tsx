@@ -2,6 +2,7 @@ import { Check, ChevronLeft, Copy } from 'lucide-react';
 import { useEffect, useId, useRef, useState } from 'react';
 import { Link, type Location, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { OwnBack } from '@/components/back-line';
+import { CardsShown } from '@/components/cards-shown';
 import { InjuryStageNote } from '@/components/injury-stage-pill';
 import { LinkedText } from '@/components/linked-text';
 import { PartnerLabel } from '@/components/partner-label';
@@ -497,6 +498,8 @@ function MemberProfile({ onBlocked }: { onBlocked: () => void }) {
 
   return (
     <div className="flex-1 overflow-y-auto">
+      {/* The profile is on screen: page speed times it. */}
+      <CardsShown />
       <div className="relative mx-auto w-full max-w-[62rem] lg:px-4 lg:pt-3">
         {/* The way back on the left and, for a mentor, a gold chip on the
             right — the deck's own colour for the word.

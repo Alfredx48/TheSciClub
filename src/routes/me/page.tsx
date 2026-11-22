@@ -1,6 +1,7 @@
 import { ChevronRight, LogOut } from 'lucide-react';
 import { useEffect, useId, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
+import { CardsShown } from '@/components/cards-shown';
 import { InstallSettings } from '@/components/install-nudge';
 import { type PageTab, PageTabs, TabPanel, useTabParam } from '@/components/page-tabs';
 import { signOut, useAccount } from '@/lib/account';
@@ -312,6 +313,8 @@ export default function MePage() {
 
   return (
     <div className="flex flex-1 flex-col overflow-y-auto">
+      {/* Their own card is on screen: page speed times it. */}
+      {member ? <CardsShown /> : null}
       {member ? (
         <MeHero member={changedUsername ? { ...member, username: changedUsername } : member} />
       ) : (

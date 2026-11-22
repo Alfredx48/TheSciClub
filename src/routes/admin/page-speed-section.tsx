@@ -231,10 +231,22 @@ const PERIODS = [
   ['30', '30 days'],
 ] as const;
 
-/** The screens whose cards are timed (CardsShown), and their names here. */
+/**
+ * The screens whose content is timed (CardsShown), and their names here: Events
+ * and Peers since 2026-11-04, the rest since 2026-11-21 (the owner: "home feed
+ * is arguably the most important").
+ */
 const CARD_SCREENS = [
+  ['/home', 'Home feed'],
+  ['/chat', 'Chat list'],
+  ['/chat/t/:id', 'A conversation'],
+  ['/chat/rooms/:id', 'A room'],
+  ['/chat/rooms/:id/topics/:id', 'A post'],
   ['/events', 'Events'],
+  ['/events/:id', 'An event'],
   ['/peers', 'Peers'],
+  ['/peers/:id', 'A profile'],
+  ['/me', 'Me'],
 ] as const;
 
 /** Cards shown, timed from opening the app and from tapping in. */
@@ -414,9 +426,9 @@ function PhoneSpeed() {
             <p className="py-2 text-[0.8125rem] text-ink2">No release has been measured yet.</p>
           )}
 
-          <Subheading>Cards on Events and Peers</Subheading>
+          <Subheading>Each screen’s content</Subheading>
           <p className="mt-0.5 text-[0.75rem] text-ink2 leading-[1.45]">
-            Until the cards are on screen with their data, not the grey placeholders.
+            Until the screen shows its content with real data, not the grey placeholders or Loading.
           </p>
           <div className="mt-1.5 overflow-x-auto rounded-[12px] border border-line bg-paper">
             <table className="w-full text-[0.8125rem] text-ink">

@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Link, useLocation, useParams } from 'react-router-dom';
 import { BackLink } from '@/components/back-link';
+import { CardsShown } from '@/components/cards-shown';
 import { LoadingCards } from '@/components/loading-cards';
 import { SegmentPills } from '@/components/segment-pills';
 import { useAccount } from '@/lib/account';
@@ -301,6 +302,8 @@ export default function RoomPage() {
                 />
               )
             ) : null}
+            {/* The posts are on screen: page speed times them. */}
+            {!topicsLoading && !error ? <CardsShown /> : null}
             {topicsLoading ? (
               <LoadingCards label="Loading the posts…" count={4} height={96} />
             ) : error ? (

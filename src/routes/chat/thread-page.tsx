@@ -11,6 +11,7 @@ import {
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { HeaderBack } from '@/components/back-line';
 import { BackLink } from '@/components/back-link';
+import { CardsShown } from '@/components/cards-shown';
 import { LevelHighlight } from '@/components/injury-stage-pill';
 import { FormerMemberAvatar, GroupAvatar, MemberAvatar } from '@/components/member-avatar';
 import { motionReduced } from '@/lib/accessibility';
@@ -564,6 +565,8 @@ function ThreadScreen({ threadId }: { threadId: string | undefined }) {
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
+      {/* The conversation is on screen with its messages: page speed times it. */}
+      <CardsShown />
       <header className="flex-none border-line border-b bg-paper px-[18px] pt-3 pb-3">
         <div className="mx-auto w-full max-w-[720px]">
           {/* Back sits beside the name, with no line of its own (the owner, 2026-11-21). */}

@@ -1,6 +1,7 @@
 import { Search, SquarePen } from 'lucide-react';
 import { type ReactNode, useCallback, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
+import { CardsShown } from '@/components/cards-shown';
 import { LoadingCards } from '@/components/loading-cards';
 import { SegmentPills } from '@/components/segment-pills';
 import { useAccount } from '@/lib/account';
@@ -400,6 +401,8 @@ function Conversations({
 
   return (
     <>
+      {/* The conversations are on screen: page speed times them. */}
+      <CardsShown />
       {sections.length > 0 ? (
         sections.map(({ kind, listed, hidden }, index) => {
           const label = kind === 'direct' ? 'direct chats' : 'group chats';

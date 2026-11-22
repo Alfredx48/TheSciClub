@@ -2,6 +2,7 @@ import { CalendarDays, ChevronRight, ExternalLink } from 'lucide-react';
 import { useCallback, useEffect, useId, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { OwnBack } from '@/components/back-line';
+import { CardsShown } from '@/components/cards-shown';
 import { useRsvpSheet } from '@/components/rsvp-sheet';
 import { useAccount } from '@/lib/account';
 import { useAnnounce } from '@/lib/announce';
@@ -253,6 +254,8 @@ export default function EventDetailPage() {
 
   return (
     <>
+      {/* The event is on screen: page speed times it. */}
+      <CardsShown />
       <div className="flex-1 overflow-y-auto">
         <div className="bg-plate px-4 pt-2 pb-5 text-white">
           <div className="mx-auto w-full max-w-[var(--events-measure)]">

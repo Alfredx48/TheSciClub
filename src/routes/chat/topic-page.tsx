@@ -8,6 +8,7 @@ import {
   useSearchParams,
 } from 'react-router-dom';
 import { BackLink } from '@/components/back-link';
+import { CardsShown } from '@/components/cards-shown';
 import { LinkedText } from '@/components/linked-text';
 import {
   ANONYMOUS_PAGE,
@@ -652,6 +653,8 @@ export default function TopicPage() {
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
+      {/* The post and its replies are on screen: page speed times them. */}
+      <CardsShown />
       {/* Only the way back stays at the top; the title and everything under
           it scroll (the owner, 2026-11-19: "Only the top back link should be
           pinned to the top"). A line under it once scrolled, as in a room. */}

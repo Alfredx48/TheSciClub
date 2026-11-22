@@ -1,6 +1,7 @@
 import { Search } from 'lucide-react';
 import { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useLocation, useSearchParams } from 'react-router-dom';
+import { CardsShown } from '@/components/cards-shown';
 import { FilterButton } from '@/components/filter-button';
 import { LoadingCards } from '@/components/loading-cards';
 import { NotificationBell, useWideLayout } from '@/components/notification-bell';
@@ -316,6 +317,8 @@ export default function HomePage() {
             <LoadingCards label="Loading…" height={170} />
           ) : (
             <>
+              {/* The feed is on screen with its cards: page speed times it. */}
+              <CardsShown />
               {failures.length > 0 ? <Problem sentences={failures} /> : null}
               {shown.length > 0 ? (
                 <>
