@@ -163,8 +163,9 @@ function SignIn({ refused }: { refused: boolean }) {
     event.preventDefault();
     if (!sentTo) return;
     const token = code.replace(/\D/g, '');
-    if (token.length !== 6) {
-      setProblem('Enter the 6-digit code from the email.');
+    // Supabase sends 6 to 10 digits, as the project is set (6 on both, 2026-11-22).
+    if (token.length < 6 || token.length > 10) {
+      setProblem('Enter the code from the email.');
       return;
     }
     setBusy(true);
@@ -213,7 +214,7 @@ function SignIn({ refused }: { refused: boolean }) {
           }}
         >
           <p className="text-ink2">
-            If <strong className="text-ink">{sentTo}</strong> has an account, a 6-digit code is on
+            If <strong className="text-ink">{sentTo}</strong> has an account, a sign-in code is on
             its way. If the email has a link instead, open it on this device.
           </p>
           <label className="mt-4 block font-bold text-[0.8125rem]">
