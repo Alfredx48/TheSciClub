@@ -73,12 +73,13 @@ export function OwnBack({
   to,
   label,
   state,
+  className,
   children,
-}: Parent & { spacer?: boolean; children: ReactNode }) {
+}: Parent & { spacer?: boolean; className?: string; children: ReactNode }) {
   const lined = useClaimLine({ to, label, state });
   const step = useBackStep();
   if (!lined || !step) return children;
-  return <InlineBack step={step} />;
+  return <InlineBack step={step} className={className} />;
 }
 
 /**
@@ -92,14 +93,23 @@ export function ScreenBack() {
   return <InlineBack step={step} />;
 }
 
-function InlineBack({ step }: { step: { label: string; back: () => void } }) {
+function InlineBack({
+  step,
+  className,
+}: {
+  step: { label: string; back: () => void };
+  className?: string | undefined;
+}) {
   return (
     <button
       type="button"
       onClick={step.back}
       aria-label={`Back to ${step.label}`}
       data-target="small"
-      className="-ml-1.5 inline-flex min-h-[36px] min-w-0 max-w-full items-center gap-0.5 self-start py-1.5 text-left font-semibold text-[0.875rem] text-emphasis"
+      className={cn(
+        '-ml-1.5 inline-flex min-h-[36px] min-w-0 max-w-full items-center gap-0.5 self-start py-1.5 text-left font-semibold text-[0.875rem] text-emphasis',
+        className,
+      )}
     >
       <ChevronLeft className="h-4 w-4 flex-none" strokeWidth={2.5} aria-hidden="true" />
       <span className="truncate">{shortName(step.label)}</span>

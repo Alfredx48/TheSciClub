@@ -508,7 +508,14 @@ function MemberProfile({ onBlocked }: { onBlocked: () => void }) {
             reads on a bright sky. From `lg` the picture is a floated card and
             the row goes back above everything, in navy on the canvas. */}
         <div className="absolute inset-x-0 top-0 z-10 flex items-center justify-between px-4 pt-3 lg:static lg:px-0 lg:pt-0 lg:pb-2.5">
-          <OwnBack to={backToMembers(location)} label={backFrom(location.state)} spacer>
+          {/* On a dark pill over the photograph, so it reads on any picture
+              (the owner, 2026-11-21: gold text was lost on a bright one). */}
+          <OwnBack
+            to={backToMembers(location)}
+            label={backFrom(location.state)}
+            className="max-lg:ml-0 max-lg:rounded-full max-lg:bg-[rgba(10,29,54,0.72)] max-lg:pr-3.5 max-lg:pl-2 max-lg:text-white max-lg:backdrop-blur-sm"
+            spacer
+          >
             <button
               type="button"
               onClick={() => {
