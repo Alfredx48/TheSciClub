@@ -89,6 +89,44 @@ export async function fetchPageSpeedTrend(
   };
 }
 
+/** Failed requests by what was asked and why (20261122060000). */
+export interface FailureRow {
+  metric: string;
+  failure: string;
+  failed: number;
+  visits: number;
+  lastAt: string;
+}
+
+export async function fetchPageSpeedFailures(days: number): Promise<Read<FailureRow[]>> {
+  const read = await rows('admin_page_speed_failures', { days });
+  if (!read.ok) return read;
+  return {
+    ok: true,
+    value: read.value.map((row) => ({
+      metric: text(row.metric),
+      failure: text(row.failure),
+      failed: Number(row.failed ?? 0),
+      visits: Number(row.visits ?? 0),
+      lastAt: text(row.last_at),
+    })),
+  };
+}
+
+/** A failure's reason in words. */
+function why(failure: string): string {
+  if (failure === 'no connection') return 'No connection: it never reached the server';
+  if (failure === 'not recorded') return 'Not recorded (an app from before Nov 22)';
+  const status = Number(failure);
+  if (status === 401 || status === 403) return `${failure}: not allowed, or signed out`;
+  if (status === 404) return `${failure}: not found`;
+  if (status === 409) return `${failure}: clashed with another change`;
+  if (status === 429) return `${failure}: too many requests`;
+  if (status >= 500) return `${failure}: the server failed`;
+  if (status >= 400) return `${failure}: refused`;
+  return failure;
+}
+
 /** One release's times (20261122030000): typical / slow end, opening, moving, requests. */
 export interface ReleaseRow {
   release: string;
@@ -303,6 +341,7 @@ function PhoneSpeed() {
   const [trend, setTrend] = useState<TrendPoint[] | null>(null);
   const [cardsTrend, setCardsTrend] = useState<TrendPoint[] | null>(null);
   const [releases, setReleases] = useState<ReleaseRow[] | null>(null);
+  const [failures, setFailures] = useState<FailureRow[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -317,7 +356,8 @@ function PhoneSpeed() {
       fetchPageSpeedTrend(Number(days), 'first-paint'),
       fetchPageSpeedTrend(Number(days), 'cards-after-tap'),
       fetchPageSpeedByRelease(Number(days)),
-    ]).then(([summary, opening, cards, byRelease]) => {
+      fetchPageSpeedFailures(Number(days)),
+    ]).then(([summary, opening, cards, byRelease, failed]) => {
       if (!live) return;
       if (!summary.ok) setError(summary.error);
       else if (!opening.ok) setError(opening.error);
@@ -328,6 +368,7 @@ function PhoneSpeed() {
         setCardsTrend(cards.value);
         // Before 20261122030000 is applied there is nothing by release; the rest still shows.
         setReleases(byRelease.ok ? byRelease.value : []);
+        setFailures(failed.ok ? failed.value : []);
       }
     });
     return () => {
@@ -492,6 +533,47 @@ function PhoneSpeed() {
             </>
           ) : (
             <p className="py-2 text-[0.8125rem] text-ink2">No requests in this period.</p>
+          )}
+
+          <Subheading>Failed requests</Subheading>
+          <p className="mt-0.5 text-[0.75rem] text-ink2 leading-[1.45]">
+            What failed, and why. A request cancelled by leaving a screen is not counted.
+          </p>
+          {failures.length > 0 ? (
+            <div className="mt-1.5 overflow-x-auto rounded-[12px] border border-line bg-paper">
+              <table className="w-full text-[0.8125rem] text-ink">
+                <thead className="text-grey">
+                  <tr>
+                    <th className="px-2 py-1.5 text-left font-semibold">Request</th>
+                    <th className="px-2 py-1.5 text-left font-semibold">Why</th>
+                    <th className={HEAD}>Failed</th>
+                    <th className={HEAD}>Visits</th>
+                    <th className={HEAD}>Last</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {failures.map((f) => (
+                    <tr key={`${f.metric}-${f.failure}`} className="border-line border-t">
+                      <td className="px-2 py-1.5 text-left font-mono text-[0.75rem]">{f.metric}</td>
+                      <td className="px-2 py-1.5 text-left text-[0.78125rem]">{why(f.failure)}</td>
+                      <td className={CELL}>{f.failed}</td>
+                      <td className={CELL}>{f.visits}</td>
+                      <td className={CELL}>
+                        {new Date(f.lastAt).toLocaleString('en-US', {
+                          month: 'short',
+                          day: 'numeric',
+                          hour: 'numeric',
+                          minute: '2-digit',
+                          timeZone: 'America/Los_Angeles',
+                        })}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <p className="py-2 text-[0.8125rem] text-ink2">Nothing failed in this period.</p>
           )}
         </>
       )}

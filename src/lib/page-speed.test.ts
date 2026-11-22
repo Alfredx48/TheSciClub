@@ -93,6 +93,36 @@ describe('timing requests', () => {
     expect(sent[0]?.[0]?.ok).toBe(false);
   });
 
+  // The owner, 2026-11-21: 24 "failed" requests were a robot leaving Chat
+  // before they finished. Why one failed is kept; a cancelled one is not one.
+  it('says why a request failed, and leaves out one cancelled by leaving the screen', async () => {
+    const sent: { metric: string; ok: boolean; failure?: string }[][] = [];
+    startPageSpeed((samples) => {
+      sent.push(samples);
+      return Promise.resolve();
+    }, true);
+    await timedFetch(() => Promise.resolve(new Response('', { status: 500 })))(
+      `${BASE}/rest/v1/rpc/home_feed`,
+      {},
+    );
+    await expect(
+      timedFetch(() => Promise.reject(new TypeError('Load failed')))(`${BASE}/rest/v1/events`, {}),
+    ).rejects.toThrow();
+    const leaving = new AbortController();
+    leaving.abort();
+    await expect(
+      timedFetch(() => Promise.reject(new DOMException('aborted', 'AbortError')))(
+        `${BASE}/rest/v1/chat_rooms`,
+        { signal: leaving.signal },
+      ),
+    ).rejects.toThrow();
+    flush();
+    expect(sent.flat().map(({ metric, ok, failure }) => ({ metric, ok, failure }))).toEqual([
+      { metric: 'rpc:home_feed', ok: false, failure: '500' },
+      { metric: 'table:events', ok: false, failure: 'no connection' },
+    ]);
+  });
+
   it('does not time its own log call', async () => {
     const sent: unknown[][] = [];
     startPageSpeed((samples) => {

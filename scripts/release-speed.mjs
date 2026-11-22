@@ -187,6 +187,9 @@ async function slowPhone(browser, signedIn) {
     },
     [`sb-${PROJECT_REF}-auth-token`, JSON.stringify(signedIn)],
   );
+  // The robot's own timings never reach the club's page speed (the owner,
+  // 2026-11-21: they showed as 37 visits and 24 failures there).
+  await context.route('**/rest/v1/rpc/log_page_speed', (route) => route.fulfill({ status: 204 }));
   const page = await context.newPage();
   const cdp = await context.newCDPSession(page);
   await cdp.send('Network.enable');
@@ -202,7 +205,9 @@ async function slowPhone(browser, signedIn) {
   const kinds = new Map();
   const tally = { database: 0, scriptBytes: 0, bytes: 0 };
   cdp.on('Network.requestWillBeSent', (e) => {
-    if (e.request.url.startsWith(SUPABASE_URL) && e.type !== 'WebSocket') tally.database += 1;
+    const url = e.request.url;
+    if (url.startsWith(SUPABASE_URL) && e.type !== 'WebSocket' && !url.includes('log_page_speed'))
+      tally.database += 1;
   });
   cdp.on('Network.responseReceived', (e) => kinds.set(e.requestId, e.type));
   cdp.on('Network.loadingFinished', (e) => {

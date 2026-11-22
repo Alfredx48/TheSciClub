@@ -108,6 +108,13 @@ interface Sample {
   metric: string;
   ms: number;
   ok: boolean;
+  /**
+   * Why a request failed: the server's status ("401", "500"), or "no
+   * connection" when it never answered (the owner, 2026-11-21). Absent when
+   * it worked. A request cancelled by leaving the screen is not recorded at
+   * all: it did not fail, nobody was waiting for it.
+   */
+  failure?: string;
   installed: boolean;
   mobile: boolean;
   connection: string | null;
@@ -223,12 +230,12 @@ export function timedFetch(base: typeof fetch = (...args) => fetch(...args)): ty
         response.ok,
         Number.isFinite(length) && length > 0 ? length : null,
       );
-      record(endpoint, ms, response.ok);
+      record(endpoint, ms, response.ok, response.ok ? undefined : String(response.status));
       return response;
     } catch (thrown) {
       const ms = performance.now() - started;
       debugRequest(endpoint, detail, started, ms, false, null);
-      record(endpoint, ms, false);
+      if (!cancelled(thrown, init)) record(endpoint, ms, false, 'no connection');
       throw thrown;
     }
   };
@@ -244,10 +251,25 @@ function whatWasAsked(url: string): string {
   }
 }
 
-function record(endpoint: string, ms: number, ok: boolean) {
+/** Called off by the app (leaving a screen), rather than failed. */
+function cancelled(thrown: unknown, init: RequestInit | undefined): boolean {
+  return (
+    (thrown instanceof DOMException && thrown.name === 'AbortError') ||
+    init?.signal?.aborted === true
+  );
+}
+
+function record(endpoint: string, ms: number, ok: boolean, failure?: string) {
   if (skipped || requestsSeen >= MAX_REQUESTS_PER_VISIT) return;
   requestsSeen += 1;
-  push({ kind: 'request', screen: screenOf(window.location.pathname), metric: endpoint, ms, ok });
+  push({
+    kind: 'request',
+    screen: screenOf(window.location.pathname),
+    metric: endpoint,
+    ms,
+    ok,
+    ...(failure ? { failure } : {}),
+  });
 }
 
 /**

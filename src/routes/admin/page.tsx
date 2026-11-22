@@ -91,13 +91,13 @@ import { ReportedReviews } from '@/routes/reviews/reported-reviews';
 
 const ADMIN_TAB_VALUES = [
   'members',
-  'reports',
   'invites',
-  'going',
+  'stats',
   'organizations',
+  'reports',
+  'going',
   'rooms',
   'sign-in',
-  'stats',
 ] as const;
 
 type MemberFilter = 'all' | 'joined' | 'directory' | 'attention' | 'unfinished';
@@ -502,9 +502,9 @@ export default function AdminPage() {
         </div>
       </header>
       {/* Out of the header so it can stick: on a long roster or a long list
-          of reports the other tabs stay one tap away. Ordered by what an
-          administrator comes here to do, so Reports and its count are on
-          screen on the narrowest phone. */}
+          of reports the other tabs stay one tap away. In the owner's order
+          (2026-11-21): Members, Invites, Stats, Organizations, Reports, Going,
+          Rooms, Keys & renewals. Reports' count still shows wherever it sits. */}
       <PageTabs
         id="admin"
         label="Admin sections"
@@ -513,10 +513,11 @@ export default function AdminPage() {
         onChange={setTab}
         tabs={[
           { value: 'members', label: 'Members' },
-          { value: 'reports', label: 'Reports', count: reports.openCount, countLabel: 'waiting' },
           { value: 'invites', label: 'Invites' },
-          { value: 'going', label: 'Going' },
+          { value: 'stats', label: 'Stats' },
           { value: 'organizations', label: 'Organizations' },
+          { value: 'reports', label: 'Reports', count: reports.openCount, countLabel: 'waiting' },
+          { value: 'going', label: 'Going' },
           { value: 'rooms', label: 'Rooms' },
           {
             // The value stays: old ?tab=sign-in links still land here.
@@ -525,7 +526,6 @@ export default function AdminPage() {
             count: toRenew,
             countLabel: 'to renew',
           },
-          { value: 'stats', label: 'Stats' },
         ]}
       />
 

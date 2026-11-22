@@ -1787,18 +1787,18 @@ describe('the tabs', () => {
     expect(screen.queryByText(/^Nobody can join without an invite/)).toBeNull();
   });
 
-  it('puts Reports second, so its count is on screen on a narrow phone', async () => {
+  it('lists the tabs in the owner\u2019s order (2026-11-21)', async () => {
     renderAdmin();
     const tabs = await screen.findAllByRole('tab');
     expect(tabs.map((tab) => tab.textContent)).toEqual([
       'Members',
-      'Reports',
       'Invites',
-      'Going',
+      'Stats',
       'Organizations',
+      'Reports',
+      'Going',
       'Rooms',
       'Keys & renewals',
-      'Stats',
     ]);
   });
 
