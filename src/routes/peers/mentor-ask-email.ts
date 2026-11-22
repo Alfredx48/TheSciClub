@@ -39,13 +39,16 @@ export function mentorAskBody({ member, admin }: { member: string; admin: string
     // The owner's words of 2026-11-21, for members whose profile is not complete
     // (the only ones offered the button). The link is written out, as a
     // mailto: body can carry no more, and the mail app makes it tappable.
-    'Thank you for joining the SCI Club. We need your help to build our team of mentors before we launch! You are definitely mentor material, but your profile is empty.',
+    'Thank you for joining the SCI Club. We need your help to build our team of mentors before we launch! You are definitely mentor material, but your profile isn’t finished yet.',
     '',
-    `If you could complete your profile, you could really help us out. The last question “Topics you are happy to talk about,” is particularly important because it helps us send questions from newly injured people to the right “topic experts.” You can complete your profile here: ${ME_TAB_URL}.`,
+    'If you could complete your profile, you could really help us out. The last question, “Topics you are happy to talk about,” is particularly important because it helps us send questions from newly injured people to the right “topic experts.” You can complete your profile here:',
+    // On its own line, with nothing after it, so no mail app takes a full stop
+    // into the link.
+    ME_TAB_URL,
     '',
     "Thank you so much for your help. Let's build this club one wheeler at a time.",
     '',
-    from ? `Thanks,\n${from}` : 'Thanks',
+    from ? `Best,\n${from}` : 'Best',
   ].join('\n');
 }
 

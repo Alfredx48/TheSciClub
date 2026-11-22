@@ -22,7 +22,7 @@ describe('mentorAskMailto', () => {
     expect(url.searchParams.get('subject')).toBe(MENTOR_ASK_SUBJECT);
     const body = url.searchParams.get('body') ?? '';
     expect(body.startsWith('Hey Lake&Jo,\r\n\r\nThank you for joining')).toBe(true);
-    expect(body.endsWith('Thanks,\r\nWojtek')).toBe(true);
+    expect(body.endsWith('Best,\r\nWojtek')).toBe(true);
     expect(body.replace(/\r\n/g, '\n')).toBe(mentorAskBody({ member: 'Lake&Jo', admin: 'Wojtek' }));
   });
 });
