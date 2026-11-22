@@ -447,3 +447,11 @@ returns boolean language sql immutable set search_path = '' as $$
     "🇿🇲":0, "🇿🇼":0, "🏴󠁧󠁢󠁥󠁮󠁧󠁿":0, "🏴󠁧󠁢󠁳󠁣󠁴󠁿":0, "🏴󠁧󠁢󠁷󠁬󠁳󠁿":0
   }$emojis$::jsonb ? value, false)
 $$;
+
+-- Enforce new writes without removing old reactions that used the earlier rule.
+alter table public.chat_post_reactions
+  drop constraint chat_post_reactions_emoji_check,
+  add constraint chat_post_reactions_emoji_check check (public.is_reaction_emoji(emoji)) not valid;
+alter table public.chat_message_reactions
+  drop constraint chat_message_reactions_emoji_check,
+  add constraint chat_message_reactions_emoji_check check (public.is_reaction_emoji(emoji)) not valid;
