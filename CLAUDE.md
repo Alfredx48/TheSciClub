@@ -53,6 +53,23 @@ person you are working for. Never push `main` without their word.
 - Database changes go to the test project first, the live one only at the
   word of the person you are working for.
 
+## One release a day (owner, 2026-11-21)
+
+Every push to `main` makes every installed app download a new copy and
+reload, and several in a day felt slow and unstable. So:
+
+- Push `main` at most once a day. Until then, changes wait on `tests`. Push
+  sooner only when the person you are working for says so for that change
+  (a live bug, say).
+- Near the end of their day (they say they are done, or it is past 5 PM
+  Pacific and a task has finished), remind them once to release, and list
+  what is waiting: `git log --oneline origin/main..origin/tests` on both
+  `tests` branches, with who wrote each, so everybody's work goes out
+  together and nobody is surprised by it.
+- Releases are tagged `release-<build minute>` (.github/workflows/site.yml).
+  Admin › Page speed shows each release's times, and
+  .github/workflows/release-speed.yml compares the day's releases each night.
+
 ## Installed apps must keep updating (owner, 2026-11-21)
 
 The site is on Cloudflare (since 2026-11-20). Installed apps find a new

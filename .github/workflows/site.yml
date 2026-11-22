@@ -25,7 +25,8 @@ concurrency:
   cancel-in-progress: true
 
 permissions:
-  contents: read
+  # write: a live deploy tags its commit as a release (below).
+  contents: write
 
 jobs:
   deploy:
@@ -90,3 +91,18 @@ jobs:
             --config cloudflare/wrangler.toml "${site[@]}" \
             --var "VITE_SUPABASE_URL:$VITE_SUPABASE_URL" \
             --var "VITE_SUPABASE_ANON_KEY:$VITE_SUPABASE_ANON_KEY"
+
+      # Each live release is tagged release-<its build minute>, the minute the
+      # app and /version.json carry and every page-speed sample says (the
+      # owner, 2026-11-21), so a slower release can be found and rebuilt.
+      - name: Tag the release
+        if: github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          built=$(node -e 'console.log(JSON.parse(require("fs").readFileSync("dist/version.json","utf8")).built)')
+          tag="release-${built//:/}"
+          gh api "repos/$GITHUB_REPOSITORY/git/refs" -f "ref=refs/tags/$tag" -f "sha=$GITHUB_SHA" >/dev/null \
+            || echo "::warning::Could not tag $tag"
+          echo "Tagged $tag at $GITHUB_SHA"

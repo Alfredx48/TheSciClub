@@ -1,0 +1,80 @@
+# Release speed: each night, times the main screens of yesterday's baseline
+# release, every release since, and what is on tests, side by side as a slow
+# phone, and flags a screen clearly slower than the baseline (the owner,
+# 2026-11-21). scripts/release-speed.mjs says how.
+#
+# Builds run against the TEST project (environment site-tests: its
+# VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY variables). The robot member
+# signs in with repository secrets RELEASE_SPEED_EMAIL and
+# RELEASE_SPEED_PASSWORD, an account on the test project only.
+#
+# A flagged screen fails the run, so GitHub emails about it; the table is in
+# the run's summary either way.
+
+name: Release speed
+
+on:
+  schedule:
+    # 2:15 AM Pacific (10:15 UTC; 3:15 AM in summer).
+    - cron: '15 10 * * *'
+  workflow_dispatch:
+    inputs:
+      refs:
+        description: 'Git refs to compare, oldest first, separated by spaces (blank: the night''s default)'
+        required: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-speed
+  cancel-in-progress: false
+
+jobs:
+  speed:
+    if: github.repository == 'Alfredx48/TheSciClub'
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    environment: site-tests
+
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+          # Every release tag and the tests branch, to build any of them.
+          fetch-depth: 0
+
+      - name: Fetch tests
+        run: git fetch --no-tags origin tests:refs/remotes/origin/tests
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          check-latest: true
+          cache: pnpm
+
+      - name: Install
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm exec playwright install --with-deps chromium
+
+      - name: Time the releases
+        env:
+          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY }}
+          ROBOT_EMAIL: ${{ secrets.RELEASE_SPEED_EMAIL }}
+          ROBOT_PASSWORD: ${{ secrets.RELEASE_SPEED_PASSWORD }}
+          REFS: ${{ inputs.refs }}
+        run: |
+          # shellcheck disable=SC2086
+          node scripts/release-speed.mjs $REFS
+
+      - name: Keep the report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-speed
+          path: release-speed/report.*
+          if-no-files-found: ignore

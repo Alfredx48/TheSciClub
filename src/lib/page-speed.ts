@@ -9,7 +9,13 @@ import { debugCards, debugRequest, debugScreen } from '@/lib/debug-log';
  * largest paint, ready), and every request to the club reports how long it
  * took, named by what it asked for and never with its arguments. Nothing
  * identifies anybody: the screen is its pattern, and a random id groups one
- * visit. Sent in batches, and dropped quietly if sending fails.
+ * visit. Each sample says which release took it (the owner, 2026-11-21), so a
+ * release that made the app slower stands out beside the one before it.
+ *
+ * Sent only when the page is put away (the owner, 2026-11-21: measuring every
+ * visit had been thought to slow the app), so a report never competes with a
+ * screen that is loading. Sent with keepalive, so it still goes as the app
+ * closes, and dropped quietly if sending fails.
  */
 
 /** The app's screens (App.tsx), so an address is kept only as its pattern. */
@@ -105,13 +111,19 @@ interface Sample {
   installed: boolean;
   mobile: boolean;
   connection: string | null;
+  /** The build's minute (VITE_APP_BUILT), tagged in git as release-<minute>. */
+  release: string;
 }
+
+/** Which release this is; '' in a test or a dev server. */
+const RELEASE = import.meta.env.VITE_APP_BUILT ?? '';
 
 /**
  * One visit in this many is measured, decided once per page load (the owner,
- * 2026-11-05: 1 in 10 on the free plan; it was 3).
+ * 2026-11-05: 1 in 10 on the free plan; 2026-11-21: 1 in 3 again, now that
+ * nothing is sent while a screen loads).
  */
-export const ONE_VISIT_IN = 10;
+export const ONE_VISIT_IN = 3;
 
 /** Whether this page load is measured: random, one in ONE_VISIT_IN. */
 export function measuredVisit(random: () => number = Math.random): boolean {
@@ -120,8 +132,8 @@ export function measuredVisit(random: () => number = Math.random): boolean {
 
 /** Enough to see a pattern; past it, a long visit stops reporting requests. */
 const MAX_REQUESTS_PER_VISIT = 300;
+/** log_page_speed takes at most this many a call. */
 const BATCH = 50;
-const FLUSH_MS = 30_000;
 const LOG_RPC = 'log_page_speed';
 
 type Sender = (samples: Sample[]) => Promise<unknown>;
@@ -129,7 +141,6 @@ type Sender = (samples: Sample[]) => Promise<unknown>;
 let sender: Sender | null = null;
 let queue: Sample[] = [];
 let requestsSeen = 0;
-let timer: ReturnType<typeof setTimeout> | null = null;
 let skipped = false;
 const visit = randomId();
 
@@ -141,7 +152,7 @@ function randomId(): string {
   }
 }
 
-function context(): Pick<Sample, 'installed' | 'mobile' | 'connection'> {
+function context(): Pick<Sample, 'installed' | 'mobile' | 'connection' | 'release'> {
   let installed = false;
   try {
     installed =
@@ -156,35 +167,31 @@ function context(): Pick<Sample, 'installed' | 'mobile' | 'connection'> {
     installed,
     mobile: /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent),
     connection,
+    release: RELEASE,
   };
 }
 
-function push(sample: Omit<Sample, 'visit' | 'installed' | 'mobile' | 'connection'>) {
+function push(sample: Omit<Sample, 'visit' | 'installed' | 'mobile' | 'connection' | 'release'>) {
   if (skipped) return;
   if (!Number.isFinite(sample.ms) || sample.ms < 0) return;
   queue.push({ ...sample, ms: Math.round(sample.ms), visit, ...context() });
-  if (queue.length >= BATCH) {
-    flush();
-    return;
-  }
-  timer ??= setTimeout(flush, FLUSH_MS);
 }
 
-/** Sends what is waiting. Failures are dropped: speed is never worth an error. */
+/**
+ * Sends everything waiting, in calls of BATCH. Only when the page is put away
+ * (and in tests). Failures are dropped: speed is never worth an error.
+ */
 export function flush(): void {
-  if (timer) {
-    clearTimeout(timer);
-    timer = null;
+  if (!sender) return;
+  while (queue.length > 0) {
+    const batch = queue.slice(0, BATCH);
+    queue = queue.slice(BATCH);
+    try {
+      void sender(batch).catch(() => undefined);
+    } catch {
+      // An unconfigured client throws at once; dropped all the same.
+    }
   }
-  if (!sender || queue.length === 0) return;
-  const batch = queue.slice(0, BATCH);
-  queue = queue.slice(BATCH);
-  try {
-    void sender(batch).catch(() => undefined);
-  } catch {
-    // An unconfigured client throws at once; dropped all the same.
-  }
-  if (queue.length > 0) timer = setTimeout(flush, FLUSH_MS);
 }
 
 /**
@@ -195,7 +202,9 @@ export function timedFetch(base: typeof fetch = (...args) => fetch(...args)): ty
   return async (input, init) => {
     const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
     const endpoint = endpointOf(url);
-    if (!endpoint || endpoint === `rpc:${LOG_RPC}`) return base(input, init);
+    // The log's own call goes with keepalive, so it is still sent as the app closes.
+    if (endpoint === `rpc:${LOG_RPC}`) return base(input, { ...init, keepalive: true });
+    if (!endpoint) return base(input, init);
     const started = performance.now();
     // Push subscription filters can carry delivery endpoints.
     const detail =
@@ -291,7 +300,6 @@ export function startPageSpeed(send: Sender, measured = measuredVisit()): void {
     if (largestPaint !== null) {
       push({ kind: 'load', screen, metric: 'largest-paint', ms: largestPaint, ok: true });
     }
-    flush();
   };
 
   // Settled: some seconds after load, so the largest paint has happened.
@@ -299,10 +307,11 @@ export function startPageSpeed(send: Sender, measured = measuredVisit()): void {
   if (document.readyState === 'complete') afterLoad();
   else window.addEventListener('load', afterLoad, { once: true });
 
-  // Whatever is waiting goes when the page is put away.
+  // Everything goes when the page is put away or closed, never while in use.
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'hidden') flush();
   });
+  window.addEventListener('pagehide', flush);
 }
 
 /*
@@ -396,8 +405,6 @@ export function resetPageSpeed(): void {
   queue = [];
   requestsSeen = 0;
   skipped = false;
-  if (timer) clearTimeout(timer);
-  timer = null;
   current = null;
   touched = false;
   lastInput = null;

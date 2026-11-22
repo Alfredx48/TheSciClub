@@ -89,6 +89,104 @@ export async function fetchPageSpeedTrend(
   };
 }
 
+/** One release's times (20261122030000): typical / slow end, opening, moving, requests. */
+export interface ReleaseRow {
+  release: string;
+  firstSeen: string;
+  visits: number;
+  openingP50: number | null;
+  openingP90: number | null;
+  cardsP50: number | null;
+  cardsP90: number | null;
+  requests: number;
+  requestP50: number | null;
+  requestP90: number | null;
+  failed: number;
+}
+
+const msOrNull = (value: unknown) => (value === null || value === undefined ? null : Number(value));
+
+export async function fetchPageSpeedByRelease(days: number): Promise<Read<ReleaseRow[]>> {
+  const read = await rows('admin_page_speed_by_release', { days });
+  if (!read.ok) return read;
+  return {
+    ok: true,
+    value: read.value.map((row) => ({
+      release: text(row.release),
+      firstSeen: text(row.first_seen),
+      visits: Number(row.visits ?? 0),
+      openingP50: msOrNull(row.opening_p50_ms),
+      openingP90: msOrNull(row.opening_p90_ms),
+      cardsP50: msOrNull(row.cards_p50_ms),
+      cardsP90: msOrNull(row.cards_p90_ms),
+      requests: Number(row.requests ?? 0),
+      requestP50: msOrNull(row.request_p50_ms),
+      requestP90: msOrNull(row.request_p90_ms),
+      failed: Number(row.failed ?? 0),
+    })),
+  };
+}
+
+/** A release's build minute (UTC, as built) in Pacific time: "Nov 21, 4:31 PM". */
+function releaseName(release: string): string {
+  const at = new Date(`${release}Z`);
+  if (Number.isNaN(at.getTime())) return release;
+  return at.toLocaleString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    timeZone: 'America/Los_Angeles',
+  });
+}
+
+const pair = (p50: number | null, p90: number | null) =>
+  p50 === null || p90 === null ? '—' : `${seconds(p50)} / ${seconds(p90)}`;
+
+/**
+ * Release by release, newest first (the owner, 2026-11-21), so a release that
+ * made the app slower stands out beside the one before it. Each release is
+ * tagged in git as release-<its build minute>.
+ */
+function ReleaseTable({ releases }: { releases: ReleaseRow[] }) {
+  return (
+    <div className="mt-1.5 overflow-x-auto rounded-[12px] border border-line bg-paper">
+      <table className="w-full text-[0.8125rem] text-ink">
+        <thead className="text-grey">
+          <tr>
+            <th className="px-2 py-1.5 text-left font-semibold">Release</th>
+            <th className={HEAD}>Visits</th>
+            <th className={HEAD}>Opening</th>
+            <th className={HEAD}>Moving between screens</th>
+            <th className={HEAD}>Requests</th>
+          </tr>
+        </thead>
+        <tbody>
+          {releases.map((r) => (
+            <tr key={r.release} className="border-line border-t">
+              <td className="px-2 py-1.5 text-left">
+                <span className="block font-bold">{releaseName(r.release)}</span>
+                <span className="block font-mono text-[0.6875rem] text-grey">
+                  release-{r.release.replace(':', '')}
+                </span>
+              </td>
+              <td className={CELL}>{r.visits}</td>
+              <td className={CELL}>{pair(r.openingP50, r.openingP90)}</td>
+              <td className={CELL}>{pair(r.cardsP50, r.cardsP90)}</td>
+              <td className={CELL}>
+                {pair(r.requestP50, r.requestP90)}
+                {r.failed > 0 ? (
+                  <span className="block text-[0.6875rem] text-destructive">{r.failed} failed</span>
+                ) : null}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 const PERIODS = [
   ['1', '24 hours'],
   ['7', '7 days'],
@@ -166,6 +264,7 @@ export function PageSpeedSection() {
   const [speed, setSpeed] = useState<SpeedRow[] | null>(null);
   const [trend, setTrend] = useState<TrendPoint[] | null>(null);
   const [cardsTrend, setCardsTrend] = useState<TrendPoint[] | null>(null);
+  const [releases, setReleases] = useState<ReleaseRow[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -173,12 +272,14 @@ export function PageSpeedSection() {
     setSpeed(null);
     setTrend(null);
     setCardsTrend(null);
+    setReleases(null);
     setError(null);
     void Promise.all([
       fetchPageSpeed(Number(days)),
       fetchPageSpeedTrend(Number(days), 'first-paint'),
       fetchPageSpeedTrend(Number(days), 'cards-after-tap'),
-    ]).then(([summary, opening, cards]) => {
+      fetchPageSpeedByRelease(Number(days)),
+    ]).then(([summary, opening, cards, byRelease]) => {
       if (!live) return;
       if (!summary.ok) setError(summary.error);
       else if (!opening.ok) setError(opening.error);
@@ -187,6 +288,8 @@ export function PageSpeedSection() {
         setSpeed(summary.value);
         setTrend(opening.value);
         setCardsTrend(cards.value);
+        // Before 20261122030000 is applied there is nothing by release; the rest still shows.
+        setReleases(byRelease.ok ? byRelease.value : []);
       }
     });
     return () => {
@@ -224,6 +327,17 @@ export function PageSpeedSection() {
         <p className="py-4 text-[0.8125rem] text-ink2">Nothing measured in this period yet.</p>
       ) : (
         <>
+          <Subheading>By release</Subheading>
+          <p className="mt-0.5 text-[0.75rem] text-ink2 leading-[1.45]">
+            Newest first, so a release that made the app slower stands out beside the one before it.
+            Typical (p50) / slow end (p90).
+          </p>
+          {releases && releases.length > 0 ? (
+            <ReleaseTable releases={releases} />
+          ) : (
+            <p className="py-2 text-[0.8125rem] text-ink2">No release has been measured yet.</p>
+          )}
+
           <Subheading>Cards on Events and Peers</Subheading>
           <p className="mt-0.5 text-[0.75rem] text-ink2 leading-[1.45]">
             Until the cards are on screen with their data, not the grey placeholders.

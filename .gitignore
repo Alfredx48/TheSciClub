@@ -57,3 +57,4 @@ AUDIT.md
 
 # Wrangler state from deploying the tiles Worker
 .wrangler/
+/release-speed/

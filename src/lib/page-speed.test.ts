@@ -105,6 +105,29 @@ describe('timing requests', () => {
     expect(sent).toEqual([]);
   });
 
+  // The owner, 2026-11-21: nothing is sent while the app is in use, so a report never
+  // competes with a screen loading; it goes, with keepalive, when the page is put away.
+  it('sends only once the page is put away, with keepalive, each sample saying its release', async () => {
+    const sent: { release: string }[][] = [];
+    startPageSpeed((samples) => {
+      sent.push(samples);
+      return Promise.resolve();
+    }, true);
+    const base = vi.fn((_input: RequestInfo | URL, _init?: RequestInit) =>
+      Promise.resolve(new Response('[]', { status: 200 })),
+    );
+    const fetcher = timedFetch(base);
+    for (let i = 0; i < 60; i++) await fetcher(`${BASE}/rest/v1/members`, {});
+    expect(sent).toEqual([]);
+    Object.defineProperty(document, 'visibilityState', { value: 'hidden', configurable: true });
+    document.dispatchEvent(new Event('visibilitychange'));
+    Object.defineProperty(document, 'visibilityState', { value: 'visible', configurable: true });
+    expect(sent.map((batch) => batch.length)).toEqual([50, 10]);
+    expect(sent[0]?.[0]).toHaveProperty('release');
+    await fetcher(`${BASE}/rest/v1/rpc/log_page_speed`, {});
+    expect(base.mock.lastCall?.[1]).toMatchObject({ keepalive: true });
+  });
+
   it('never throws when sending fails', async () => {
     startPageSpeed(() => {
       throw new Error('not configured');
@@ -117,7 +140,7 @@ describe('timing requests', () => {
   });
 });
 
-// The owner, 2026-11-05: one visit in ten.
+// The owner, 2026-11-05: one visit in ten; 2026-11-21: one in three again.
 describe('measuring only some visits', () => {
   it('sends nothing from a visit that is not measured, not even what came before', async () => {
     const send = vi.fn(() => Promise.resolve());
@@ -129,21 +152,21 @@ describe('measuring only some visits', () => {
     expect(send).not.toHaveBeenCalled();
   });
 
-  it('measures one visit in ten', async () => {
-    expect(ONE_VISIT_IN).toBe(10);
+  it('measures one visit in three', async () => {
+    expect(ONE_VISIT_IN).toBe(3);
     const random = vi.spyOn(Math, 'random');
     const send = vi.fn(() => Promise.resolve());
     const fetcher = timedFetch(() => Promise.resolve(new Response('[]', { status: 200 })));
 
-    random.mockReturnValue(0.099);
+    random.mockReturnValue(0.33);
     startPageSpeed(send);
     await fetcher(`${BASE}/rest/v1/members`, {});
     flush();
     expect(send).toHaveBeenCalledTimes(1);
 
-    // Measured at one in three, not at one in ten.
+    // Not measured past a third.
     resetPageSpeed();
-    random.mockReturnValue(0.1);
+    random.mockReturnValue(0.34);
     startPageSpeed(send);
     await fetcher(`${BASE}/rest/v1/members`, {});
     flush();
@@ -151,12 +174,12 @@ describe('measuring only some visits', () => {
     random.mockRestore();
   });
 
-  it('measures about a tenth of many page loads', () => {
+  it('measures about a third of many page loads', () => {
     const loads = 50_000;
     let measured = 0;
     for (let i = 0; i < loads; i++) if (measuredVisit()) measured += 1;
-    expect(measured / loads).toBeGreaterThan(0.09);
-    expect(measured / loads).toBeLessThan(0.11);
+    expect(measured / loads).toBeGreaterThan(0.32);
+    expect(measured / loads).toBeLessThan(0.35);
   });
 
   it('keeps one visit’s requests together under one id', async () => {
