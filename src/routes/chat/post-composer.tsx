@@ -533,14 +533,15 @@ export function PostComposer({
   const label = editing ? `Edit your ${editing.noun}` : placeholder;
   const tools = !editing?.plain;
   const full = remaining === 0;
+  // Narrower in a narrow box (Home's card, 2026-11-23), so the tools stay on one line.
   const button =
-    'grid h-11 w-10 flex-none place-items-center rounded-[10px] text-emphasis transition-colors hover:bg-tint disabled:opacity-35 aria-pressed:bg-tint';
+    'grid h-11 w-9 @min-[21rem]:w-10 flex-none place-items-center rounded-[10px] text-emphasis transition-colors hover:bg-tint disabled:opacity-35 aria-pressed:bg-tint';
 
   return (
     <section
       ref={section}
       aria-label={editing ? `Editing your ${editing.noun}` : 'Your reply'}
-      className="mt-4 scroll-mb-4 rounded-[14px] border-[1.6px] border-line bg-paper focus-within:border-emphasis"
+      className="@container mt-4 scroll-mb-4 rounded-[14px] border-[1.6px] border-line bg-paper focus-within:border-emphasis"
     >
       {failure ? (
         <p
