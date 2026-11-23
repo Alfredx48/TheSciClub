@@ -597,11 +597,15 @@ export default function EventsPage() {
 
       {/* Floating, away from the header's search and filter, and on the lists
           only: the map keeps its corner for its own buttons (the owner,
-          2026-11-01). */}
-      {account.status === 'member' && !showingMap ? (
+          2026-11-01). For what is showing, as the computer's header button:
+          on Events it opened the organization form for a member who cannot
+          add events (the owner, 2026-11-22: "If I am in the events tab and
+          hit the + it is for adding an organization"), so there it is only
+          for those who can. */}
+      {account.status === 'member' && !showingMap && (canAddEvents || !showingList) ? (
         <Link
-          to={canAddEvents && showingList ? '/events/new' : '/events/new?add=organization'}
-          aria-label="Add"
+          to={showingList ? '/events/new' : '/events/new?add=organization'}
+          aria-label={showingList ? 'Add an event' : 'Add an organization'}
           className="absolute right-4 bottom-4 z-10 grid md:hidden h-14 w-14 place-items-center rounded-full bg-action text-white shadow-[0_6px_18px_rgba(10,20,35,.35)] transition-colors hover:bg-action-hi"
         >
           <Plus className="h-6 w-6" strokeWidth={2.4} aria-hidden="true" />
