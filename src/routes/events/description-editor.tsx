@@ -1,5 +1,6 @@
 import { Bold, Eye, Heading, Italic, Link2, List, ListOrdered } from 'lucide-react';
 import { useLayoutEffect, useRef, useState } from 'react';
+import { linkedPaste, pasteInto } from '@/lib/paste-links';
 import { cn } from '@/lib/utils';
 import { useMentionSuggestions } from '@/routes/chat/mention-suggestions';
 import { readLink } from '@/routes/events/event-draft';
@@ -241,7 +242,15 @@ export function DescriptionEditor({
         onChange={(e) => {
           onChange(e.target.value);
         }}
-        onPaste={onPaste}
+        onPaste={(event) => {
+          onPaste?.(event);
+          if (event.defaultPrevented) return;
+          // Copied words keep their links (lib/paste-links.ts).
+          const linked = linkedPaste(event.clipboardData);
+          if (linked === null) return;
+          event.preventDefault();
+          pasteInto(event.currentTarget, linked);
+        }}
         {...(mentions ? mention.boxProps : {})}
         onKeyDown={(e) => {
           mention.onKeyDown(e);
