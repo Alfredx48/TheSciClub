@@ -1,0 +1,76 @@
+name: Member journey
+
+on:
+  schedule:
+    - cron: '13,43 * * * *'
+  workflow_dispatch:
+    inputs:
+      target:
+        description: Environment to check
+        type: choice
+        default: tests
+        options: [tests, live]
+  push:
+    branches: [tests]
+    paths:
+      - 'admin/member-journey.mjs'
+      - '.github/workflows/member-journey.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: member-journey-${{ inputs.target || (github.event_name == 'schedule' && 'live' || 'tests') }}
+  cancel-in-progress: false
+
+jobs:
+  check:
+    if: >-
+      github.repository == 'Alfredx48/TheSciClub' &&
+      (inputs.target != 'live' || github.ref == 'refs/heads/main')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: ${{ (inputs.target == 'live' || github.event_name == 'schedule') && 'site-live' || 'site-tests' }}
+    env:
+      JOURNEY_TARGET: ${{ inputs.target || (github.event_name == 'schedule' && 'live' || 'tests') }}
+      JOURNEY_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+      JOURNEY_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY }}
+      JOURNEY_THREAD_ID: ${{ vars.JOURNEY_THREAD_ID }}
+      JOURNEY_EVENT_ID: ${{ vars.JOURNEY_EVENT_ID }}
+      JOURNEY_EVENT_TITLE: ${{ vars.JOURNEY_EVENT_TITLE }}
+      JOURNEY_EMAIL: ${{ secrets.JOURNEY_EMAIL }}
+      JOURNEY_PASSWORD: ${{ secrets.JOURNEY_PASSWORD }}
+      JOURNEY_RESULT_TOKEN: ${{ secrets.JOURNEY_RESULT_TOKEN }}
+    steps:
+      - id: config
+        name: Check configuration
+        run: |
+          set -eu
+          if [ -z "$JOURNEY_RESULT_TOKEN" ]; then
+            echo "::notice::Member journey reporting has not been configured for this environment."
+            exit 0
+          fi
+          echo "configured=true" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@v5
+        if: steps.config.outputs.configured == 'true'
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v4
+        if: steps.config.outputs.configured == 'true'
+      - uses: actions/setup-node@v5
+        if: steps.config.outputs.configured == 'true'
+        with:
+          node-version: 24
+          cache: pnpm
+      - name: Install
+        if: steps.config.outputs.configured == 'true'
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm exec playwright install --with-deps chromium
+      - name: Check member journey
+        if: steps.config.outputs.configured == 'true'
+        run: |
+          set -euo pipefail
+          ref="${JOURNEY_SUPABASE_URL#https://}"
+          export JOURNEY_SUPABASE_REF="${ref%.supabase.co}"
+          node admin/member-journey.mjs 2>&1 | tee -a "$GITHUB_STEP_SUMMARY"
