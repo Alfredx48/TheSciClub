@@ -98,7 +98,7 @@ export function AttachmentGrid({
             {more > 0 && index === tiles.length - 1 ? (
               <span
                 aria-hidden="true"
-                className="absolute inset-0 grid place-items-center bg-black/70 font-bold font-head text-[2rem] text-white"
+                className="absolute inset-0 grid place-items-center bg-black/55 font-bold font-head text-[2rem] text-white"
               >
                 +{more}
               </span>
