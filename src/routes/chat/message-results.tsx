@@ -1,7 +1,7 @@
 import { Fragment } from 'react';
 import { Link } from 'react-router-dom';
 import { useChatAuthors } from '@/lib/chat/authors';
-import { type MessageHit, SHOW_AT_MOST, snippetAround } from '@/lib/chat/message-search';
+import { type MessageHit, snippetAround } from '@/lib/chat/message-search';
 import { chatTime } from '@/lib/chat/time';
 import { searchWords } from '@/lib/search';
 
@@ -16,6 +16,9 @@ export function MessageResults({
   error,
   viewerId,
   titleOf,
+  more = false,
+  loadingMore = false,
+  onMore,
   replace = false,
   onPick,
 }: {
@@ -26,11 +29,15 @@ export function MessageResults({
   viewerId: string | null;
   /** The conversation's name over each hit; left out inside one conversation. */
   titleOf?: (threadId: string) => string;
+  /** Older matches are there, read on with onMore. */
+  more?: boolean;
+  loadingMore?: boolean;
+  onMore?: () => void;
   replace?: boolean;
   onPick?: () => void;
 }) {
   const authors = useChatAuthors(hits.map((hit) => hit.authorId));
-  if (error) {
+  if (error && hits.length === 0) {
     return <p className="py-4 text-center text-[0.875rem] text-grey leading-relaxed">{error}</p>;
   }
   if (hits.length === 0) {
@@ -78,10 +85,22 @@ export function MessageResults({
           );
         })}
       </ul>
-      {hits.length >= SHOW_AT_MOST ? (
-        <p className="mt-2 text-center text-[0.78125rem] text-grey">
-          The newest {SHOW_AT_MOST}. Add a word to narrow it.
-        </p>
+      {/* A page that failed to come keeps what is shown, and its button. */}
+      {error ? (
+        <p className="mt-2 text-center text-[0.8125rem] text-grey leading-relaxed">{error}</p>
+      ) : null}
+      {more && onMore ? (
+        loadingMore ? (
+          <Finding className="pt-3" />
+        ) : (
+          <button
+            type="button"
+            onClick={onMore}
+            className="mx-auto mt-2 flex min-h-[44px] items-center px-4 font-semibold text-[0.875rem] text-emphasis"
+          >
+            Show older messages
+          </button>
+        )
       ) : null}
     </>
   );

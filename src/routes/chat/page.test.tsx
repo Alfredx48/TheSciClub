@@ -41,7 +41,14 @@ const db = vi.hoisted(() => ({
 vi.mock('@/lib/chat/message-search', async (importOriginal) => ({
   ...(await importOriginal<typeof MessageSearch>()),
   useMessageSearch: (query: string) => {
-    return { hits: query ? db.hits : [], searching: false, error: null };
+    return {
+      hits: query ? db.hits : [],
+      searching: false,
+      error: null,
+      more: false,
+      loadingMore: false,
+      showMore: vi.fn(),
+    };
   },
 }));
 

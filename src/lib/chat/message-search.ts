@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { describeError, describeThrown, type Failure } from '@/lib/describe-error';
-import { matchesSearch, searchWords } from '@/lib/search';
+import { searchWords } from '@/lib/search';
 import { getSupabase } from '@/lib/supabase';
 
 /**
@@ -8,13 +8,11 @@ import { getSupabase } from '@/lib/supabase';
  * conversation the member is in, from Chat's search, or inside one, from its
  * header.
  *
- * A plain read of chat_messages, so its select policy decides what can be
- * found: only conversations the member is in, never a blocked member's words.
- * A taken-back message has no words left, and a notice ("Jan added Sam") is not
- * something anybody said, so neither is searched.
- *
- * The database narrows by "contains" (ilike); the words then have to start a
- * word, as every search box here matches (search.ts).
+ * search_my_messages does the matching, as search.ts does (each word starts
+ * a word), under chat_messages' own select policy: only conversations the
+ * member is in, never a blocked member's words, no taken-back messages or
+ * notices. It reads a page at a time, so older matches are always reachable
+ * (20261123120000).
  */
 
 export interface MessageHit {
@@ -33,48 +31,41 @@ interface HitRow {
   created_at: string;
 }
 
-/** How many the database is asked for, and how many are shown. */
-const READ_AT_MOST = 200;
-export const SHOW_AT_MOST = 50;
+/** How many come in one page. */
+export const PAGE_SIZE = 50;
 
-/** A typed word as a LIKE pattern: its own % and _ are only themselves. */
-export function containsPattern(word: string): string {
-  return `%${word.replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
-}
-
-/** Newest first, every typed word starting a word of the message. */
+/** Newest first, every typed word starting a word; older than `after` when given. */
 export async function searchMessages(
   query: string,
-  options: { threadId?: string | undefined; signal?: AbortSignal | undefined } = {},
-): Promise<{ ok: true; hits: MessageHit[] } | { ok: false; error: string }> {
+  options: {
+    threadId?: string | undefined;
+    after?: MessageHit | undefined;
+    signal?: AbortSignal | undefined;
+  } = {},
+): Promise<{ ok: true; hits: MessageHit[]; more: boolean } | { ok: false; error: string }> {
   const words = searchWords(query);
-  if (words.length === 0) return { ok: true, hits: [] };
+  if (words.length === 0) return { ok: true, hits: [], more: false };
   try {
-    let request = getSupabase()
-      .from('chat_messages')
-      .select('id, thread_id, author_id, body, created_at')
-      .is('removed_at', null)
-      .is('notice', null);
-    for (const word of words) request = request.ilike('body', containsPattern(word));
-    if (options.threadId) request = request.eq('thread_id', options.threadId);
-    let ordered = request
-      .order('created_at', { ascending: false })
-      .order('id', { ascending: false })
-      .limit(READ_AT_MOST);
-    if (options.signal) ordered = ordered.abortSignal(options.signal);
-    const { data, error } = (await ordered) as { data: HitRow[] | null; error: Failure | null };
+    let request = getSupabase().rpc('search_my_messages', {
+      p_words: words,
+      p_thread_id: options.threadId ?? null,
+      p_before_at: options.after?.createdAt ?? null,
+      p_before_id: options.after?.id ?? null,
+      // One over, to know whether there is another page.
+      p_limit: PAGE_SIZE + 1,
+    });
+    if (options.signal) request = request.abortSignal(options.signal);
+    const { data, error } = (await request) as { data: HitRow[] | null; error: Failure | null };
     if (error) return { ok: false, error: describeError(error, 'Could not search the messages.') };
-    const hits = (data ?? [])
-      .filter((row) => matchesSearch(row.body, words))
-      .slice(0, SHOW_AT_MOST)
-      .map((row) => ({
-        id: row.id,
-        threadId: row.thread_id,
-        authorId: row.author_id,
-        body: row.body,
-        createdAt: row.created_at,
-      }));
-    return { ok: true, hits };
+    const rows = data ?? [];
+    const hits = rows.slice(0, PAGE_SIZE).map((row) => ({
+      id: row.id,
+      threadId: row.thread_id,
+      authorId: row.author_id,
+      body: row.body,
+      createdAt: row.created_at,
+    }));
+    return { ok: true, hits, more: rows.length > PAGE_SIZE };
   } catch (e) {
     return { ok: false, error: describeThrown(e, 'Could not search the messages.') };
   }
@@ -85,29 +76,43 @@ export interface MessageSearchState {
   /** A search is on its way for what is typed now. */
   searching: boolean;
   error: string | null;
+  /** Older matches are there to read. */
+  more: boolean;
+  /** The next page is on its way. */
+  loadingMore: boolean;
 }
 
+const EMPTY: MessageSearchState = {
+  hits: [],
+  searching: false,
+  error: null,
+  more: false,
+  loadingMore: false,
+};
+
 /** What was typed, searched a moment after typing stops; the last one wins. */
-export function useMessageSearch(query: string, threadId?: string): MessageSearchState {
-  const [state, setState] = useState<MessageSearchState>({
-    hits: [],
-    searching: false,
-    error: null,
-  });
+export function useMessageSearch(
+  query: string,
+  threadId?: string,
+): MessageSearchState & { showMore: () => void } {
+  const [state, setState] = useState<MessageSearchState>(EMPTY);
+  // The search now showing; a newer one aborts it and any page it is reading.
+  const current = useRef<AbortController | null>(null);
   useEffect(() => {
     if (searchWords(query).length === 0) {
-      setState({ hits: [], searching: false, error: null });
+      setState(EMPTY);
       return;
     }
-    setState((was) => ({ ...was, searching: true }));
+    setState((was) => ({ ...was, searching: true, loadingMore: false }));
     const controller = new AbortController();
+    current.current = controller;
     const timer = window.setTimeout(() => {
       void searchMessages(query, { threadId, signal: controller.signal }).then((result) => {
         if (controller.signal.aborted) return;
         setState(
           result.ok
-            ? { hits: result.hits, searching: false, error: null }
-            : { hits: [], searching: false, error: result.error },
+            ? { ...EMPTY, hits: result.hits, more: result.more }
+            : { ...EMPTY, error: result.error },
         );
       });
     }, 250);
@@ -116,7 +121,27 @@ export function useMessageSearch(query: string, threadId?: string): MessageSearc
       controller.abort();
     };
   }, [query, threadId]);
-  return state;
+
+  const showMore = useCallback(() => {
+    const controller = current.current;
+    const last = state.hits.at(-1);
+    if (!controller || controller.signal.aborted || !last || !state.more || state.loadingMore) {
+      return;
+    }
+    setState((was) => ({ ...was, loadingMore: true }));
+    void searchMessages(query, { threadId, after: last, signal: controller.signal }).then(
+      (result) => {
+        if (controller.signal.aborted) return;
+        setState((was) =>
+          result.ok
+            ? { ...was, hits: [...was.hits, ...result.hits], more: result.more, loadingMore: false }
+            : { ...was, loadingMore: false, error: result.error },
+        );
+      },
+    );
+  }, [query, threadId, state.hits, state.more, state.loadingMore]);
+
+  return { ...state, showMore };
 }
 
 /**

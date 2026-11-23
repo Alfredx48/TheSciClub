@@ -242,6 +242,9 @@ export default function ChatPage() {
                     hits={hits}
                     searching={found.searching}
                     error={found.error}
+                    more={found.more}
+                    loadingMore={found.loadingMore}
+                    onMore={found.showMore}
                     viewerId={account.userId}
                     titleOf={titleOf}
                   />

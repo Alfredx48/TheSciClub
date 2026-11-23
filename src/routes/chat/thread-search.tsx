@@ -57,6 +57,9 @@ export function ThreadSearch({
               hits={found.hits}
               searching={found.searching}
               error={found.error}
+              more={found.more}
+              loadingMore={found.loadingMore}
+              onMore={found.showMore}
               viewerId={viewerId}
               replace
               onPick={onClose}
