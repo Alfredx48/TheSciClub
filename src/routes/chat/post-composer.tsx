@@ -807,7 +807,7 @@ export function PostComposer({
           {photoProblem}
         </p>
       ) : null}
-      <div className="flex items-center gap-1 border-line border-t px-2 py-2">
+      <div className="flex items-center gap-1 border-line border-t py-2 pr-3 pl-2">
         <button
           type="button"
           disabled={sending || loadingPhotos || full}

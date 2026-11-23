@@ -320,6 +320,10 @@ const Photo = Image.extend({
   },
 }).configure({ inline: false, allowBase64: false });
 
+/**
+ * Small while writing (8rem, it was 14rem): with no limit on photographs two filled a phone and
+ * pushed Post reply off it (the owner, 2026-11-22). Preview and the post draw them full size.
+ */
 function PhotoView({ node, selected, deleteNode, editor }: ReactNodeViewProps) {
   const path = typeof node.attrs.path === 'string' ? node.attrs.path : '';
   const local = useContext(LocalPhotos);
@@ -333,7 +337,7 @@ function PhotoView({ node, selected, deleteNode, editor }: ReactNodeViewProps) {
         <img
           src={url}
           alt="Photograph"
-          className="block h-auto max-h-[14rem] w-auto max-w-full rounded-[10px]"
+          className="block h-auto max-h-[8rem] w-auto max-w-full rounded-[10px]"
         />
       ) : (
         <div className="grid h-24 w-32 place-items-center rounded-[10px] bg-tint text-[0.75rem] text-grey">
