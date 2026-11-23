@@ -314,31 +314,29 @@ describe('EventsPage', () => {
       expect(screen.getByRole('button', { name: 'Filters' })).toBeInTheDocument();
     });
 
-    // The owner, 2026-11-22: + on Events opened the organization form.
-    it('offers + for what is showing: events to who can add them, organizations to every member', () => {
-      const asMember = (path: string, isAdmin: boolean) =>
+    // The owner, 2026-11-22: + on Events opened the organization form; and
+    // 2026-11-23: every member may add an event.
+    it('offers + for what is showing to every member: an event on Events, an organization on Organizations', () => {
+      const asMember = (path: string) =>
         render(
           <AccountContext.Provider
-            value={{ status: 'member', userId: 'me', isAdmin, displayName: 'Bo' }}
+            value={{ status: 'member', userId: 'me', isAdmin: false, displayName: 'Bo' }}
           >
             <MemoryRouter initialEntries={[path]}>
               <EventsPage />
             </MemoryRouter>
           </AccountContext.Provider>,
         );
-      const { unmount } = asMember('/events', false);
-      expect(screen.queryByRole('link', { name: /^Add an/ })).toBeNull();
-      unmount();
-      const orgs = asMember('/events?segment=orgs', false);
-      expect(screen.getByRole('link', { name: 'Add an organization' })).toHaveAttribute(
-        'href',
-        '/events/new?add=organization',
-      );
-      orgs.unmount();
-      asMember('/events', true);
+      const events = asMember('/events');
       expect(screen.getByRole('link', { name: 'Add an event' })).toHaveAttribute(
         'href',
         '/events/new',
+      );
+      events.unmount();
+      asMember('/events?segment=orgs');
+      expect(screen.getByRole('link', { name: 'Add an organization' })).toHaveAttribute(
+        'href',
+        '/events/new?add=organization',
       );
     });
 

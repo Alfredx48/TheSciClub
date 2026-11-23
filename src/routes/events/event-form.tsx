@@ -53,8 +53,6 @@ import {
   HOST_NAME_MAX,
   hostOptions,
   LOCATION_MAX,
-  mayAddEvents,
-  mayChangeEvent,
   NO_ORGANIZATION,
   type RepeatChoice,
   type RepeatEnd,
@@ -64,6 +62,7 @@ import {
   repeatLabels,
   TITLE_MAX,
 } from '@/routes/events/event-draft';
+import { useMayChangeEvent } from '@/routes/events/may-change-event';
 import { MorePicturesField } from '@/routes/events/more-pictures-field';
 import type { Organization } from '@/types/domain';
 import {
@@ -77,9 +76,10 @@ import {
 /**
  * Adding an event by hand, or changing one that was (the owner, 2026-10-05).
  *
- * For an administrator, and for a member who speaks for an organization
- * (20261005010000). Nobody else is shown the way here, and `save_event`
- * refuses them if they type the address.
+ * For every member (the owner, 2026-11-23: "Let's allow all users to create
+ * events"): an administrator for anyone, a member who speaks for an
+ * organization for it (20261005010000), and any member in their own name, as
+ * "Hosted by" (20261123130000). `save_event` decides; this only draws.
  *
  * Times are typed in Pacific and the form says so: a hand-added event has no
  * feed to say what zone it is in, and every organization the club has is in
@@ -104,12 +104,20 @@ export default function EventFormPage() {
   const { events, loading: eventsLoading } = useEvents({
     id: id ?? '00000000-0000-0000-0000-000000000000',
   });
+  const existing = id ? (events.find((event) => event.id === id) ?? null) : null;
+  const changeable = useMayChangeEvent(
+    existing,
+    account.status === 'member',
+    account.isAdmin,
+    mine.ids,
+  );
 
   if (
     account.status === 'loading' ||
     mine.loading ||
     organizationsLoading ||
-    (id && eventsLoading)
+    (id && eventsLoading) ||
+    !changeable.known
   ) {
     return (
       <p role="status" className="px-6 py-10 text-center text-[0.875rem] text-grey">
@@ -117,14 +125,10 @@ export default function EventFormPage() {
       </p>
     );
   }
-  // Not the permission check — the database refuses either way. This is so a
-  // member without the right sees Events rather than a form that cannot save.
-  // Every member may ask to add an organization, so only changing an event sends
-  // them back.
-  const mayAdd = mayAddEvents(account.isAdmin, mine.ids);
-  if (account.status !== 'member' || (id && !mayAdd)) return <Navigate to="/events" replace />;
+  // Not the permission check — the database refuses either way. Every member
+  // may add an event, or ask to add an organization.
+  if (account.status !== 'member') return <Navigate to="/events" replace />;
 
-  const existing = id ? (events.find((event) => event.id === id) ?? null) : null;
   if (id && !existing) {
     return (
       <p className="px-6 py-10 text-center text-[0.875rem] text-ink2">
@@ -132,75 +136,78 @@ export default function EventFormPage() {
       </p>
     );
   }
-  if (existing && !mayChangeEvent(existing, account.isAdmin, mine.ids)) {
+  if (existing && !changeable.may) {
     return <Navigate to={`/events/${existing.id}`} replace />;
   }
 
   const options = hostOptions(organizations, account.isAdmin, mine.ids);
   // Both are offered to whoever can do both. The event's form stays underneath
   // the organization's, so looking at one loses nothing typed in the other.
-  const addingOrganization = !id && (!mayAdd || searchParams.get('add') === 'organization');
-  const kindToggle =
-    !id && mayAdd ? (
-      <div className="mt-2">
-        <TwoWayToggle
-          label="What to add"
-          options={ADD_KINDS}
-          value={addingOrganization ? 'organization' : 'event'}
-          onChange={(next) => {
-            setSearchParams(next === 'organization' ? { add: next } : {}, { replace: true });
-          }}
-        />
-      </div>
-    ) : null;
-  const eventForm =
-    !id && !mayAdd ? null : (
-      <EventForm
-        // A different event is a different form, not this one's state carried over.
-        key={`${memberId}:${existing?.id ?? 'new'}`}
-        draftKey={existing ? undefined : memberDraftKey(memberId, 'new-event')}
-        hidden={addingOrganization}
-        top={kindToggle}
-        eventId={existing?.id ?? null}
-        initial={
-          existing
-            ? draftFromEvent(existing)
-            : (() => {
-                const onlyHost =
-                  !account.isAdmin && options.length === 1 ? (options[0]?.id ?? null) : null;
-                const host = organizations.find((o) => o.id === onlyHost);
-                return emptyDraft(onlyHost, host?.state ?? '');
-              })()
-        }
-        initialCover={{ path: existing?.photoPath ?? null, alt: existing?.photoAlt ?? '' }}
-        initialMore={existing?.morePhotos ?? []}
-        // A new event has a public page unless its organizer says otherwise
-        // (the owner, 2026-10-22).
-        initialAudience={existing?.audience ?? 'club'}
-        initialFailure={coverFailureFrom(location.state)}
-        imported={
-          existing && !existing.handAdded
-            ? {
-                changed: existing.adminChanged,
-                calendar: existing.calendarValues ?? {},
-                timezone: existing.timezone,
-              }
-            : null
-        }
-        isAdmin={account.isAdmin}
-        // A one-off added by hand, not started yet, can be made to repeat
-        // (the owner, 2026-11-06).
-        mayRepeat={
-          !!existing &&
-          existing.handAdded &&
-          existing.seriesId === null &&
-          Date.parse(existing.startTime) > Date.now()
-        }
-        options={options}
-        yours={new Set([...mine.ids, ...memberOf])}
-        adminOf={mine.ids}
+  const addingOrganization = !id && searchParams.get('add') === 'organization';
+  const kindToggle = !id ? (
+    <div className="mt-2">
+      <TwoWayToggle
+        label="What to add"
+        options={ADD_KINDS}
+        value={addingOrganization ? 'organization' : 'event'}
+        onChange={(next) => {
+          setSearchParams(next === 'organization' ? { add: next } : {}, { replace: true });
+        }}
       />
-    );
+    </div>
+  ) : null;
+  const eventForm = (
+    <EventForm
+      // A different event is a different form, not this one's state carried over.
+      key={`${memberId}:${existing?.id ?? 'new'}`}
+      draftKey={existing ? undefined : memberDraftKey(memberId, 'new-event')}
+      hidden={addingOrganization}
+      top={kindToggle}
+      eventId={existing?.id ?? null}
+      initial={
+        existing
+          ? draftFromEvent(existing)
+          : (() => {
+              // A member who speaks for no organization hosts it themselves,
+              // under their own name until they type another.
+              if (!account.isAdmin && options.length === 0) {
+                return { ...emptyDraft(NO_ORGANIZATION), hostName: account.displayName ?? '' };
+              }
+              const onlyHost =
+                !account.isAdmin && options.length === 1 ? (options[0]?.id ?? null) : null;
+              const host = organizations.find((o) => o.id === onlyHost);
+              return emptyDraft(onlyHost, host?.state ?? '');
+            })()
+      }
+      initialCover={{ path: existing?.photoPath ?? null, alt: existing?.photoAlt ?? '' }}
+      initialMore={existing?.morePhotos ?? []}
+      // A new event has a public page unless its organizer says otherwise
+      // (the owner, 2026-10-22).
+      initialAudience={existing?.audience ?? 'club'}
+      initialFailure={coverFailureFrom(location.state)}
+      imported={
+        existing && !existing.handAdded
+          ? {
+              changed: existing.adminChanged,
+              calendar: existing.calendarValues ?? {},
+              timezone: existing.timezone,
+            }
+          : null
+      }
+      isAdmin={account.isAdmin}
+      // A one-off added by hand, not started yet, can be made to repeat
+      // (the owner, 2026-11-06).
+      mayRepeat={
+        !!existing &&
+        existing.handAdded &&
+        existing.seriesId === null &&
+        Date.parse(existing.startTime) > Date.now()
+      }
+      options={options}
+      yours={new Set([...mine.ids, ...memberOf])}
+      adminOf={mine.ids}
+    />
+  );
   return (
     <>
       {addingOrganization ? (
@@ -530,7 +537,10 @@ function EventForm({
       });
   }
 
-  const onlyOne = !isAdmin && options.length === 1 ? options[0] : null;
+  // A member who speaks for no organization has nothing to choose: they host it
+  // themselves (20261123130000). Everyone else may also host in no organization's
+  // name. The calendar invitation is an organization's, so it is offered with them.
+  const pickHost = isAdmin || options.length > 0;
 
   return (
     <div hidden={hidden} className="flex-1 overflow-y-auto px-4 py-3 md:px-6">
@@ -567,7 +577,7 @@ function EventForm({
         ) : null}
         {/* The other way in (20261022220000): an invitation from the
             organization's own calendar. */}
-        {isNew ? (
+        {isNew && pickHost ? (
           <p className="mt-2 rounded-[11px] bg-tint px-3 py-2.5 text-[0.8125rem] text-ink2 leading-[1.45]">
             Or invite <b className="text-ink">{EVENTS_ADDRESS}</b> to the event in Google, Outlook
             or Apple Calendar, and it is added here, and kept up to date when you change it there.
@@ -576,11 +586,7 @@ function EventForm({
         {imported ? <ImportedNote imported={imported} options={options} /> : null}
 
         {/* ------------------------------------------------------ host */}
-        {onlyOne ? (
-          <p className="mt-4 text-[0.875rem] text-ink">
-            For <span className="font-bold">{onlyOne.name}</span>
-          </p>
-        ) : (
+        {pickHost ? (
           <>
             <OrganizationPicker
               id="event-host"
@@ -597,16 +603,12 @@ function EventForm({
                 }
               }}
               placeholder="Choose…"
-              {...(isAdmin
-                ? {
-                    none: 'No organization — self or community hosted',
-                    noneValue: NO_ORGANIZATION,
-                  }
-                : {})}
+              none="No organization — self or community hosted"
+              noneValue={NO_ORGANIZATION}
               className={FIELD}
             />
           </>
-        )}
+        ) : null}
 
         {draft.host === NO_ORGANIZATION ? (
           <>
@@ -620,7 +622,7 @@ function EventForm({
               onChange={(e) => {
                 set('hostName', e.target.value);
               }}
-              placeholder="The SCI Club"
+              placeholder={isAdmin ? 'The SCI Club' : 'Your name, or your group’s'}
               className={FIELD}
             />
             <p className={HINT}>Shown under "Hosted by" on the event.</p>

@@ -31,7 +31,6 @@ import { CheckInCard, CheckInClosed, CheckInNotYet } from '@/routes/events/check
 import { EventAccessDetails } from '@/routes/events/event-access-details';
 import { EventAudienceSection, OutsideTheAudience } from '@/routes/events/event-audience-parts';
 import { EventCohosts } from '@/routes/events/event-cohosts';
-import { mayChangeEvent } from '@/routes/events/event-draft';
 import { EventFiles } from '@/routes/events/event-files';
 import { EventGallery } from '@/routes/events/event-gallery';
 import { EventGroupCard } from '@/routes/events/event-group-card';
@@ -40,6 +39,7 @@ import { EventViewsLine } from '@/routes/events/event-views';
 import { isOnline, isPastEvent } from '@/routes/events/filters';
 import { longWhen, rsvpReachesHost, timeRange } from '@/routes/events/format';
 import { InvitationEmails } from '@/routes/events/invitation-emails';
+import { useMayChangeEvent } from '@/routes/events/may-change-event';
 import { MeetingLinkButton } from '@/routes/events/meeting-link-button';
 import { OrganizationBadge } from '@/routes/events/organization-badge';
 import { organizationTown } from '@/routes/events/organization-places';
@@ -92,6 +92,13 @@ export default function EventDetailPage() {
 
   const event = events.find((candidate) => candidate.id === id) ?? null;
   const checkInPhase = useCheckInPhase(event);
+  // One a member added in their own name is theirs to change (20261123130000).
+  const changeable = useMayChangeEvent(
+    event,
+    account.status === 'member',
+    account.isAdmin,
+    mine.ids,
+  );
   // A view in the app (20261103070000).
   useRecordEventView(memberId && event ? event.id : null, false);
 
@@ -237,7 +244,7 @@ export default function EventDetailPage() {
     : null;
   const host = organization?.name ?? event.hostName;
   const reachesHost = rsvpReachesHost(event, organization);
-  const canChange = account.status === 'member' && mayChangeEvent(event, account.isAdmin, mine.ids);
+  const canChange = changeable.may;
   // Its org admins too, whose imported events they cannot change.
   // The lead host's admins, or an administrator: imported events too.
   const managesHosts =

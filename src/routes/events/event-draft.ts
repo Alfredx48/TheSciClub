@@ -62,14 +62,11 @@ export const CITY_MAX = 100;
 
 /* --------------------------------------------------------------- who may */
 
-/** Whether the viewer sees "Add an event" at all. */
-export function mayAddEvents(isAdmin: boolean, myOrganizations: Set<string>): boolean {
-  return isAdmin || myOrganizations.size > 0;
-}
-
 /**
- * Whether the viewer may change or delete this event: one added by hand, and
- * either they are an administrator or it is an organization's they speak for.
+ * Whether the viewer may change or delete this event, as far as can be told
+ * here: one added by hand, and either they are an administrator or it is an
+ * organization's they speak for. One with no organization may also be the
+ * viewer's own, which only the database knows (useMayChangeEvent).
  */
 export function mayChangeEvent(
   event: ClubEvent,

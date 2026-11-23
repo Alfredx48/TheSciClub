@@ -5,7 +5,6 @@ import {
   type EventDraft,
   emptyDraft,
   hostOptions,
-  mayAddEvents,
   mayChangeEvent,
   NO_ORGANIZATION,
   readDraft,
@@ -34,12 +33,6 @@ function draft(overrides: Partial<EventDraft> = {}): EventDraft {
 }
 
 describe('who may', () => {
-  it('shows Add to an administrator and to a member who speaks for an organization', () => {
-    expect(mayAddEvents(true, new Set())).toBe(true);
-    expect(mayAddEvents(false, new Set(['org-1']))).toBe(true);
-    expect(mayAddEvents(false, new Set())).toBe(false);
-  });
-
   // 20261012060000: an administrator may change an imported event; a member
   // who speaks for its organization still changes it on their own calendar.
   it('offers a scraped event to an administrator only', () => {

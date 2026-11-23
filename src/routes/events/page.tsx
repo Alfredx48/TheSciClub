@@ -15,11 +15,9 @@ import { useHome } from '@/lib/home-state';
 import { useMapData } from '@/lib/map-data';
 import { useNearHome } from '@/lib/near-home';
 import { useOrganizationFollows } from '@/lib/organization-follows';
-import { useMyOrganizations } from '@/lib/organization-representatives';
 import { useOrganizations } from '@/lib/organizations';
 import { useSession } from '@/lib/session';
 import { EventCard } from '@/routes/events/event-card';
-import { mayAddEvents } from '@/routes/events/event-draft';
 import { EventFilterSheet } from '@/routes/events/filter-sheet';
 import {
   activeFilterCount,
@@ -82,9 +80,8 @@ const FIRST_EVENT_CARDS = 5;
  * window, and the same shape on every screen.
  *
  * Most events here were published by somebody else and ingested
- * (jobs/event-ingest). From 2026-10-05 an administrator, or a member who
- * speaks for an organization, can also add one by hand (event-form.tsx). Every
- * member can ask to add an organization, so the + is for everybody.
+ * (jobs/event-ingest). Since 2026-11-23 every member can also add one by hand
+ * (event-form.tsx), and ask to add an organization, so the + is for everybody.
  *
  * The segments are the mock's, from `evPage()`. Organizations is the odd one:
  * it is not a narrowing of the list but a different body entirely, because the
@@ -126,8 +123,6 @@ export default function EventsPage() {
   const follows = useOrganizationFollows();
   const viewer = useViewerEvents(memberId);
   const account = useAccount();
-  const mine = useMyOrganizations(memberId);
-  const canAddEvents = account.status === 'member' && mayAddEvents(account.isAdmin, mine.ids);
 
   // The segment lives in the URL, not in component state. Opening an
   // organization and pressing back used to land on Upcoming, because the state
@@ -507,7 +502,7 @@ export default function EventsPage() {
           {/* On a computer, in the bar between the switches, for what is
               showing (the owner, 2026-11-03); a phone has the round + over the
               list instead. */}
-          {account.status === 'member' && (canAddEvents || !showingList) ? (
+          {account.status === 'member' ? (
             <Link
               to={showingList ? '/events/new' : '/events/new?add=organization'}
               className="hidden min-h-[38px] items-center gap-1.5 rounded-full bg-tint px-3.5 font-semibold text-[0.84375rem] text-emphasis transition-colors hover:bg-line md:flex"
@@ -598,11 +593,10 @@ export default function EventsPage() {
       {/* Floating, away from the header's search and filter, and on the lists
           only: the map keeps its corner for its own buttons (the owner,
           2026-11-01). For what is showing, as the computer's header button:
-          on Events it opened the organization form for a member who cannot
-          add events (the owner, 2026-11-22: "If I am in the events tab and
-          hit the + it is for adding an organization"), so there it is only
-          for those who can. */}
-      {account.status === 'member' && !showingMap && (canAddEvents || !showingList) ? (
+          an event on Events, an organization on Organizations. Every member
+          may add either (the owner, 2026-11-23: "Let's allow all users to
+          create events"). */}
+      {account.status === 'member' && !showingMap ? (
         <Link
           to={showingList ? '/events/new' : '/events/new?add=organization'}
           aria-label={showingList ? 'Add an event' : 'Add an organization'}
