@@ -587,27 +587,25 @@ function EventForm({
 
         {/* ------------------------------------------------------ host */}
         {pickHost ? (
-          <>
-            <OrganizationPicker
-              id="event-host"
-              label="Who is hosting it?"
-              labelClassName={LABEL}
-              yours={options.filter((o) => yours.has(o.id))}
-              others={options}
-              value={draft.host}
-              onChange={(host) => {
-                set('host', host);
-                // The state follows the host until somebody chooses one.
-                if (!stateChosen) {
-                  set('state', stateOfHost(host) ?? draft.state);
-                }
-              }}
-              placeholder="Choose…"
-              none="No organization — self or community hosted"
-              noneValue={NO_ORGANIZATION}
-              className={FIELD}
-            />
-          </>
+          <OrganizationPicker
+            id="event-host"
+            label="Who is hosting it?"
+            labelClassName={LABEL}
+            yours={options.filter((o) => yours.has(o.id))}
+            others={options}
+            value={draft.host}
+            onChange={(host) => {
+              set('host', host);
+              // The state follows the host until somebody chooses one.
+              if (!stateChosen) {
+                set('state', stateOfHost(host) ?? draft.state);
+              }
+            }}
+            placeholder="Choose…"
+            none="No organization — self or community hosted"
+            noneValue={NO_ORGANIZATION}
+            className={FIELD}
+          />
         ) : null}
 
         {draft.host === NO_ORGANIZATION ? (
@@ -625,7 +623,11 @@ function EventForm({
               placeholder={isAdmin ? 'The SCI Club' : 'Your name, or your group’s'}
               className={FIELD}
             />
-            <p className={HINT}>Shown under "Hosted by" on the event.</p>
+            <p className={HINT}>
+              {isAdmin
+                ? 'Shown under "Hosted by" on the event.'
+                : 'Your name, or whoever is putting it on. Shown on the event.'}
+            </p>
           </>
         ) : null}
 
