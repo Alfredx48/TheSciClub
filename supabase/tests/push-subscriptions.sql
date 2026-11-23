@@ -154,6 +154,26 @@ select public.push_subscribe('https://web.push.apple.com/anon', :p256dh, :auth);
 rollback to savepoint anon_write;
 
 \echo ''
+\echo '== 12b. a device's kind and versions are noted only by its holder (20261123020000; expect null, then iphone-app) =='
+set local role postgres;
+insert into public.push_subscriptions (endpoint, member_id, p256dh, auth)
+values ('https://web.push.apple.com/noted', 'aaaaaaaa-4444-0000-0000-00000000000a', :p256dh, :auth);
+select set_config('request.jwt.claims',
+  '{"sub":"bbbbbbbb-4444-0000-0000-00000000000b","role":"authenticated"}', true) is not null as ok;
+set local role authenticated;
+select public.note_my_push_device('https://web.push.apple.com/noted', 'computer', 'x', 'y');
+set local role postgres;
+select device as after_another_member from public.push_subscriptions
+ where endpoint = 'https://web.push.apple.com/noted';
+select set_config('request.jwt.claims',
+  '{"sub":"aaaaaaaa-4444-0000-0000-00000000000a","role":"authenticated"}', true) is not null as ok;
+set local role authenticated;
+select public.note_my_push_device('https://web.push.apple.com/noted', 'iphone-app', '2026-11-23T02:00', null);
+set local role postgres;
+select device as after_its_holder, release from public.push_subscriptions
+ where endpoint = 'https://web.push.apple.com/noted';
+
+\echo ''
 \echo '== 13. removing a member takes their devices with them (expect 1, then 0) =='
 set local role postgres;
 select count(*) as before_removal from public.push_subscriptions

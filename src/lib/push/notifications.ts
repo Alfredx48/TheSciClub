@@ -1,6 +1,7 @@
 import { Capacitor } from '@capacitor/core';
 import { useCallback, useEffect, useState } from 'react';
 import { describeError, describeThrown } from '@/lib/describe-error';
+import { appVersion, RELEASE, thisDevice } from '@/lib/installed-app';
 import { isAndroidApp, isNative, isStandalone } from '@/lib/standalone';
 import { getSupabase } from '@/lib/supabase';
 
@@ -236,6 +237,28 @@ async function heldBy(userId: string, endpoint: string): Promise<boolean> {
   return data !== null;
 }
 
+const noted = new Set<string>();
+
+/**
+ * This device's kind and versions on its row, once a load, so Admin › Sent can tell the App Store
+ * app from the Home Screen one and say which version a push went to (20261123020000). Best
+ * effort: a database without the function yet answers "no such function", which is ignored.
+ */
+function noteDevice(endpoint: string, fresh = false): void {
+  if (noted.has(endpoint) && !fresh) return;
+  noted.add(endpoint);
+  void appVersion()
+    .then((version) =>
+      getSupabase().rpc('note_my_push_device', {
+        p_endpoint: endpoint,
+        p_device: thisDevice(),
+        p_release: RELEASE,
+        p_app_version: version,
+      }),
+    )
+    .catch(() => undefined);
+}
+
 /** This iPhone's endpoint, or null when iOS has not been allowed to notify. */
 async function appDeviceEndpoint(): Promise<string | null> {
   const app = await loadApp();
@@ -257,7 +280,10 @@ async function readAppState(userId: string): Promise<NotificationState> {
   }
   const endpoint = permission === 'granted' ? await appDeviceEndpoint() : null;
   const subscribed = endpoint !== null && (await heldBy(userId, endpoint));
-  if (subscribed) rememberPreference(userId, true);
+  if (subscribed) {
+    rememberPreference(userId, true);
+    noteDevice(endpoint);
+  }
   return notificationState({ canPush: true, standalone: true, permission, subscribed });
 }
 
@@ -295,7 +321,10 @@ export async function readDeviceState(userId: string): Promise<NotificationState
     const subscription = await currentSubscription();
     if (subscription) {
       subscribed = await heldBy(userId, subscription.endpoint);
-      if (subscribed) rememberPreference(userId, true);
+      if (subscribed) {
+        rememberPreference(userId, true);
+        noteDevice(subscription.endpoint);
+      }
     }
   }
   return notificationState({
@@ -394,6 +423,7 @@ async function registerSubscription(
     };
   }
   rememberPreference(userId, true);
+  if (endpoint) noteDevice(endpoint, true);
   return { ok: true, state: 'on' };
 }
 
@@ -445,6 +475,7 @@ async function subscribeApp(userId: string): Promise<Outcome> {
       });
   if (error) return { ok: false, error: describeError(error, NOT_TURNED_ON) };
   rememberPreference(userId, true);
+  if (!isAndroidApp()) noteDevice(app.appEndpoint(token), true);
   return { ok: true, state: 'on' };
 }
 

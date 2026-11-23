@@ -119,6 +119,8 @@ vi.mock('@/lib/supabase', () => ({
         }),
     },
     rpc: async (name: string, args: Record<string, unknown>) => {
+      // The device's kind and versions (best effort, after the fact): not part of the orders here.
+      if (name === 'note_my_push_device') return { error: null };
       const device =
         name === 'push_subscribe_app'
           ? `${String(args.app_token)} ${String(args.app_environment)}`

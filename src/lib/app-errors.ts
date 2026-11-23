@@ -1,3 +1,4 @@
+import { appVersion, RELEASE, thisDevice } from '@/lib/installed-app';
 import { screenOf } from '@/lib/page-speed';
 
 /**
@@ -17,6 +18,8 @@ export interface AppError {
   screen: string;
   release: string | null;
   device: string;
+  /** The App Store or Play Store app's version; null on the website. */
+  app_version: string | null;
 }
 
 type Sender = (errors: AppError[]) => Promise<unknown>;
@@ -66,16 +69,8 @@ export function sourceOf(stack: string | undefined, origin: string): string | nu
   return null;
 }
 
-export function deviceOf(userAgent: string, standalone: boolean): string {
-  const kind = /iPhone|iPad|iPod/.test(userAgent)
-    ? 'iphone'
-    : userAgent.includes('Android')
-      ? 'android'
-      : 'computer';
-  return standalone ? `${kind}-app` : kind;
-}
-
 let send: Sender | null = null;
+let installed: string | null = null;
 let waiting: AppError[] = [];
 const seen = new Set<string>();
 let timer: ReturnType<typeof setTimeout> | null = null;
@@ -114,13 +109,9 @@ export function noteError(kind: AppError['kind'], thrown: unknown, filename?: st
     message,
     source,
     screen: screenOf(window.location.pathname),
-    release: import.meta.env.VITE_APP_BUILT ?? null,
-    device: deviceOf(
-      navigator.userAgent,
-      (typeof window.matchMedia === 'function' &&
-        window.matchMedia('(display-mode: standalone)').matches) ||
-        (navigator as { standalone?: boolean }).standalone === true,
-    ),
+    release: RELEASE,
+    device: thisDevice(),
+    app_version: installed,
   });
   timer ??= setTimeout(flush, WAIT_MS);
 }
@@ -128,6 +119,9 @@ export function noteError(kind: AppError['kind'], thrown: unknown, filename?: st
 /** From main.tsx: listen for crashes and send them with `sender`. */
 export function startAppErrors(sender: Sender): void {
   send = sender;
+  void appVersion().then((v) => {
+    installed = v;
+  });
   window.addEventListener('error', (event) => {
     noteError('error', event.error ?? event.message, event.filename);
   });

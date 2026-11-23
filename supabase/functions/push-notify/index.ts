@@ -201,8 +201,15 @@ Deno.serve(async (request) => {
   let sent = 0;
   let skipped = 0;
   // What became of each, for Admin's deliveries (20261122090000). The kind
-  // and the service, never the device.
-  const outcomes: { kind: string; outcome: string; reason?: string; service: string }[] = [];
+  // and the service, never the device: the endpoint only lets the database
+  // add the device's kind and app version (20261123020000), and is not kept.
+  const outcomes: {
+    kind: string;
+    outcome: string;
+    reason?: string;
+    service: string;
+    endpoint: string;
+  }[] = [];
   await Promise.all(
     owed.map(async (row) => {
       const message = compose(row);
@@ -213,6 +220,7 @@ Deno.serve(async (request) => {
           kind: row.kind,
           outcome: delivery,
           service: service(row.endpoint),
+          endpoint: row.endpoint,
           ...(reason ? { reason } : {}),
         });
         if (delivery === 'gone') {
@@ -232,6 +240,7 @@ Deno.serve(async (request) => {
           outcome: 'failed',
           reason: String(e).slice(0, 200),
           service: service(row.endpoint),
+          endpoint: row.endpoint,
         });
       }
     }),
