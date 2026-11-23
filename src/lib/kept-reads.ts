@@ -93,6 +93,7 @@ const QUIET_RPCS = new Set([
   'home_topics_shown',
   'log_page_speed',
   'note_device',
+  'note_my_push_device',
   'record_sign_in',
   'record_event_view',
   'record_event_rsvp_click',

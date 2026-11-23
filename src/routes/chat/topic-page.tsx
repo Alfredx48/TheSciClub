@@ -1,4 +1,4 @@
-import { lazy, type ReactNode, Suspense, useEffect, useMemo, useRef, useState } from 'react';
+import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Link,
   Navigate,
@@ -28,7 +28,7 @@ import {
 import { attachmentFolder, deleteAttachments } from '@/lib/chat/attachments';
 import { useAuthorPlaces } from '@/lib/chat/author-places';
 import { useChatAuthors } from '@/lib/chat/authors';
-import { memberDraftKey } from '@/lib/chat/drafts';
+import { handedPhotos, memberDraftKey, readKeptDraft } from '@/lib/chat/drafts';
 import { useEdits } from '@/lib/chat/edits';
 import { usePostLikes, voteFor } from '@/lib/chat/likes';
 import { PRICED_ROOM } from '@/lib/chat/listing-prices';
@@ -73,10 +73,118 @@ import { BlockMemberSheet } from '@/routes/peers/block-sheet';
 /** How many of the first photographs load at once. */
 const FIRST_PHOTOS = 6;
 
-const PostComposer = lazy(async () => {
-  const { PostComposer } = await import('@/routes/chat/post-composer');
-  return { default: PostComposer };
-});
+// The writing box (TipTap and ProseMirror, the largest part of a topic's code)
+// is not needed to read one (2026-11-23). It is fetched once the topic is on
+// the screen and the phone is idle, and drawn on the first tap of the reply
+// box, so a reader who only reads never builds it. A draft, an edit or a reply
+// opens it at once. Kept here once fetched, so it is drawn on the tap itself
+// rather than after a wait, and Reply's focus is not delayed.
+const loadComposer = () => import('@/routes/chat/post-composer');
+type ComposerModule = Awaited<ReturnType<typeof loadComposer>>;
+let composerModule: ComposerModule | null = null;
+let composerLoading: Promise<void> | null = null;
+
+function startComposer(): Promise<void> {
+  composerLoading ??= loadComposer().then(
+    (module) => {
+      composerModule = module;
+    },
+    () => {
+      composerLoading = null;
+    },
+  );
+  return composerLoading;
+}
+
+/** The composer once fetched; asked for when `wanted`. */
+function useComposer(wanted: boolean) {
+  const [module, setModule] = useState(composerModule);
+  const [failed, setFailed] = useState(false);
+  const [attempt, setAttempt] = useState(0);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: attempt asks again after a failure.
+  useEffect(() => {
+    if (module || !wanted) return;
+    let live = true;
+    setFailed(false);
+    void startComposer().then(() => {
+      if (!live) return;
+      if (composerModule) setModule(composerModule);
+      else setFailed(true);
+    });
+    return () => {
+      live = false;
+    };
+  }, [module, wanted, attempt]);
+  return {
+    PostComposer: module?.PostComposer ?? null,
+    failed,
+    retry: () => {
+      setAttempt((n) => n + 1);
+    },
+  };
+}
+
+/** Fetches the composer while the phone is idle, unless the reader saves data. */
+function useComposerWhenIdle(ready: boolean) {
+  useEffect(() => {
+    if (!ready || composerModule) return;
+    const connection = (navigator as { connection?: { saveData?: boolean } }).connection;
+    if (connection?.saveData) return;
+    if (typeof (window.requestIdleCallback as unknown) === 'function') {
+      const handle = window.requestIdleCallback(() => void startComposer(), { timeout: 4000 });
+      return () => {
+        window.cancelIdleCallback(handle);
+      };
+    }
+    const timer = window.setTimeout(() => void startComposer(), 1500);
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [ready]);
+}
+
+/** Whether this box has something kept: words, a choice, or a photograph handed to it. */
+function hasKeptWriting(key: string | undefined): boolean {
+  const kept = readKeptDraft(key);
+  return !!kept?.text.trim() || kept?.anonymous !== undefined || handedPhotos(key).length > 0;
+}
+
+const loadingReplyEditor = (
+  <p className="py-4 text-center text-[0.8125rem] text-grey" role="status">
+    Loading reply editor…
+  </p>
+);
+
+function ReplyEditorFailed({ onRetry }: { onRetry: () => void }) {
+  return (
+    <p className="py-4 text-center text-[0.8125rem] text-grey" role="alert">
+      The reply editor did not load.{' '}
+      <button type="button" onClick={onRetry} className="font-semibold text-ink underline">
+        Try again
+      </button>
+    </p>
+  );
+}
+
+/** The reply box before its first tap: looks like it, costs nothing. */
+function ReplyBoxClosed({ label, onOpen }: { label: string; onOpen: () => void }) {
+  return (
+    <section
+      aria-label="Your reply"
+      className="mt-4 rounded-[14px] border-[1.6px] border-line bg-paper focus-within:border-emphasis"
+    >
+      <button
+        type="button"
+        onPointerDown={() => void startComposer()}
+        onFocus={() => void startComposer()}
+        onClick={onOpen}
+        className="block min-h-[7.5rem] w-full rounded-[12px] px-3.5 py-2.5 text-left text-[0.875rem] text-grey leading-[1.5] outline-none"
+      >
+        {label}
+      </button>
+    </section>
+  );
+}
 
 /**
  * One topic: the question, every reply, and the box to add to it.
@@ -223,6 +331,13 @@ export default function TopicPage() {
   // Any member, in an open room; an administrator in a closed one too, to
   // seed it. No membership since 20260930000000.
   const canPost = room !== null && (!closed || account.isAdmin);
+  // The box at the bottom, closed until tapped (loadComposer, above).
+  const bottomDraftKey = topicId ? memberDraftKey(account.userId, `topic:${topicId}`) : undefined;
+  const [writingIn, setWritingIn] = useState<string | null>(null);
+  const bottomKept = useMemo(() => hasKeptWriting(bottomDraftKey), [bottomDraftKey]);
+  const bottomOpen = writingIn === bottomDraftKey || editingId !== null || bottomKept;
+  const composer = useComposer(canPost && (bottomOpen || replyingTo !== null));
+  useComposerWhenIdle(canPost && !loading);
 
   // Where the reader had got to, captured on the first load and never recomputed. Or the post a
   // notification links to (?post=<id>, 20261006000000), centred and lit once; a removed one falls
@@ -595,53 +710,41 @@ export default function TopicPage() {
   const replyFolder = room ? attachmentFolder('room', room.id) : '';
   const replyTopic = topic.id;
   function replyBox(to: ChatPost): ReactNode {
-    return (
-      <Suspense
-        key={`reply-${to.id}`}
-        fallback={
-          <p className="py-4 text-center text-[0.8125rem] text-grey" role="status">
-            Loading reply editor…
-          </p>
+    return composer.failed ? (
+      <ReplyEditorFailed onRetry={composer.retry} />
+    ) : !composer.PostComposer ? (
+      loadingReplyEditor
+    ) : (
+      <composer.PostComposer
+        key={`${account.userId}:reply-${to.id}`}
+        anonymousOption={
+          canGoAnonymous ? { checked: replyAnonymously, onChange: chooseAnonymous } : undefined
         }
-      >
-        <PostComposer
-          key={`${account.userId}:reply-${to.id}`}
-          anonymousOption={
-            canGoAnonymous ? { checked: replyAnonymously, onChange: chooseAnonymous } : undefined
-          }
-          draftKey={
-            topicId ? memberDraftKey(account.userId, `topic:${topicId}:reply:${to.id}`) : undefined
-          }
-          // Plain: the bar over it already names who is answered.
-          placeholder="Write your reply"
-          maxLength={POST_MAX}
-          sendLabel="Post this reply"
-          folder={replyFolder}
-          mentionScope={mentionScope}
-          replyingTo={{
-            id: to.id,
-            name: nameOf(to),
-            onCancel: () => {
-              setReplyingTo(null);
-            },
-          }}
-          onSend={async (body, paths, anonymous) => {
-            if (!account.userId) return 'You are signed out.';
-            const result = await sendPost(
-              replyTopic,
-              account.userId,
-              body,
-              paths,
-              to.id,
-              anonymous,
-            );
-            if (!result.ok) return result.error;
+        draftKey={
+          topicId ? memberDraftKey(account.userId, `topic:${topicId}:reply:${to.id}`) : undefined
+        }
+        // Plain: the bar over it already names who is answered.
+        placeholder="Write your reply"
+        maxLength={POST_MAX}
+        sendLabel="Post this reply"
+        folder={replyFolder}
+        mentionScope={mentionScope}
+        replyingTo={{
+          id: to.id,
+          name: nameOf(to),
+          onCancel: () => {
             setReplyingTo(null);
-            reload();
-            return null;
-          }}
-        />
-      </Suspense>
+          },
+        }}
+        onSend={async (body, paths, anonymous) => {
+          if (!account.userId) return 'You are signed out.';
+          const result = await sendPost(replyTopic, account.userId, body, paths, to.id, anonymous);
+          if (!result.ok) return result.error;
+          setReplyingTo(null);
+          reload();
+          return null;
+        }}
+      />
     );
   }
 
@@ -845,72 +948,76 @@ export default function TopicPage() {
             ) : null}
           </div>
           <div className="mx-auto w-full max-w-[720px]" hidden={replyingUnder !== null}>
-            {canPost ? (
-              <Suspense
-                fallback={
-                  <p className="py-4 text-center text-[0.8125rem] text-grey" role="status">
-                    Loading reply editor…
-                  </p>
-                }
-              >
-                <PostComposer
-                  // A new topic is a new box, with that topic's draft.
-                  key={`${account.userId}:${topicId}`}
-                  anonymousOption={
-                    canGoAnonymous
-                      ? { checked: replyAnonymously, onChange: chooseAnonymous }
-                      : undefined
-                  }
-                  draftKey={
-                    topicId ? memberDraftKey(account.userId, `topic:${topicId}`) : undefined
-                  }
-                  placeholder={isQuestion ? 'Reply to this question' : 'Reply to this post'}
-                  maxLength={POST_MAX}
-                  sendLabel="Post this reply"
-                  folder={attachmentFolder('room', room.id)}
-                  mentionScope={mentionScope}
-                  editing={
-                    edited
-                      ? {
-                          id: edited.id,
-                          initial: edited.body,
-                          noun: 'post',
-                          photos: edited.attachments.length,
-                          attachments: edited.attachments,
-                          plain: titleOnly(edited),
-                          appendOnly: answered(edited),
-                          anchor: `post-${edited.id}`,
-                          onSave: (body, added, kept) =>
-                            titleOnly(edited)
-                              ? saveTitleEdit(edited.id, body, added)
-                              : saveEdit(edited.id, body, added, kept),
-                          onClose: () => {
-                            setEditingId(null);
-                          },
-                        }
-                      : null
-                  }
-                  onSend={async (body, paths, anonymous) => {
-                    if (!account.userId) return 'You are signed out.';
-                    // The photographs are up already, under the room's folder,
-                    // which is what the read policy checks; a refused row takes
-                    // them back out (post-composer.tsx). A reply to a post is
-                    // written under it (replyBox); this box answers the topic.
-                    const result = await sendPost(
-                      topic.id,
-                      account.userId,
-                      body,
-                      paths,
-                      null,
-                      anonymous,
-                    );
-                    if (!result.ok) return result.error;
-                    reload();
-                    return null;
-                  }}
-                />
-              </Suspense>
+            {!canPost ? null : !bottomOpen ? (
+              <ReplyBoxClosed
+                label={isQuestion ? 'Reply to this question' : 'Reply to this post'}
+                onOpen={() => {
+                  setWritingIn(bottomDraftKey ?? null);
+                }}
+              />
+            ) : composer.failed ? (
+              <ReplyEditorFailed onRetry={composer.retry} />
+            ) : !composer.PostComposer ? (
+              loadingReplyEditor
             ) : (
+              <composer.PostComposer
+                // A new topic is a new box, with that topic's draft.
+                key={`${account.userId}:${topicId}`}
+                // Tapped open: the writing starts there.
+                autoFocus={writingIn === bottomDraftKey}
+                anonymousOption={
+                  canGoAnonymous
+                    ? { checked: replyAnonymously, onChange: chooseAnonymous }
+                    : undefined
+                }
+                draftKey={bottomDraftKey}
+                placeholder={isQuestion ? 'Reply to this question' : 'Reply to this post'}
+                maxLength={POST_MAX}
+                sendLabel="Post this reply"
+                folder={attachmentFolder('room', room.id)}
+                mentionScope={mentionScope}
+                editing={
+                  edited
+                    ? {
+                        id: edited.id,
+                        initial: edited.body,
+                        noun: 'post',
+                        photos: edited.attachments.length,
+                        attachments: edited.attachments,
+                        plain: titleOnly(edited),
+                        appendOnly: answered(edited),
+                        anchor: `post-${edited.id}`,
+                        onSave: (body, added, kept) =>
+                          titleOnly(edited)
+                            ? saveTitleEdit(edited.id, body, added)
+                            : saveEdit(edited.id, body, added, kept),
+                        onClose: () => {
+                          setEditingId(null);
+                        },
+                      }
+                    : null
+                }
+                onSend={async (body, paths, anonymous) => {
+                  if (!account.userId) return 'You are signed out.';
+                  // The photographs are up already, under the room's folder,
+                  // which is what the read policy checks; a refused row takes
+                  // them back out (post-composer.tsx). A reply to a post is
+                  // written under it (replyBox); this box answers the topic.
+                  const result = await sendPost(
+                    topic.id,
+                    account.userId,
+                    body,
+                    paths,
+                    null,
+                    anonymous,
+                  );
+                  if (!result.ok) return result.error;
+                  reload();
+                  return null;
+                }}
+              />
+            )}
+            {canPost ? null : (
               <p className="mt-4 rounded-[14px] border border-line bg-paper px-3.5 py-3 text-center text-[0.78125rem] text-grey leading-[1.45]">
                 This room is closed. No member can see it yet.
               </p>

@@ -133,6 +133,7 @@ export function PostComposer({
   mentionScope = {},
   draftKey,
   anonymousOption,
+  autoFocus = false,
 }: {
   placeholder: string;
   sendLabel: string;
@@ -146,6 +147,8 @@ export function PostComposer({
   mentionScope?: MentionScope;
   draftKey?: string | undefined;
   anonymousOption?: { checked: boolean; onChange: (checked: boolean) => void } | undefined;
+  /** Focused when first drawn: opened by a tap on the closed box (topic-page.tsx). */
+  autoFocus?: boolean;
 }) {
   const id = useId();
   const announce = useAnnounce();
@@ -259,7 +262,7 @@ export function PostComposer({
   const replyingToId = replyingTo?.id ?? null;
   // biome-ignore lint/correctness/useExhaustiveDependencies: only when what is answered or edited changes.
   useEffect(() => {
-    if (!replyingToId && !editingId) return;
+    if (!replyingToId && !editingId && !autoFocus) return;
     const into = section.current;
     // jsdom has no scrollIntoView.
     if (into && 'scrollIntoView' in into) into.scrollIntoView({ block: 'nearest' });

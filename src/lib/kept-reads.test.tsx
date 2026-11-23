@@ -177,6 +177,8 @@ describe('what counts as a write', () => {
     expect(isWrite('POST', at('/rest/v1/rpc/chat_my_threads'))).toBe(false);
     expect(isWrite('POST', at('/rest/v1/rpc/chat_post_scores'))).toBe(false);
     expect(isWrite('POST', at('/rest/v1/rpc/home_feed'))).toBe(false);
+    // Notes this device's kind on opening; no tab shows it (2026-11-23).
+    expect(isWrite('POST', at('/rest/v1/rpc/note_my_push_device'))).toBe(false);
     expect(isWrite('POST', at('/rest/v1/rpc/home_topics_ranked'))).toBe(false);
     expect(isWrite('POST', at('/rest/v1/rpc/home_topics_shown'))).toBe(false);
     expect(isWrite('POST', at('/rest/v1/rpc/admin_boost_post'))).toBe(true);

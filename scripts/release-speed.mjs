@@ -50,6 +50,15 @@ const SCREENS = [
   { name: 'Me', path: '/me', tab: 'Me' },
 ];
 
+/**
+ * A topic on the test project, opened to read, then its reply box tapped (the
+ * owner, 2026-11-23: the editor now loads on that tap, so the tap is timed as
+ * well as the opening, and a faster opening cannot hide a slower reply).
+ */
+const TOPIC_PATH =
+  process.env.RELEASE_SPEED_TOPIC ??
+  '/chat/rooms/general/topics/8f00c016-783d-4e43-a0c0-25c0aa3a2132';
+
 const ROOT = resolve(process.cwd());
 const WORK = resolve(process.env.RELEASE_SPEED_DIR ?? join(ROOT, 'release-speed'));
 const SUPABASE_URL = need('VITE_SUPABASE_URL');
@@ -280,6 +289,31 @@ async function moving(phone, screen) {
   return measure(phone, () => tab.click());
 }
 
+/**
+ * The first tap on the reply box, until there is a box to write in. Time here
+ * is the wait the member sees, so it is counted to the editor drawn rather
+ * than to the network settling. Older builds draw the editor at once: the tap
+ * just focuses it.
+ */
+async function firstReply(phone) {
+  const page = phone.page;
+  const name = /^Reply to this (post|question)$/;
+  const box = page.getByRole('textbox', { name });
+  const closed = page.getByRole('button', { name });
+  await box.or(closed).first().waitFor({ timeout: SCREEN_TIMEOUT_MS });
+  const before = { ...phone.tally, busy: await phone.busy() };
+  const started = Date.now();
+  await box.or(closed).first().click();
+  await box.waitFor({ timeout: SCREEN_TIMEOUT_MS });
+  const time = Date.now() - started;
+  return {
+    time,
+    cpu: Math.round((await phone.busy()) - before.busy),
+    requests: phone.tally.database - before.database,
+    scriptKb: Math.round((phone.tally.scriptBytes - before.scriptBytes) / 1024),
+  };
+}
+
 function record(build, key, sample) {
   if (!build.samples[key]) build.samples[key] = [];
   build.samples[key].push(sample);
@@ -314,6 +348,16 @@ try {
           const phone = await slowPhone(browser, signedIn);
           try {
             record(b, `Opening ${screen.name}`, await opening(phone, origin, screen));
+          } finally {
+            await phone.context.close();
+          }
+        }
+        // A topic, read, then answered: each in a fresh phone.
+        {
+          const phone = await slowPhone(browser, signedIn);
+          try {
+            record(b, 'Opening a topic', await opening(phone, origin, { path: TOPIC_PATH }));
+            record(b, 'First tap on Reply', await firstReply(phone));
           } finally {
             await phone.context.close();
           }
