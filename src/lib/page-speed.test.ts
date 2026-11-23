@@ -1,3 +1,4 @@
+import { Capacitor } from '@capacitor/core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   cardsShown,
@@ -63,6 +64,36 @@ describe('what a request asked for', () => {
 });
 
 describe('timing requests', () => {
+  it.each([
+    ['ios', false, 'ios-app'],
+    ['android', false, 'android-app'],
+    ['web', true, 'home-screen'],
+    ['web', false, 'browser'],
+  ])(
+    'reports only a coarse platform for %s with standalone=%s',
+    async (native, standalone, platform) => {
+      const getPlatform = vi.spyOn(Capacitor, 'getPlatform').mockReturnValue(native);
+      const previous = Object.getOwnPropertyDescriptor(navigator, 'standalone');
+      Object.defineProperty(navigator, 'standalone', { value: standalone, configurable: true });
+      try {
+        const sent: unknown[] = [];
+        startPageSpeed((samples) => {
+          sent.push(...samples);
+          return Promise.resolve();
+        }, true);
+        const fetcher = timedFetch(() => Promise.resolve(new Response('[]', { status: 200 })));
+        await fetcher(`${BASE}/rest/v1/rpc/home_feed`, {});
+        flush();
+        expect(sent).toEqual([expect.objectContaining({ platform })]);
+        expect(sent[0]).not.toHaveProperty('userAgent');
+      } finally {
+        getPlatform.mockRestore();
+        if (previous) Object.defineProperty(navigator, 'standalone', previous);
+        else Reflect.deleteProperty(navigator, 'standalone');
+      }
+    },
+  );
+
   it('times each request and sends them in a batch', async () => {
     const sent: unknown[][] = [];
     startPageSpeed((samples) => {

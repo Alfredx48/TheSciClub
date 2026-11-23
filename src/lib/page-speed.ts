@@ -1,5 +1,7 @@
+import { Capacitor } from '@capacitor/core';
 import { matchPath } from 'react-router-dom';
 import { debugCards, debugRequest, debugScreen } from '@/lib/debug-log';
+import { isStandalone } from '@/lib/standalone';
 
 /**
  * How fast the app is for the people using it (the owner, 2026-11-04;
@@ -116,6 +118,7 @@ interface Sample {
    */
   failure?: string;
   installed: boolean;
+  platform: 'ios-app' | 'android-app' | 'home-screen' | 'browser' | null;
   mobile: boolean;
   connection: string | null;
   /** The build's minute (VITE_APP_BUILT), tagged in git as release-<minute>. */
@@ -159,26 +162,37 @@ function randomId(): string {
   }
 }
 
-function context(): Pick<Sample, 'installed' | 'mobile' | 'connection' | 'release'> {
+function context(): Pick<Sample, 'installed' | 'mobile' | 'connection' | 'release' | 'platform'> {
   let installed = false;
   try {
-    installed =
-      window.matchMedia('(display-mode: standalone)').matches ||
-      (navigator as { standalone?: boolean }).standalone === true;
+    installed = isStandalone();
   } catch {
     // Unknown counts as the browser.
   }
+  const native = Capacitor.getPlatform();
   const connection =
     (navigator as { connection?: { effectiveType?: string } }).connection?.effectiveType ?? null;
   return {
     installed,
+    platform:
+      native === 'ios'
+        ? 'ios-app'
+        : native === 'android'
+          ? 'android-app'
+          : native === 'web'
+            ? installed
+              ? 'home-screen'
+              : 'browser'
+            : null,
     mobile: /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent),
     connection,
     release: RELEASE,
   };
 }
 
-function push(sample: Omit<Sample, 'visit' | 'installed' | 'mobile' | 'connection' | 'release'>) {
+function push(
+  sample: Omit<Sample, 'visit' | 'installed' | 'mobile' | 'connection' | 'release' | 'platform'>,
+) {
   if (skipped) return;
   if (!Number.isFinite(sample.ms) || sample.ms < 0) return;
   queue.push({ ...sample, ms: Math.round(sample.ms), visit, ...context() });
