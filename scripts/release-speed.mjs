@@ -212,11 +212,14 @@ async function slowPhone(browser, signedIn) {
   });
   // What each response was and how much came down, for the counts below.
   const kinds = new Map();
-  const tally = { database: 0, scriptBytes: 0, bytes: 0 };
+  const tally = { database: 0, scriptBytes: 0, bytes: 0, urls: [] };
   cdp.on('Network.requestWillBeSent', (e) => {
     const url = e.request.url;
-    if (url.startsWith(SUPABASE_URL) && e.type !== 'WebSocket' && !url.includes('log_page_speed'))
+    if (url.startsWith(SUPABASE_URL) && e.type !== 'WebSocket' && !url.includes('log_page_speed')) {
       tally.database += 1;
+      // What was asked, for requests.md: the path and the query's shape.
+      tally.urls.push(`${e.request.method} ${url.slice(SUPABASE_URL.length)}`);
+    }
   });
   cdp.on('Network.responseReceived', (e) => kinds.set(e.requestId, e.type));
   cdp.on('Network.loadingFinished', (e) => {
@@ -265,7 +268,7 @@ function settled(page, started) {
  * only when the code does.
  */
 async function measure(phone, go) {
-  const before = { ...phone.tally, busy: await phone.busy() };
+  const before = { ...phone.tally, urls: [...phone.tally.urls], busy: await phone.busy() };
   const started = Date.now();
   const done = settled(phone.page, started);
   await go();
@@ -275,6 +278,7 @@ async function measure(phone, go) {
     cpu: Math.round((await phone.busy()) - before.busy),
     requests: phone.tally.database - before.database,
     scriptKb: Math.round((phone.tally.scriptBytes - before.scriptBytes) / 1024),
+    urls: phone.tally.urls.slice(before.urls.length),
   };
 }
 
@@ -301,7 +305,7 @@ async function firstReply(phone) {
   const box = page.getByRole('textbox', { name });
   const closed = page.getByRole('button', { name });
   await box.or(closed).first().waitFor({ timeout: SCREEN_TIMEOUT_MS });
-  const before = { ...phone.tally, busy: await phone.busy() };
+  const before = { ...phone.tally, urls: [...phone.tally.urls], busy: await phone.busy() };
   const started = Date.now();
   await box.or(closed).first().click();
   await box.waitFor({ timeout: SCREEN_TIMEOUT_MS });
@@ -311,6 +315,7 @@ async function firstReply(phone) {
     cpu: Math.round((await phone.busy()) - before.busy),
     requests: phone.tally.database - before.database,
     scriptKb: Math.round((phone.tally.scriptBytes - before.scriptBytes) / 1024),
+    urls: phone.tally.urls.slice(before.urls.length),
   };
 }
 
@@ -456,7 +461,10 @@ const json = {
   builds: builds.map((b) => ({
     ref: b.ref,
     commit: git('rev-parse', '--short', b.ref),
-    samples: b.samples,
+    // The request lists are in requests.md.
+    samples: Object.fromEntries(
+      Object.entries(b.samples).map(([k, v]) => [k, v.map(({ urls, ...rest }) => rest)]),
+    ),
   })),
 };
 lines.push(
@@ -467,6 +475,27 @@ lines.push(
 );
 const report = lines.join('\n');
 writeFileSync(join(WORK, 'report.md'), `${report}\n`);
+// Each screen's requests to the database, from its first timing, grouped, for
+// finding repeats and reads that could be one (the owner, 2026-11-23).
+{
+  const lines = ['# Requests to the database, by screen', ''];
+  for (const b of builds) {
+    lines.push(`## ${b.ref}`, '');
+    for (const [key, samples] of Object.entries(b.samples)) {
+      const urls = samples[0]?.urls ?? [];
+      const counts = new Map();
+      for (const u of urls) {
+        const shape = u.replace(/=(eq|in|gt|gte|lt|lte|neq|is|cs|ov)\.[^&]*/g, '=$1.…');
+        counts.set(shape, (counts.get(shape) ?? 0) + 1);
+      }
+      lines.push(`### ${key}: ${urls.length}`, '');
+      for (const [shape, n] of [...counts].sort((x, y) => y[1] - x[1]))
+        lines.push(`- ${n > 1 ? `**${n}×** ` : ''}\`${decodeURIComponent(shape).slice(0, 300)}\``);
+      lines.push('');
+    }
+  }
+  writeFileSync(join(WORK, 'requests.md'), `${lines.join('\n')}\n`);
+}
 writeFileSync(join(WORK, 'report.json'), `${JSON.stringify(json, null, 2)}\n`);
 if (process.env.GITHUB_STEP_SUMMARY)
   writeFileSync(process.env.GITHUB_STEP_SUMMARY, `${report}\n`, { flag: 'a' });

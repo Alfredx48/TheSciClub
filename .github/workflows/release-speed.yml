@@ -76,5 +76,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: release-speed
-          path: release-speed/report.*
+          path: |
+            release-speed/report.*
+            release-speed/requests.md
           if-no-files-found: ignore
