@@ -56,7 +56,7 @@ import { readLink } from '@/routes/events/event-draft';
  *
  * Photographs go in the words, where they were pasted, dropped or chosen
  * ("They stay where you pasted them in"), as a line `![Photo](path)` naming
- * one of the post's attachments, still four at most. Until Send they are the
+ * one of the post's attachments (MAX_ATTACHMENTS at most). Until Send they are the
  * member's files, named "local:1"…; Send uploads those still in the words, in
  * order, to `folder`, names them by their paths, and only then writes the
  * post; a refused post takes them back out.
@@ -818,17 +818,11 @@ export function PostComposer({
             picker.current?.click();
           }}
           title={full ? `${MAX_ATTACHMENTS} photographs is the most` : 'Add a photograph'}
-          aria-label={full ? undefined : 'Photo'}
-          aria-describedby={full ? undefined : `${id}-photo-slots`}
+          aria-label={full ? `${MAX_ATTACHMENTS} photographs is the most` : 'Photo'}
           className="inline-flex min-h-11 items-center gap-1.5 rounded-[10px] px-2.5 font-semibold text-[0.84375rem] text-emphasis transition-colors hover:bg-tint disabled:opacity-35"
         >
           <ImagePlus className="h-[18px] w-[18px]" aria-hidden="true" />
-          {full ? 'Four is the most' : 'Photo'}
-          {!full ? (
-            <span id={`${id}-photo-slots`} className="text-[0.75rem] text-ink2">
-              {remaining} left
-            </span>
-          ) : null}
+          Photo
         </button>
         <input
           ref={picker}
@@ -862,7 +856,7 @@ export function PostComposer({
           onClick={send}
           disabled={cannotSend}
           aria-label={editing ? 'Save changes' : sendLabel}
-          className="min-h-11 rounded-full bg-action px-5 font-bold font-head text-[0.9375rem] text-white transition-opacity disabled:opacity-35"
+          className="min-h-11 whitespace-nowrap rounded-full bg-action px-5 font-bold font-head text-[0.9375rem] text-white transition-opacity disabled:opacity-35"
         >
           {sending ? (editing ? 'Saving…' : 'Posting…') : editing ? 'Save' : 'Post reply'}
         </button>

@@ -25,9 +25,9 @@ describe('attachmentProblem', () => {
     expect(attachmentProblem([], 3)).toBeNull();
   });
 
-  it('refuses a fifth, counting what is already attached', () => {
-    expect(attachmentProblem([photo()], MAX_ATTACHMENTS)).toMatch(/Up to 4 photographs/);
-    expect(attachmentProblem([photo(), photo()], MAX_ATTACHMENTS - 1)).toMatch(/Up to 4/);
+  it('refuses one past the most, counting what is already attached', () => {
+    expect(attachmentProblem([photo()], MAX_ATTACHMENTS)).toMatch(/Up to 50 photographs/);
+    expect(attachmentProblem([photo(), photo()], MAX_ATTACHMENTS - 1)).toMatch(/Up to 50/);
     expect(attachmentProblem([photo()], MAX_ATTACHMENTS - 1)).toBeNull();
   });
 

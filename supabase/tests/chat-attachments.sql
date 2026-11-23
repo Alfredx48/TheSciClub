@@ -100,15 +100,14 @@ values (:'dm', 'aaaaaaaa-9999-0000-0000-000000000001', '   ', '{}');
 rollback to savepoint nothing_at_all;
 
 \echo ''
-\echo '== 3. a fifth photograph is refused =='
-\echo '   expect: ERROR. Four is the constraint, not the client.'
-savepoint five;
+\echo '== 3. a 51st photograph is refused =='
+\echo '   expect: ERROR. Fifty is the constraint, not the client (it was four until'
+\echo '   20261123040000).'
+savepoint fifty_one;
 insert into public.chat_messages (thread_id, author_id, body, attachments)
-values (:'dm', 'aaaaaaaa-9999-0000-0000-000000000001', 'Five',
-        array['threads/' || :'dm' || '/1.webp', 'threads/' || :'dm' || '/2.webp',
-              'threads/' || :'dm' || '/3.webp', 'threads/' || :'dm' || '/4.webp',
-              'threads/' || :'dm' || '/5.webp']);
-rollback to savepoint five;
+values (:'dm', 'aaaaaaaa-9999-0000-0000-000000000001', 'Fifty-one',
+        array(select 'threads/' || :'dm' || '/' || n || '.webp' from generate_series(1, 51) n));
+rollback to savepoint fifty_one;
 
 \echo ''
 \echo '== 4. a path under another conversation''s folder is refused =='

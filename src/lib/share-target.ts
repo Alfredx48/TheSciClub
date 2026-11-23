@@ -10,7 +10,7 @@ export const SHARE_CACHE = 'club-share';
 export const SHARE_META = '/__share/meta';
 export const shareFileKey = (index: number) => `/__share/file-${index}`;
 /** Photographs on one post, as a post allows (MAX_ATTACHMENTS). */
-export const SHARE_MAX_FILES = 4;
+export const SHARE_MAX_FILES = 50;
 
 export interface SharedMeta {
   title: string;

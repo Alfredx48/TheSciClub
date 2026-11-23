@@ -23,7 +23,7 @@ export interface Failure {
 export interface ErrorContext {
   /** Leads the sentence: "Your reply was not posted." */
   attempt?: string;
-  /** A check constraint, keyed on its name: `chat_messages_attachments_check` → "Up to four photographs on one message." */
+  /** A check constraint, keyed on its name: `chat_messages_attachments_check` → "Up to 50 photographs on one message." */
   constraints?: Record<string, string>;
   /** The unique index refused: "There is already a room with that name." */
   duplicate?: string;

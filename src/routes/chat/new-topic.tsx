@@ -245,7 +245,7 @@ function NewTopicForm({
       });
   }
 
-  // Up to four, with the first post. Asking, the words stay required — a topic
+  // Photographs with the first post. Asking, the words stay required — a topic
   // is a line in a list and a picture is not a title — so a photograph comes
   // with the post rather than instead of it. Sharing, the photograph is the
   // point, so it comes first and the words are optional.

@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AnnounceProvider } from '@/lib/announce';
+import { MAX_ATTACHMENTS } from '@/lib/chat/attachments';
 import { Composer } from '@/routes/chat/composer';
 
 /**
@@ -135,19 +136,22 @@ describe('the composer', () => {
     renderComposer();
     const user = userEvent.setup();
     const input = fileInput();
+    const most = MAX_ATTACHMENTS;
     await user.upload(
       input,
-      ['1', '2', '3', '4', '5'].map((name) => photo(`${name}.jpg`)),
+      Array.from({ length: most + 1 }, (_, n) => photo(`${String(n + 1)}.jpg`)),
     );
-    expect(screen.getAllByRole('button', { name: /Take back/ })).toHaveLength(4);
-    expect(screen.queryByRole('button', { name: 'Take back 5.jpg' })).toBeNull();
+    expect(screen.getAllByRole('button', { name: /Take back/ })).toHaveLength(most);
+    expect(screen.queryByRole('button', { name: `Take back ${String(most + 1)}.jpg` })).toBeNull();
 
-    await user.click(screen.getByRole('button', { name: 'Take back 4.jpg' }));
+    await user.click(screen.getByRole('button', { name: `Take back ${String(most)}.jpg` }));
     expect(input.multiple).toBe(false);
-    await user.upload(input, [photo('6.jpg'), photo('7.jpg')]);
-    expect(screen.getByRole('button', { name: 'Take back 6.jpg' })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Take back 7.jpg' })).toBeNull();
-    expect(screen.getByRole('button', { name: '4 photographs is the most' })).toBeDisabled();
+    await user.upload(input, [photo('a.jpg'), photo('b.jpg')]);
+    expect(screen.getByRole('button', { name: 'Take back a.jpg' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Take back b.jpg' })).toBeNull();
+    expect(
+      screen.getByRole('button', { name: `${String(most)} photographs is the most` }),
+    ).toBeDisabled();
   });
 
   it('refuses a video in a sentence that says what to do instead', () => {
@@ -470,19 +474,17 @@ describe('pasting a picture', () => {
     expect(screen.getByRole('button', { name: 'Take back chart.png' })).toBeInTheDocument();
   });
 
-  it('refuses a fifth in a sentence, as the button does', async () => {
+  it('refuses one past the most in a sentence, as the button does', async () => {
     renderComposer();
     const user = userEvent.setup();
-    await user.upload(fileInput(), [
-      photo('1.jpg'),
-      photo('2.jpg'),
-      photo('3.jpg'),
-      photo('4.jpg'),
-    ]);
+    await user.upload(
+      fileInput(),
+      Array.from({ length: MAX_ATTACHMENTS }, (_, n) => photo(`${String(n + 1)}.jpg`)),
+    );
     fireEvent.paste(screen.getByRole('textbox'), {
-      clipboardData: clipboard([photo('5.png', 100, 'image/png')]),
+      clipboardData: clipboard([photo('more.png', 100, 'image/png')]),
     });
-    expect(screen.getAllByRole('button', { name: /Take back/ })).toHaveLength(4);
+    expect(screen.getAllByRole('button', { name: /Take back/ })).toHaveLength(MAX_ATTACHMENTS);
     expect(screen.getByRole('alert')).toBeInTheDocument();
   });
 
@@ -534,10 +536,12 @@ describe('adding photographs while editing a post', () => {
     expect(onSave).toHaveBeenCalledWith('Our setup.', [photo]);
   });
 
-  it('offers no more once the post has four', () => {
-    renderPostEditor(4);
+  it('offers no more once the post has the most it may', () => {
+    renderPostEditor(MAX_ATTACHMENTS);
     expect(screen.queryByText(/You can add more\./)).toBeNull();
-    expect(screen.getByRole('button', { name: /4 photographs is the most/ })).toBeDisabled();
+    expect(
+      screen.getByRole('button', { name: `${String(MAX_ATTACHMENTS)} photographs is the most` }),
+    ).toBeDisabled();
   });
 });
 

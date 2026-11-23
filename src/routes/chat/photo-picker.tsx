@@ -1,5 +1,5 @@
 import { ImagePlus, X } from 'lucide-react';
-import { type Ref, useEffect, useId, useImperativeHandle, useRef, useState } from 'react';
+import { type Ref, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import { PhotoViewer } from '@/components/photo-viewer';
 import { attachmentProblem, MAX_ATTACHMENTS, photosFromLibrary } from '@/lib/chat/attachments';
 import type { PhotoTarget } from '@/lib/paste-photos';
@@ -14,7 +14,7 @@ import type { PhotoTarget } from '@/lib/paste-photos';
  * photographs the same way: a button that opens the phone's picker, a strip of
  * what has been chosen with a way to take each one back, and a sentence when
  * something cannot be attached. Written once so the limits are applied once —
- * `attachmentProblem` is the one place that says four, images only, 10MB.
+ * `attachmentProblem` is the one place that says how many, images only, 10MB.
  *
  * ---------------------------------------------------------------------------
  * The strip shows the file, not the upload
@@ -51,13 +51,12 @@ export function PhotoPicker({
   compact?: boolean;
   /** What the button says: "Add a screenshot" for app feedback. */
   addLabel?: string;
-  /** Photographs the post already has, which count towards the four. */
+  /** Photographs the post already has, which count towards the most it may have. */
   already?: number;
   /** For pictures pasted into the text beside it. */
   ref?: Ref<PhotoTarget>;
 }) {
   const input = useRef<HTMLInputElement | null>(null);
-  const slotsId = useId();
   const [problem, setProblem] = useState<string | null>(null);
 
   const remaining = Math.max(0, MAX_ATTACHMENTS - files.length - already);
@@ -98,7 +97,6 @@ export function PhotoPicker({
           input.current?.click();
         }}
         aria-label={full ? `${MAX_ATTACHMENTS} photographs is the most` : addLabel}
-        aria-describedby={full ? undefined : slotsId}
         title={full ? `${MAX_ATTACHMENTS} photographs is the most` : addLabel}
         className={
           compact
@@ -107,15 +105,7 @@ export function PhotoPicker({
         }
       >
         <ImagePlus className="h-[19px] w-[19px]" aria-hidden="true" />
-        {compact ? null : full ? 'Four is the most' : addLabel}
-        {!full ? (
-          <span
-            id={slotsId}
-            className={compact ? 'text-[0.625rem] leading-none' : 'text-[0.75rem] text-ink2'}
-          >
-            {remaining} left
-          </span>
-        ) : null}
+        {compact ? null : addLabel}
       </button>
       {problem ? (
         <p className="mt-1.5 text-[0.78125rem] text-destructive leading-[1.45]" role="alert">
@@ -170,9 +160,14 @@ export function PhotoStrip({
 
   return (
     <>
-      <ul className="mb-2 flex flex-wrap gap-2" aria-label="Photographs to send">
+      {/* One row, scrolled sideways, however many there are (the owner, 2026-11-22); the padding
+          is the room each ✕ needs above and to the right. */}
+      <ul
+        className="-mt-1.5 mb-2 flex gap-2 overflow-x-auto pt-1.5 pr-1.5"
+        aria-label="Photographs to send"
+      >
         {files.map((file, index) => (
-          <li key={keyFor(file)} className="relative">
+          <li key={keyFor(file)} className="relative flex-none">
             <button
               type="button"
               onClick={(event) => {

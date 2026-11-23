@@ -49,6 +49,26 @@ describe('the photographs on a message', () => {
     expect(screen.getByRole('button', { name: /Photograph 1 of 1/ })).toBeInTheDocument();
   });
 
+  // The owner, 2026-11-22: as many photographs as a member wants, so a post of twelve is not
+  // six rows of squares. Four tiles; the viewer has them all.
+  it('draws four tiles for more, the last saying how many more, and steps through them all', async () => {
+    const paths = Array.from({ length: 12 }, (_, n) => `threads/t/${String(n)}.webp`);
+    for (const path of paths) urls.set(path, `https://signed/${path}`);
+    const user = userEvent.setup();
+    render(<AttachmentGrid paths={paths} from="Bo" />);
+    expect(screen.getAllByRole('button')).toHaveLength(4);
+    const last = screen.getByRole('button', {
+      name: 'Photograph 4 of 12 from Bo, and 8 more. Open it.',
+    });
+    expect(last).toHaveTextContent('+8');
+    await user.click(last);
+    await user.keyboard('{ArrowRight}');
+    expect(screen.getByRole('img', { name: 'Photograph 5 of 12 from Bo' })).toHaveAttribute(
+      'src',
+      'https://signed/threads/t/4.webp',
+    );
+  });
+
   it('draws nothing at all when no photograph can be shown', () => {
     urls.clear();
     const { container } = render(<AttachmentGrid paths={['threads/t/a.webp']} from="Bo" />);

@@ -9,7 +9,9 @@ import { getSupabase } from '@/lib/supabase';
  *
  * Limits (the owner, 2026-09-21), each held twice so a bypassed client is still held:
  *
- *   four per message     here, and `cardinality(attachments) <= 4` on the row
+ *   fifty per message    here, and `cardinality(attachments) <= 50` on the row. It was four,
+ *                        which members met (the owner, 2026-11-22: "Let people post as many
+ *                        pictures as they want"); fifty is only a stop for a runaway client
  *   images only          here (`image/*`), and the bucket's allowed types
  *   10MB before reading  here, before `createImageBitmap` stalls a phone; bucket limit 2MB
  *   1,600px webp         `preparePhoto`: detail matters (a wound, a set-up). JPEG on iPhone,
@@ -23,7 +25,7 @@ import { getSupabase } from '@/lib/supabase';
  */
 
 export const CHAT_BUCKET: SignedBucket = 'chat';
-export const MAX_ATTACHMENTS = 4;
+export const MAX_ATTACHMENTS = 50;
 export const MAX_ATTACHMENT_EDGE = 1600;
 export const MAX_SOURCE_BYTES = 10 * 1024 * 1024;
 /** A chat photograph's small copy: a tile in a topic or on Home, not the viewer. */

@@ -5,7 +5,9 @@ import { useSmallCopies } from '@/lib/chat/attachments';
 /**
  * The photographs on a message or a post, opened in PhotoViewer (src/components/photo-viewer.tsx).
  *
- * One photo at its own shape (max 20rem tall); two to four as squares. The viewer shows the stored
+ * One photo at its own shape (max 20rem tall); two to four as squares. More than four (the owner,
+ * 2026-11-22, who took the limit of four away): the first four tiles, the last saying how many more,
+ * and the viewer steps through them all. The viewer shows the stored
  * 1,600px copy, enough to read a label or see a wound. Only Home passes `fill` (fixed-width cards);
  * a bubble fits what it holds. No tile background (owner, 2026-09-23): it letterboxed photos.
  *
@@ -13,6 +15,9 @@ import { useSmallCopies } from '@/lib/chat/attachments';
  * asked to describe a photo on the way in. A path the reader's token cannot sign (refused or
  * deleted) is not drawn, rather than a tile claiming a photo the reader cannot see.
  */
+/** Tiles drawn at most; the rest are in the viewer. */
+const TILES = 4;
+
 export function AttachmentGrid({
   paths,
   from,
@@ -45,11 +50,13 @@ export function AttachmentGrid({
   if (shown.length === 0) return null;
   const single = shown.length === 1;
   const filled = fill && single;
+  const tiles = shown.slice(0, TILES);
+  const more = shown.length - tiles.length;
 
   return (
     <>
       <div className={`mt-2 grid gap-1.5 ${single ? 'grid-cols-1' : 'grid-cols-2'}`}>
-        {shown.map((path, index) => (
+        {tiles.map((path, index) => (
           <button
             key={path}
             type="button"
@@ -61,8 +68,10 @@ export function AttachmentGrid({
               opener.current = event.currentTarget;
               setOpen(index);
             }}
-            aria-label={`Photograph ${index + 1} of ${shown.length} from ${from}. ${openLabel ?? 'Open it.'}`}
-            className={`block overflow-hidden rounded-[10px] ${
+            aria-label={`Photograph ${index + 1} of ${shown.length} from ${from}${
+              more > 0 && index === tiles.length - 1 ? `, and ${more} more` : ''
+            }. ${openLabel ?? 'Open it.'}`}
+            className={`${more > 0 && index === tiles.length - 1 ? 'relative ' : ''}block overflow-hidden rounded-[10px] ${
               filled ? 'aspect-[400/260] w-full' : single ? 'w-fit max-w-full' : 'aspect-square'
             }`}
           >
@@ -77,6 +86,14 @@ export function AttachmentGrid({
                   : 'block h-full w-full object-cover'
               }
             />
+            {more > 0 && index === tiles.length - 1 ? (
+              <span
+                aria-hidden="true"
+                className="absolute inset-0 grid place-items-center bg-black/55 font-bold font-head text-[1.5rem] text-white"
+              >
+                +{more}
+              </span>
+            ) : null}
           </button>
         ))}
       </div>

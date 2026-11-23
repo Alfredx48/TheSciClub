@@ -26,7 +26,7 @@ import { PhotoPicker, PhotoStrip } from '@/routes/chat/photo-picker';
  * `sendOnEnter`: Enter sends in a direct thread, breaks a paragraph in a topic; Shift+Enter is
  * the other. Words and photographs survive a failed send: cleared only after the write returns.
  *
- * Photographs (up to four) go to `onSend` as files; the caller uploads them, as it knows the
+ * Photographs go to `onSend` as files; the caller uploads them, as it knows the
  * folder. Words are optional once there is one.
  *
  * `editing` loads a post's or message's words here (the owner, 2026-10-22); the draft is put
@@ -519,7 +519,7 @@ export function Composer({
             {editing.photos === 1
               ? 'Its photograph stays as it is.'
               : `Its ${editing.photos} photographs stay as they are.`}
-            {editing.addPhotos && editing.photos < 4 ? ' You can add more.' : ''}
+            {editing.addPhotos && editing.photos < MAX_ATTACHMENTS ? ' You can add more.' : ''}
           </p>
         ) : null}
         {editing.shared ? <p>The shared post stays.</p> : null}

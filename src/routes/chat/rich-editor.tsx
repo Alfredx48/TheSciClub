@@ -33,7 +33,7 @@ import { type MentionField, useMentionSuggestions } from '@/routes/chat/mention-
  *
  * A picture pasted or dropped in, or chosen with the toolbar, goes in where
  * the caret is (the owner, 2026-11-19: "They stay where you pasted them in").
- * The composer decides whether it may (`onPhotos`, four at most) and says
+ * The composer decides whether it may (`onPhotos`, MAX_ATTACHMENTS at most) and says
  * what to call it until it is uploaded ("local:…"); it is drawn from the
  * file until then, and from storage once it has a path.
  *
