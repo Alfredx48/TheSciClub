@@ -137,30 +137,47 @@ try {
   // opening (one visit in three) to the test project, for the steps inside it.
   const BUNDLE = 'com.thesciclub.app';
   const openings = { cold: [], warm: [] };
+  // 2026-11-22: the page source took 10-30 s a read on a long feed, so the Nov 22 timings were invalid. Now each poll is a single
+  // element lookup (the tab bar's Peers link by accessibility id, a card's Upvote / Score / React button by predicate), which is cheap
+  // while the tree is small, and the time is taken at the middle of the read that found it. The slowest read of each opening is kept:
+  // an opening whose slowest read took over 2 s is marked 'coarse' and the report says the timing is good only to that read.
+  const FEED = "name BEGINSWITH 'Upvote ' OR name MATCHES 'Score [0-9]+' OR name BEGINSWITH 'React to '";
   const timeOpen = async (how) => {
     const t0 = Date.now();
     await driver.activateApp(BUNDLE);
     let bar = null;
     let feed = null;
+    let slowest = 0;
     while (Date.now() - t0 < 60000 && (bar === null || feed === null)) {
-      const src = await driver.getPageSource().catch(() => '');
-      const at = Date.now() - t0;
-      if (bar === null && /name="Peers"/.test(src)) bar = at;
-      if (feed === null && /name="(Upvote |Score \d+|React to )/.test(src)) feed = at;
+      const r0 = Date.now();
+      const found = bar === null
+        ? await driver.$$('~Peers').then((e) => e.length > 0).catch(() => false)
+        : await driver.$$(`-ios predicate string:${FEED}`).then((e) => e.length > 0).catch(() => false);
+      const r1 = Date.now();
+      slowest = Math.max(slowest, r1 - r0);
+      if (found) {
+        const at = Math.round((r0 + r1) / 2 - t0);
+        if (bar === null) bar = at; else feed = at;
+      }
+      if (bar !== null && feed === null) { /* look for the feed at once, no pause */ } else await sleep(100);
     }
-    openings[how].push({ tabBar: bar, feed });
-    return { bar, feed };
+    const coarse = slowest > 2000;
+    openings[how].push({ tabBar: bar, feed, slowestReadMs: slowest, coarse });
+    return { bar, feed, slowest, coarse };
   };
   for (let i = 1; i <= 6; i++) {
+    // Put the app away first, as a person does: it sends its own opening report when hidden (the Nov 22 run quit it in front).
+    await driver.execute('mobile: pressButton', { name: 'home' }).catch(() => {});
+    await sleep(2500);
     await driver.terminateApp(BUNDLE).catch(() => {});
     await sleep(2500);
     const c = await timeOpen('cold');
-    note(`opening ${i} cold: tab bar ${c.bar ?? 'not seen'} ms, feed ${c.feed ?? 'not seen'} ms`);
+    note(`opening ${i} cold: tab bar ${c.bar ?? 'not seen'} ms, feed ${c.feed ?? 'not seen'} ms (slowest read ${c.slowest} ms${c.coarse ? ', COARSE' : ''})`);
     await sleep(3000); // the app settles and (one visit in three) reports
     await driver.execute('mobile: pressButton', { name: 'home' }).catch(() => {});
     await sleep(2500);
     const w = await timeOpen('warm');
-    note(`opening ${i} warm: tab bar ${w.bar ?? 'not seen'} ms, feed ${w.feed ?? 'not seen'} ms`);
+    note(`opening ${i} warm: tab bar ${w.bar ?? 'not seen'} ms, feed ${w.feed ?? 'not seen'} ms (slowest read ${w.slowest} ms${w.coarse ? ', COARSE' : ''})`);
     await sleep(2000);
   }
   const med = (xs) => {
@@ -174,6 +191,7 @@ try {
       coldFeed: med(openings.cold.map((o) => o.feed)),
       warmTabBar: med(openings.warm.map((o) => o.tabBar)),
       warmFeed: med(openings.warm.map((o) => o.feed)),
+      coarseOpenings: [...openings.cold, ...openings.warm].filter((o) => o.coarse).length,
     },
   };
   note(`OPENINGS ${JSON.stringify(report.openings.medians)}`);
