@@ -643,6 +643,18 @@
   text-decoration: underline;
   text-underline-offset: 2px;
 }
+/*
+ * Photographs side by side while writing (the owner, 2026-11-23), three to a
+ * row: each is its own block (rich-editor.tsx), so they flow as inline blocks,
+ * and a paragraph between starts a new row.
+ */
+.rich-editor > .node-image {
+  display: inline-block;
+  vertical-align: top;
+  /* Three and their gaps fit exactly; a pixel spare for rounding. */
+  width: calc((100% - 1.5rem) / 3 - 1px);
+  margin-right: 0.5rem;
+}
 .rich-editor p.is-editor-empty:first-child::before {
   content: attr(data-placeholder);
   float: left;

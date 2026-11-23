@@ -5,6 +5,14 @@ import { describe, expect, it, vi } from 'vitest';
 import type * as Mentions from '@/lib/mentions';
 import { PostBody } from '@/routes/chat/post-body';
 
+/** Every stored photograph signs; the signing is a storage call. */
+vi.mock('@/lib/chat/attachments', () => ({
+  useSmallCopies: (paths: readonly string[]) => {
+    const urls = new Map(paths.map((path) => [path, `https://signed/${path}`]));
+    return { small: urls, full: urls };
+  },
+}));
+
 /** Who the @names are, as chat_authors would say (20261029070000). */
 vi.mock('@/lib/mentions', async (importOriginal) => ({
   ...(await importOriginal<typeof Mentions>()),
@@ -41,5 +49,25 @@ describe('a post’s @mentions', () => {
     renderBody('Ask @ana');
     await userEvent.click(screen.getByRole('link', { name: '@ana' }));
     expect(screen.getByText('Ana’s profile')).toBeInTheDocument();
+  });
+});
+
+describe('photographs in a post’s words', () => {
+  it('draws six one after another as one grid of four tiles, the last saying how many more', () => {
+    const six = Array.from({ length: 6 }, (_, n) => `rooms/r/${n + 1}.webp`);
+    render(
+      <MemoryRouter>
+        <PostBody
+          text={`Our ramp:\n\n${six.map((path) => `![Photo](${path})`).join('\n\n')}\n\nWhat do you think?`}
+          photos={six}
+          from="Bo"
+        />
+      </MemoryRouter>,
+    );
+    const tiles = screen.getAllByRole('button');
+    expect(tiles).toHaveLength(4);
+    expect(tiles[3]).toHaveAccessibleName('Photograph 4 of 6 from Bo, and 2 more. Open it.');
+    expect(tiles[3]).toHaveTextContent('+2');
+    expect(screen.getByText('What do you think?')).toBeInTheDocument();
   });
 });

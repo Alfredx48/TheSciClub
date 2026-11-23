@@ -1,6 +1,7 @@
-import { useRef, useState } from 'react';
+import { useContext, useRef, useState } from 'react';
 import { PhotoViewer } from '@/components/photo-viewer';
 import { useSmallCopies } from '@/lib/chat/attachments';
+import { LocalPhotos } from '@/routes/chat/local-photos';
 
 /**
  * The photographs on a message or a post, opened in PhotoViewer (src/components/photo-viewer.tsx).
@@ -13,7 +14,8 @@ import { useSmallCopies } from '@/lib/chat/attachments';
  *
  * Alt text is "Photograph N of M from <name>"; the message is the description, since nobody is
  * asked to describe a photo on the way in. A path the reader's token cannot sign (refused or
- * deleted) is not drawn, rather than a tile claiming a photo the reader cannot see.
+ * deleted) is not drawn, rather than a tile claiming a photo the reader cannot see. One not yet
+ * uploaded ("local:…", the reply box's Preview) is drawn from its file (LocalPhotos).
  */
 /** Tiles drawn at most; the rest are in the viewer. */
 const TILES = 4;
@@ -40,7 +42,14 @@ export function AttachmentGrid({
   eager?: 'first' | 'later' | undefined;
 }) {
   // Tiles draw the small copy; the viewer opens the photograph.
-  const { small, full } = useSmallCopies(paths);
+  const local = useContext(LocalPhotos);
+  const stored = useSmallCopies(paths.filter((path) => !path.startsWith('local:')));
+  const small = new Map(stored.small);
+  for (const path of paths) {
+    const url = path.startsWith('local:') ? local(path) : undefined;
+    if (url) small.set(path, url);
+  }
+  const full = stored.full;
   const [open, setOpen] = useState<number | null>(null);
   // The opening tile, for focus on close. Held from the click, not `document.activeElement`:
   // Safari does not focus a clicked button.

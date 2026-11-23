@@ -321,8 +321,9 @@ const Photo = Image.extend({
 }).configure({ inline: false, allowBase64: false });
 
 /**
- * Small while writing (8rem, it was 14rem): with no limit on photographs two filled a phone and
- * pushed Post reply off it (the owner, 2026-11-22). Preview and the post draw them full size.
+ * Small while writing, side by side (the owner, 2026-11-23: six stacked ones filled the box and it
+ * scrolled), as squares a third of the box wide (.rich-editor > .node-image in index.css). Preview
+ * and the post draw them as a grid of four tiles, the last saying how many more (PostBody).
  */
 function PhotoView({ node, selected, deleteNode, editor }: ReactNodeViewProps) {
   const path = typeof node.attrs.path === 'string' ? node.attrs.path : '';
@@ -331,20 +332,21 @@ function PhotoView({ node, selected, deleteNode, editor }: ReactNodeViewProps) {
   const url = path.startsWith('local:') ? local(path) : stored.small.get(path);
   return (
     <NodeViewWrapper
-      className={`relative my-2 w-fit max-w-full rounded-[10px] ${selected ? 'outline-2 outline-emphasis outline-offset-2' : ''}`}
+      className={`relative aspect-square w-full rounded-[10px] ${selected ? 'outline-2 outline-emphasis outline-offset-2' : ''}`}
     >
       {url ? (
         <img
           src={url}
           alt="Photograph"
-          className="block h-auto max-h-[8rem] w-auto max-w-full rounded-[10px]"
+          className="block h-full w-full rounded-[10px] object-cover"
         />
       ) : (
-        <div className="grid h-24 w-32 place-items-center rounded-[10px] bg-tint text-[0.75rem] text-grey">
+        <div className="grid h-full w-full place-items-center rounded-[10px] bg-tint text-[0.75rem] text-grey">
           Photograph
         </div>
       )}
       {editor.isEditable ? (
+        // A small mark on a small photograph, in a full-size place to tap.
         <button
           type="button"
           onClick={() => {
@@ -352,9 +354,11 @@ function PhotoView({ node, selected, deleteNode, editor }: ReactNodeViewProps) {
           }}
           aria-label="Take this photograph out"
           contentEditable={false}
-          className="absolute top-1.5 right-1.5 grid h-11 w-11 place-items-center rounded-full bg-black/60 text-white"
+          className="absolute top-0 right-0 flex h-11 w-11 items-start justify-end p-1"
         >
-          <X className="h-5 w-5" aria-hidden="true" />
+          <span className="grid h-7 w-7 place-items-center rounded-full bg-black/60 text-white">
+            <X className="h-3.5 w-3.5" aria-hidden="true" />
+          </span>
         </button>
       ) : null}
     </NodeViewWrapper>

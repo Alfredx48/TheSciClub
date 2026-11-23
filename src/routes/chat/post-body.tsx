@@ -17,9 +17,11 @@ export const POST_TEXT =
  * profile as a link to it (20261029070000). Other @names stay words.
  *
  * A photograph put in the words (`![Photo](path)`, the owner, 2026-11-19) is
- * drawn there, as AttachmentGrid draws one, when it is one of `photos`, the
- * post's own attachments; a line naming anything else draws nothing. One not
- * yet uploaded ("local:…", the reply box's Preview) is drawn from its file.
+ * drawn there by AttachmentGrid when it is one of `photos`, the post's own
+ * attachments; a line naming anything else draws nothing. Photographs one
+ * after another are one grid (the owner, 2026-11-23: six drawn full width
+ * took about four screens): four tiles, the last saying how many more. One
+ * not yet uploaded ("local:…", the reply box's Preview) is drawn from its file.
  */
 export function PostBody({
   text,
@@ -41,6 +43,8 @@ export function PostBody({
   const members = useMentionedMembers(text);
   const { organizations } = useOrganizations();
   const local = useContext(LocalPhotos);
+  const shows = (path: string) =>
+    path.startsWith('local:') ? !!local(path) : photos.includes(path);
   const html = (words: string) =>
     sanitizeHtml(
       markdownToHtml(
@@ -78,12 +82,21 @@ export function PostBody({
     );
   }
 
+  // Photographs one after another (only blank lines between) are one run.
+  const runs: ({ kind: 'words'; text: string } | { kind: 'photos'; paths: string[] })[] = [];
+  for (const piece of pieces) {
+    const last = runs.at(-1);
+    if (piece.kind === 'words') runs.push(piece);
+    else if (last?.kind === 'photos') last.paths.push(piece.path);
+    else runs.push({ kind: 'photos', paths: [piece.path] });
+  }
+
   return (
     // biome-ignore lint/a11y/useKeyWithClickEvents: the links inside take the keys; Enter on one is a click.
     // biome-ignore lint/a11y/noStaticElementInteractions: only clicks on a profile link inside are handled.
     <div className={className} onClick={follow}>
-      {pieces.map((piece, index) => {
-        if (piece.kind === 'words') {
+      {runs.map((run, index) => {
+        if (run.kind === 'words') {
           return (
             <div
               // The pieces never move about: the index is their place.
@@ -91,26 +104,15 @@ export function PostBody({
               key={index}
               className="[&>*+*]:mt-2"
               // biome-ignore lint/security/noDangerouslySetInnerHtml: sanitizeHtml rebuilds the string from an allowlist
-              dangerouslySetInnerHTML={{ __html: html(piece.text) }}
+              dangerouslySetInnerHTML={{ __html: html(run.text) }}
             />
           );
         }
-        if (piece.path.startsWith('local:')) {
-          const url = local(piece.path);
-          return url ? (
-            <img
-              // biome-ignore lint/suspicious/noArrayIndexKey: see above.
-              key={index}
-              src={url}
-              alt="Photograph"
-              className="block h-auto max-h-[20rem] w-auto max-w-full rounded-[10px]"
-            />
-          ) : null;
-        }
-        return photos.includes(piece.path) ? (
+        const shown = run.paths.filter(shows);
+        return shown.length > 0 ? (
           // biome-ignore lint/suspicious/noArrayIndexKey: see above.
           <div key={index} className="[&>div]:mt-0">
-            <AttachmentGrid paths={[piece.path]} from={from} eager={eager} />
+            <AttachmentGrid paths={shown} from={from} eager={eager} />
           </div>
         ) : null;
       })}
