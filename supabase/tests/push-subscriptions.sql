@@ -154,7 +154,7 @@ select public.push_subscribe('https://web.push.apple.com/anon', :p256dh, :auth);
 rollback to savepoint anon_write;
 
 \echo ''
-\echo '== 12b. a device's kind and versions are noted only by its holder (20261123020000; expect null, then iphone-app) =='
+\echo '== 12b. a device''s kind and versions are noted only by its holder (20261123020000; expect null, then iphone-app) =='
 set local role postgres;
 insert into public.push_subscriptions (endpoint, member_id, p256dh, auth)
 values ('https://web.push.apple.com/noted', 'aaaaaaaa-4444-0000-0000-00000000000a', :p256dh, :auth);
