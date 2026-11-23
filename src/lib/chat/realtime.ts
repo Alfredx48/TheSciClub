@@ -40,6 +40,14 @@ export interface RealtimeRowsOptions {
    * with the screen's own catch-up rather than beside it.
    */
   onReturn?: () => void;
+  /**
+   * Given, the first subscribe calls this instead of `onChange` (2026-11-23).
+   * The screen's own first read was a moment ago, so the catch-up only has to
+   * cover that moment: a cheaper read, such as the posts alone, which re-reads
+   * the rest only if something did arrive. Reconnections still call
+   * `onChange`: those cover a gap of any length.
+   */
+  onFirstSubscribe?: () => void;
 }
 
 /**
@@ -55,6 +63,7 @@ export function useRealtimeRows({
   enabled = true,
   onRow,
   onReturn,
+  onFirstSubscribe,
 }: RealtimeRowsOptions) {
   // Callbacks held in refs so the socket is not rebuilt on every caller render.
   const latest = useRef(onChange);
@@ -63,6 +72,8 @@ export function useRealtimeRows({
   latestRow.current = onRow;
   const latestReturn = useRef(onReturn);
   latestReturn.current = onReturn;
+  const latestFirst = useRef(onFirstSubscribe);
+  latestFirst.current = onFirstSubscribe;
 
   useEffect(() => {
     if (!enabled) return;
@@ -70,6 +81,7 @@ export function useRealtimeRows({
     const supabase = getSupabase();
     channelCount += 1;
     const channel = supabase.channel(`chat:${table}:${channelCount}`);
+    let subscribed = false;
 
     const fire = () => {
       if (!pageHidden()) latest.current();
@@ -97,7 +109,12 @@ export function useRealtimeRows({
       )
       .subscribe((status) => {
         // First subscribe and every reconnection (see the header).
-        if (status === REALTIME_SUBSCRIBE_STATES.SUBSCRIBED) fire();
+        if (status !== REALTIME_SUBSCRIBE_STATES.SUBSCRIBED) return;
+        const first = !subscribed;
+        subscribed = true;
+        if (first && latestFirst.current) {
+          if (!pageHidden()) latestFirst.current();
+        } else fire();
       });
 
     // Focus or shown again, heard once (src/lib/page-return.ts).

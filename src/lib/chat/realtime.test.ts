@@ -116,6 +116,24 @@ describe('useRealtimeRows', () => {
     expect(onChange).toHaveBeenCalledTimes(2);
   });
 
+  // The first catch-up only covers the moment since the screen's own read
+  // (2026-11-23: a topic read everything twice on opening); a reconnection
+  // covers a gap of any length, so it still reads it all.
+  it('gives the first subscribe to onFirstSubscribe, and every reconnection to onChange', () => {
+    const onChange = vi.fn();
+    const onFirstSubscribe = vi.fn();
+    renderHook(() => {
+      useRealtimeRows({ table: 'chat_posts', onChange, onFirstSubscribe });
+    });
+    only().status('SUBSCRIBED');
+    expect(onFirstSubscribe).toHaveBeenCalledTimes(1);
+    expect(onChange).not.toHaveBeenCalled();
+    only().status('CLOSED');
+    only().status('SUBSCRIBED');
+    expect(onFirstSubscribe).toHaveBeenCalledTimes(1);
+    expect(onChange).toHaveBeenCalledTimes(1);
+  });
+
   it('refetches when the window comes back', () => {
     const onChange = vi.fn();
     renderHook(() => {

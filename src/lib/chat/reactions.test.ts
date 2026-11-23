@@ -22,6 +22,7 @@ vi.mock('@/lib/chat/realtime', () => ({
     onChange,
     onRow,
     onReturn,
+    onFirstSubscribe: _first,
     ...watched
   }: {
     table: string;
@@ -30,6 +31,7 @@ vi.mock('@/lib/chat/realtime', () => ({
     onChange: () => void;
     onRow?: (row: Record<string, unknown>) => void;
     onReturn?: () => void;
+    onFirstSubscribe?: () => void;
   }) => {
     db.watched = watched;
     db.changed = onChange;

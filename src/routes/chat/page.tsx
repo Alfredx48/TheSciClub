@@ -60,6 +60,9 @@ const SEGMENTS: [ChatSegment, string][] = [
   ['rooms', 'Rooms'],
 ];
 
+/** A first subscribe that needs no read of its own. */
+const nothing = () => undefined;
+
 export default function ChatPage() {
   // The segment lives in the URL rather than in component state, for the
   // reason /events found first: opening a room and pressing back landed on
@@ -99,7 +102,14 @@ export default function ChatPage() {
   useRealtimeRows({ table: 'chat_messages', onChange: reloadThreadsSoon });
   // Every reply in every room changes a topic: recount at most once per 1.5 s.
   const reloadStatsSoon = useCoalesced(reloadStats);
-  useRealtimeRows({ table: 'chat_topics', onChange: reloadStatsSoon });
+  // Counts, not messages: the first subscribe reads nothing, as the screen has
+  // just read them (2026-11-23: rooms and counts were read twice on opening).
+  // A change or a return reads them again.
+  useRealtimeRows({
+    table: 'chat_topics',
+    onChange: reloadStatsSoon,
+    onFirstSubscribe: nothing,
+  });
   // And the rooms themselves, since a member can start one. A room appearing on
   // everybody's list the moment it is started is the point of letting members
   // start them, and chat_rooms carries nothing private — the select policy is
@@ -109,6 +119,7 @@ export default function ChatPage() {
   useRealtimeRows({
     table: 'chat_rooms',
     onChange: reloadRooms,
+    onFirstSubscribe: nothing,
     onRow: () => {
       reloadRooms();
       reloadStatsSoon();

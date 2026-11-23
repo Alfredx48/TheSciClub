@@ -231,6 +231,9 @@ export function useReactions(
     onChange: reload,
     onRow,
     onReturn: readOnReturn,
+    // Reactions, not messages: the screen has just read them (2026-11-23: read
+    // twice on every opening). A change or a return reads them again.
+    onFirstSubscribe: () => undefined,
     enabled: live && Boolean(within && memberId && key),
   });
 

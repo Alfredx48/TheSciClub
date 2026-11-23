@@ -395,6 +395,11 @@ export interface TopicPostsState {
   /** Reload, and know when it has landed. */
   refresh: () => Promise<void>;
   /**
+   * The live connection's first catch-up (useTopicRealtime): the posts alone,
+   * and the whole topic again only if they changed. True when they had.
+   */
+  catchUp: () => Promise<boolean>;
+  /**
    * The room the topic is in now, when the address names another: it was
    * moved (chat_move_topic) after the link was made. Null otherwise.
    */
@@ -431,6 +436,9 @@ export function useTopicPosts(
   const inFlight = useRef<AbortController | null>(null);
   // This visit has marked once already.
   const opened = useRef(false);
+  // The read now landing, and the posts it set, for catchUp.
+  const running = useRef<Promise<void>>(Promise.resolve());
+  const shown = useRef<ChatPost[]>([]);
 
   const load = useCallback(async () => {
     if (!roomId || !topicId) {
@@ -516,7 +524,9 @@ export function useTopicPosts(
           ? { ...toTopic(found), viewCount: Number(found.view_count) + (counted ? 1 : 0) }
           : null,
       );
-      setPosts((postRows.data ?? []).map(toPost));
+      const drawn = (postRows.data ?? []).map(toPost);
+      shown.current = drawn;
+      setPosts(drawn);
       setLastReadAt(reads.data?.last_read_at ?? null);
       setError(null);
       setLoading(false);
@@ -538,7 +548,7 @@ export function useTopicPosts(
   }, [roomId, topicId, memberId]);
 
   useEffect(() => {
-    void load();
+    running.current = load();
     return () => {
       inFlight.current?.abort();
     };
@@ -554,6 +564,7 @@ export function useTopicPosts(
 
   const refresh = useCallback(() => {
     const run = load();
+    running.current = run;
     // A return's catch-up: what counts after it waits for it and its mark.
     holdReturn(run);
     return run;
@@ -562,7 +573,30 @@ export function useTopicPosts(
     void refresh();
   }, [refresh]);
 
-  return { topic, posts, lastReadAt, loading, error, reload, refresh, movedTo };
+  // The screen's first read was a moment before the live connection opened:
+  // only a post written in that moment can be missing, so the posts alone are
+  // read, not the topic, the read mark and the view (2026-11-23: each was read
+  // twice on every opening).
+  const catchUp = useCallback(async () => {
+    await running.current;
+    if (!roomId || !topicId) return false;
+    const { data, error } = await readPages<PostRow>((from, to) =>
+      getSupabase()
+        .from('chat_posts')
+        .select(POST_COLUMNS)
+        .eq('topic_id', topicId)
+        .order('created_at')
+        .order('id')
+        .range(from, to),
+    );
+    const same =
+      !error && !!data && JSON.stringify(data.map(toPost)) === JSON.stringify(shown.current);
+    if (same) return false;
+    await refresh();
+    return true;
+  }, [roomId, topicId, refresh]);
+
+  return { topic, posts, lastReadAt, loading, error, reload, refresh, catchUp, movedTo };
 }
 
 /**
@@ -571,7 +605,7 @@ export function useTopicPosts(
  */
 export function useTopicRealtime(
   topicId: string | undefined,
-  posts: Pick<TopicPostsState, 'refresh'>,
+  posts: Pick<TopicPostsState, 'refresh' | 'catchUp'>,
   edits: { reload: () => void },
   likes: { reload: () => void },
 ): void {
@@ -583,6 +617,15 @@ export function useTopicRealtime(
       // An edit arrives as an update to the post; its earlier version is a
       // new row here.
       edits.reload();
+    },
+    // A post in the moment before the connection opened: then the likes and
+    // edits too, as for any change.
+    onFirstSubscribe: () => {
+      void posts.catchUp().then((changed) => {
+        if (!changed) return;
+        likes.reload();
+        edits.reload();
+      });
     },
     enabled: Boolean(topicId),
   });
