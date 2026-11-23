@@ -8,10 +8,20 @@
  * rest of the formatting is left behind, as it is in the plain text.
  */
 
-/** The clipboard's words with their links as Markdown, or null when it has no link. */
-export function linkedPaste(data: DataTransfer | null): string | null {
+/**
+ * A message is drawn as plain words, its bare addresses as links (LinkedText), and the iPhone
+ * app carries its own copy of that, so a message's link is written `words (address)`
+ * (the owner, 2026-11-23): read the same on every copy of the app and in a notification.
+ */
+export type LinkStyle = 'markdown' | 'plain';
+
+/** The clipboard's words with their links kept, or null when it has no link. */
+export function linkedPaste(
+  data: DataTransfer | null,
+  style: LinkStyle = 'markdown',
+): string | null {
   const html = data?.getData('text/html');
-  return html ? markdownFromHtml(html) : null;
+  return html ? markdownFromHtml(html, style) : null;
 }
 
 /** Set apart by a blank line, as paragraphs are. */
@@ -22,7 +32,7 @@ const SKIP = /^(SCRIPT|STYLE|META|TITLE|HEAD|TEMPLATE)$/;
 /** Addresses a post may link to; anything else is kept as its words. */
 const LINKABLE = /^(https?:|mailto:)/i;
 
-export function markdownFromHtml(html: string): string | null {
+export function markdownFromHtml(html: string, style: LinkStyle = 'markdown'): string | null {
   const body = new DOMParser().parseFromString(html, 'text/html').body;
   const hasLink = [...body.querySelectorAll('a[href]')].some((a) =>
     LINKABLE.test(a.getAttribute('href')?.trim() ?? ''),
@@ -51,7 +61,13 @@ export function markdownFromHtml(html: string): string | null {
       const href = node.getAttribute('href')?.trim() ?? '';
       const words = node.textContent.replace(/\s+/g, ' ').trim();
       if (LINKABLE.test(href) && words) {
-        out += `[${words.replace(/[[\]\\]/g, '\\$&')}](${href.replace(/\(/g, '%28').replace(/\)/g, '%29').replace(/\s/g, '%20')})`;
+        const address = href.replace(/\(/g, '%28').replace(/\)/g, '%29').replace(/\s/g, '%20');
+        if (style === 'plain') {
+          // An address as its own words is written once.
+          out += sameAddress(words, href) ? address : `${words} (${address})`;
+        } else {
+          out += `[${words.replace(/[[\]\\]/g, '\\$&')}](${address})`;
+        }
         return;
       }
     }
@@ -69,6 +85,17 @@ export function markdownFromHtml(html: string): string | null {
     .join('\n')
     .replace(/\n{3,}/g, '\n\n')
     .trim();
+}
+
+/** "example.org/a" and "https://www.example.org/a/" are the same address. */
+function sameAddress(words: string, href: string): boolean {
+  const bare = (address: string) =>
+    address
+      .toLowerCase()
+      .replace(/^(https?:\/\/|mailto:)/, '')
+      .replace(/^www\./, '')
+      .replace(/\/$/, '');
+  return bare(words) === bare(href);
 }
 
 /** Puts `words` in place of the box's selection, as typing would: the box's own change follows. */

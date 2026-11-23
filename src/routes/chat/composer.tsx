@@ -4,6 +4,7 @@ import { useAnnounce } from '@/lib/announce';
 import { MAX_ATTACHMENTS } from '@/lib/chat/attachments';
 import { forgetHandedPhotos, handedPhotos, readKeptDraft, writeDraft } from '@/lib/chat/drafts';
 import type { MentionScope } from '@/lib/mentions';
+import { linkedPaste, pasteInto } from '@/lib/paste-links';
 import { type PhotoTarget, pastePhotos } from '@/lib/paste-photos';
 import { noteSent } from '@/lib/push/notifications';
 import { useDraftFiles } from '@/lib/use-draft-media';
@@ -457,6 +458,12 @@ export function Composer({
       {...(mentions ? mention.boxProps : {})}
       onPaste={(event) => {
         pastePhotos(event, photos.current);
+        if (event.defaultPrevented) return;
+        // Copied words keep their links, as words and address (lib/paste-links.ts).
+        const linked = linkedPaste(event.clipboardData, 'plain');
+        if (linked === null) return;
+        event.preventDefault();
+        pasteInto(event.currentTarget, linked);
       }}
       onChange={(event) => {
         draftVersion.current += 1;
