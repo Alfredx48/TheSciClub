@@ -1,7 +1,8 @@
 import { List, MapPin } from 'lucide-react';
-import { useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
 import { useLocation, useSearchParams } from 'react-router-dom';
 import { loadMapCanvas } from '@/lib/map';
+import { noteMapUsed } from '@/lib/map-used';
 import { cn } from '@/lib/utils';
 import type * as ClubMapModule from '@/routes/map/club-map';
 
@@ -21,6 +22,11 @@ export function useListOrMap(path: string): [ListOrMap, (next: ListOrMap) => voi
   const { pathname } = useLocation();
   const here = pathname === path || pathname === `${path}/`;
   const view: ListOrMap = here && params.get('view') === 'map' ? 'map' : 'list';
+  // Shown, however it was reached (the switch, a link, a refresh): from now on
+  // Peers and Events fetch the map ahead (prefetchMap).
+  useEffect(() => {
+    if (view === 'map') noteMapUsed();
+  }, [view]);
   const setView = useCallback(
     (next: ListOrMap) => {
       setParams(
@@ -80,7 +86,10 @@ export function ViewSwitch({
       onClick={() => {
         onChange(value);
       }}
-      {...(value === 'map' ? { onPointerEnter: preloadMap, onFocus: preloadMap } : {})}
+      // On a phone a touch's pointerdown comes before the click: the map's script starts then.
+      {...(value === 'map'
+        ? { onPointerEnter: preloadMap, onPointerDown: preloadMap, onFocus: preloadMap }
+        : {})}
       className={cn(
         'flex min-h-[44px] items-center gap-1.5 rounded-full font-semibold text-[0.84375rem] transition-colors',
         view === value ? 'min-w-[44px] justify-center' : 'px-3.5',

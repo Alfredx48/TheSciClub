@@ -18,6 +18,10 @@ export type {
 } from 'maplibre-gl';
 export type { MapCanvasProps, MapMarker } from './map-canvas';
 
+import { mapUsedBefore } from '@/lib/map-used';
+
+export { noteMapUsed } from '@/lib/map-used';
+
 export const loadMapCanvas = () => import('./map-canvas');
 
 /** The one face the basemap keeps glyphs for (style.ts): a caller's labels use it too. */
@@ -40,9 +44,13 @@ let prefetched = false;
 /**
  * The map's script, its worker and both archives' headers, never tiles. Once
  * a page, silently: a failure leaves the map to load when opened.
+ *
+ * Only on a device that has shown the map before (the owner, 2026-11-23):
+ * about 1 MB of script, fetched on every opening of Peers and Events, for
+ * members who stay on the list. Others get it when they reach for Map.
  */
 export function prefetchMap(): void {
-  if (prefetched || !mayPrefetchMap()) return;
+  if (prefetched || !mapUsedBefore() || !mayPrefetchMap()) return;
   prefetched = true;
   void loadMapCanvas()
     .then((module) => module.warmMap())

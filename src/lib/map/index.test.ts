@@ -11,17 +11,28 @@ async function fresh(connection?: { saveData?: boolean; effectiveType?: string }
 }
 
 afterEach(() => {
+  localStorage.clear();
   Object.defineProperty(navigator, 'connection', { value: undefined, configurable: true });
 });
 
 describe('prefetchMap', () => {
   it('warms the map once a page', async () => {
-    const { prefetchMap } = await fresh({ effectiveType: '4g' });
+    const { prefetchMap, noteMapUsed } = await fresh({ effectiveType: '4g' });
+    noteMapUsed();
     prefetchMap();
     prefetchMap();
     await vi.waitFor(() => {
       expect(warmMap).toHaveBeenCalledTimes(1);
     });
+  });
+
+  // About 1 MB of script on every opening of Peers and Events, for nothing,
+  // when the member never opens the map (2026-11-23).
+  it('waits for the map to be opened on a device that has never shown it', async () => {
+    const { prefetchMap } = await fresh({ effectiveType: '4g' });
+    prefetchMap();
+    await Promise.resolve();
+    expect(warmMap).not.toHaveBeenCalled();
   });
 
   it('works where the browser says nothing of its connection', async () => {
@@ -35,7 +46,8 @@ describe('prefetchMap', () => {
       { effectiveType: '2g' },
       { effectiveType: 'slow-2g' },
     ]) {
-      const { prefetchMap } = await fresh(connection);
+      const { prefetchMap, noteMapUsed } = await fresh(connection);
+      noteMapUsed();
       prefetchMap();
       await Promise.resolve();
       expect(warmMap, JSON.stringify(connection)).not.toHaveBeenCalled();
@@ -43,7 +55,8 @@ describe('prefetchMap', () => {
   });
 
   it('stays silent when warming fails', async () => {
-    const { prefetchMap } = await fresh({ effectiveType: '4g' });
+    const { prefetchMap, noteMapUsed } = await fresh({ effectiveType: '4g' });
+    noteMapUsed();
     warmMap.mockRejectedValueOnce(new Error('offline'));
     expect(() => {
       prefetchMap();
