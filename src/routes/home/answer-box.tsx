@@ -1,20 +1,39 @@
-import { useRef, useState } from 'react';
-import { flushSync } from 'react-dom';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { attachmentFolder } from '@/lib/chat/attachments';
+import { memberDraftKey } from '@/lib/chat/drafts';
 import { POST_MAX } from '@/lib/chat/post-length';
 import { sendPost } from '@/lib/chat/topics';
 import { describeThrown } from '@/lib/describe-error';
-import { useMentionSuggestions } from '@/routes/chat/mention-suggestions';
-import { PostOptions } from '@/routes/chat/post-options';
+
+// The reply box (TipTap, the largest part of a topic's code) is not needed to
+// read Home: fetched when Answer is pressed, and kept once fetched.
+let composer: ReturnType<typeof importComposer> | null = null;
+const importComposer = () => import('@/routes/chat/post-composer');
+const loadComposer = () => {
+  composer ??= importComposer().catch((e: unknown) => {
+    composer = null;
+    throw e;
+  });
+  return composer;
+};
+const PostComposer = lazy(() =>
+  loadComposer().then((module) => ({ default: module.PostComposer })),
+);
 
 /**
  * Answering a question from Home, in its card (the owner, 2026-10-10).
  *
- * "Answer" opens a box under the question and puts the cursor in it within
- * the same tap: iOS raises the keyboard only for focus given inside the
- * gesture, so the box is drawn synchronously (flushSync) and focused before
- * the handler returns. Posting sends the answer as a reply to the topic and
- * opens the topic on it, so the member sees it among the others.
+ * "Answer" opens the topic's own reply box under the question (the owner,
+ * 2026-11-23: "When you tap answer you do not get a rich text box"): written as
+ * it will look, with photographs, Preview and the Markdown switch, as everywhere
+ * a member replies. Its draft is the topic's, so one put down here is waiting in
+ * the topic, and the other way round. Posting sends the answer as a reply to
+ * the topic and opens the topic on it, so the member sees it among the others.
+ *
+ * The cursor goes into the box once it is drawn. iOS raises the keyboard only
+ * for focus given inside the tap, so on the first Answer a phone may need a
+ * second tap in the box; the box is fetched from the first touch of Answer.
  *
  * Everything here is `relative z-[1]`: the card's title link is stretched over
  * the whole card, and anything not lifted above it is pressed through to the
@@ -35,25 +54,40 @@ export function AnswerBox({
   linkState: unknown;
 }) {
   const navigate = useNavigate();
-  const box = useRef<HTMLTextAreaElement>(null);
   const [open, setOpen] = useState(false);
-  const [text, setText] = useState('');
-  const [saving, setSaving] = useState(false);
-  const [failure, setFailure] = useState<string | null>(null);
   // Naming nobody (20261120100000).
   const [anonymous, setAnonymous] = useState(false);
-  const id = `answer-${topicId}`;
-  const mention = useMentionSuggestions({ box, value: text, onChange: setText });
+  const area = useRef<HTMLDivElement>(null);
+
+  // The cursor into the box as soon as it is drawn: the editor is built after
+  // the box is, so it is watched for rather than focused at once.
+  useEffect(() => {
+    if (!open || !area.current) return;
+    const within = area.current;
+    const focusBox = () => {
+      const box = within.querySelector<HTMLElement>('[contenteditable="true"], textarea');
+      if (!box) return false;
+      box.focus();
+      return true;
+    };
+    if (focusBox()) return;
+    const watch = new MutationObserver(() => {
+      if (focusBox()) watch.disconnect();
+    });
+    watch.observe(within, { childList: true, subtree: true });
+    return () => {
+      watch.disconnect();
+    };
+  }, [open]);
 
   if (!open) {
     return (
       <button
         type="button"
+        onPointerDown={() => void loadComposer()}
+        onFocus={() => void loadComposer()}
         onClick={() => {
-          flushSync(() => {
-            setOpen(true);
-          });
-          box.current?.focus();
+          setOpen(true);
         }}
         aria-label={`Answer ${title}`}
         className="relative z-[1] min-h-[2.25rem] rounded-full bg-gold px-4 font-bold font-head text-[0.8125rem] text-on-gold transition-colors hover:bg-gold-hi"
@@ -63,87 +97,45 @@ export function AnswerBox({
     );
   }
 
-  function post() {
-    const words = text.trim();
-    if (!words || saving) return;
-    setSaving(true);
-    setFailure(null);
-    sendPost(topicId, answerAs, words, [], null, anonymous)
-      .then((result) => {
-        if (!result.ok) {
-          setFailure(result.error);
-          return;
-        }
-        void navigate(`/chat/rooms/${roomId}/topics/${topicId}?post=${result.value.id}`, {
-          state: linkState,
-        });
-      })
-      .catch((e: unknown) => {
-        setFailure(describeThrown(e, 'Your answer was not posted.'));
-      })
-      .finally(() => {
-        setSaving(false);
-      });
-  }
-
   return (
-    <form
-      className="relative z-[1] mt-1 w-full basis-full"
-      onSubmit={(event) => {
-        event.preventDefault();
-        post();
-      }}
-    >
-      <label htmlFor={id} className="sr-only">
-        Your answer to {title}
-      </label>
-      <textarea
-        id={id}
-        ref={box}
-        rows={3}
-        maxLength={POST_MAX}
-        value={text}
-        onChange={(event) => {
-          setText(event.target.value);
-        }}
-        {...mention.boxProps}
-        onKeyDown={(event) => {
-          mention.onKeyDown(event);
-        }}
-        placeholder="Your answer…"
-        className="w-full rounded-[12px] border-[1.6px] border-line bg-canvas px-3.5 py-2.5 text-[1rem] text-ink leading-[1.45] outline-none focus:border-emphasis"
-      />
-      {mention.list}
-      <PostOptions
-        id={id}
-        className="mt-0"
-        noun="answer"
-        anonymous={{ checked: anonymous, onChange: setAnonymous }}
-      />
-      {failure ? (
-        <p role="alert" className="mt-1 text-[0.8125rem] text-destructive leading-[1.45]">
-          {failure} Your answer is still here.
-        </p>
-      ) : null}
-      <div className="mt-2 flex flex-wrap gap-2">
-        <button
-          type="submit"
-          disabled={!text.trim() || saving}
-          className="min-h-[44px] flex-1 rounded-[12px] bg-gold px-5 font-bold font-head text-[0.9375rem] text-on-gold transition-colors hover:bg-gold-hi disabled:opacity-40"
-        >
-          {saving ? 'Posting…' : 'Post answer'}
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            setOpen(false);
-            setFailure(null);
+    <div ref={area} className="relative z-[1] mt-1 w-full basis-full [&>section]:mt-0">
+      <Suspense
+        fallback={
+          <p className="py-4 text-center text-[0.8125rem] text-grey" role="status">
+            Loading the answer box…
+          </p>
+        }
+      >
+        <PostComposer
+          draftKey={memberDraftKey(answerAs, `topic:${topicId}`)}
+          placeholder={`Your answer to ${title}`}
+          sendLabel="Post answer"
+          maxLength={POST_MAX}
+          folder={attachmentFolder('room', roomId)}
+          anonymousOption={{ checked: anonymous, onChange: setAnonymous }}
+          onSend={async (body, paths, asNobody) => {
+            try {
+              const result = await sendPost(topicId, answerAs, body, paths, null, asNobody);
+              if (!result.ok) return result.error;
+              void navigate(`/chat/rooms/${roomId}/topics/${topicId}?post=${result.value.id}`, {
+                state: linkState,
+              });
+              return null;
+            } catch (e: unknown) {
+              return describeThrown(e, 'Your answer was not posted.');
+            }
           }}
-          className="min-h-[44px] rounded-[12px] bg-tint px-4 font-semibold text-[0.875rem] text-emphasis hover:bg-line"
-        >
-          Cancel
-        </button>
-      </div>
-    </form>
+        />
+      </Suspense>
+      <button
+        type="button"
+        onClick={() => {
+          setOpen(false);
+        }}
+        className="mt-2 min-h-[44px] w-full rounded-[12px] bg-tint px-4 font-semibold text-[0.875rem] text-emphasis hover:bg-line"
+      >
+        Cancel
+      </button>
+    </div>
   );
 }

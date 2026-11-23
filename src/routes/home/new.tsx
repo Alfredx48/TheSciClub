@@ -7,6 +7,7 @@ import { roomsByCategory, useChatRooms } from '@/lib/chat/rooms';
 import { createTopic } from '@/lib/chat/topics';
 import type { ChatRoom } from '@/lib/chat/types';
 import { describeThrown } from '@/lib/describe-error';
+import { linkedPaste, pasteInto } from '@/lib/paste-links';
 import { useMentionSuggestions } from '@/routes/chat/mention-suggestions';
 import { PostOptions } from '@/routes/chat/post-options';
 import { SimilarTopics } from '@/routes/chat/similar-topics';
@@ -256,6 +257,13 @@ export default function HomeNewPage() {
               {...mention.boxProps}
               onKeyDown={(event) => {
                 mention.onKeyDown(event);
+              }}
+              onPaste={(event) => {
+                // Copied words keep their links (lib/paste-links.ts).
+                const linked = linkedPaste(event.clipboardData);
+                if (linked === null) return;
+                event.preventDefault();
+                pasteInto(event.currentTarget, linked);
               }}
               placeholder="What you have tried, or anything that helps people answer."
               className={`${FIELD} text-[0.9375rem] leading-[1.5]`}

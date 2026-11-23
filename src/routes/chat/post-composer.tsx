@@ -24,6 +24,7 @@ import { forgetHandedPhotos, handedPhotos, readKeptDraft, writeDraft } from '@/l
 import { photoPaths } from '@/lib/markdown';
 import { roundTrips } from '@/lib/markdown-doc';
 import type { MentionScope } from '@/lib/mentions';
+import { linkedPaste, pasteInto } from '@/lib/paste-links';
 import { pastedImages } from '@/lib/paste-photos';
 import { noteSent } from '@/lib/push/notifications';
 import { useDraftMedia } from '@/lib/use-draft-media';
@@ -772,9 +773,16 @@ export function PostComposer({
               {...(editing?.plain ? {} : markdownMention.boxProps)}
               onPaste={(event) => {
                 const images = pastedImages(event.clipboardData);
-                if (images.length === 0) return;
+                if (images.length > 0) {
+                  event.preventDefault();
+                  putPhotos(images);
+                  return;
+                }
+                // Copied words keep their links (lib/paste-links.ts).
+                const linked = editing?.plain ? null : linkedPaste(event.clipboardData);
+                if (linked === null) return;
                 event.preventDefault();
-                putPhotos(images);
+                pasteInto(event.currentTarget, linked);
               }}
               onChange={(event) => {
                 change(event.target.value);

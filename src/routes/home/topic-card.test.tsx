@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { useState } from 'react';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type * as Topics from '@/lib/chat/topics';
@@ -21,6 +22,45 @@ vi.mock('@/lib/chat/topics', async (importOriginal) => ({
     );
   },
 }));
+
+/**
+ * The reply box stands in for itself: its editor (TipTap) does not run here. What is checked is
+ * what the card gives it and does with what it sends.
+ */
+vi.mock('@/routes/chat/post-composer', () => {
+  return {
+    PostComposer: (props: {
+      placeholder: string;
+      sendLabel: string;
+      draftKey?: string;
+      folder: string;
+      onSend: (body: string, paths: string[], anonymous: boolean) => Promise<string | null>;
+    }) => {
+      const [text, setText] = useState('');
+      const [failure, setFailure] = useState<string | null>(null);
+      return (
+        <section aria-label="Your reply" data-draft={props.draftKey} data-folder={props.folder}>
+          <textarea
+            aria-label={props.placeholder}
+            value={text}
+            onChange={(event) => {
+              setText(event.target.value);
+            }}
+          />
+          {failure ? <p role="alert">{failure}</p> : null}
+          <button
+            type="button"
+            onClick={() => {
+              void props.onSend(text, ['rooms/bowel/1.webp'], false).then(setFailure);
+            }}
+          >
+            {props.sendLabel}
+          </button>
+        </section>
+      );
+    },
+  };
+});
 
 beforeEach(() => {
   sent.calls = [];
@@ -323,23 +363,29 @@ describe('answering a question from Home', () => {
     expect(screen.queryByRole('button', { name: /^Answer/ })).toBeNull();
   });
 
-  it('opens a box with the cursor in it, in the same tap', async () => {
+  it('opens the topic’s own reply box, with its draft, and the cursor in it', async () => {
     const user = userEvent.setup();
     renderCard({ topic: question(), answerAs: 'me' });
     await user.click(screen.getByRole('button', { name: 'Answer Best cushion?' }));
-    expect(screen.getByRole('textbox', { name: 'Your answer to Best cushion?' })).toHaveFocus();
+    const box = await screen.findByRole('textbox', { name: 'Your answer to Best cushion?' });
+    await vi.waitFor(() => {
+      expect(box).toHaveFocus();
+    });
+    const reply = screen.getByRole('region', { name: 'Your reply' });
+    expect(reply).toHaveAttribute('data-draft', 'me:topic:q1');
+    expect(reply).toHaveAttribute('data-folder', 'rooms/bowel');
   });
 
   it('posts the answer and opens the topic on it', async () => {
     const user = userEvent.setup();
     renderCard({ topic: question(), answerAs: 'me' });
     await user.click(screen.getByRole('button', { name: 'Answer Best cushion?' }));
-    await user.type(screen.getByRole('textbox', { name: /Your answer/ }), 'A ROHO.');
+    await user.type(await screen.findByRole('textbox', { name: /Your answer/ }), 'A ROHO.');
     await user.click(screen.getByRole('button', { name: 'Post answer' }));
-    expect(sent.calls).toEqual([['q1', 'me', 'A ROHO.', [], null, false]]);
     expect(
       await screen.findByText('at /chat/rooms/bowel/topics/q1 with {"from":"home"}'),
     ).toBeInTheDocument();
+    expect(sent.calls).toEqual([['q1', 'me', 'A ROHO.', ['rooms/bowel/1.webp'], null, false]]);
   });
 
   it('keeps the answer when it is refused', async () => {
@@ -347,7 +393,7 @@ describe('answering a question from Home', () => {
     sent.failure = 'You cannot post in this room.';
     renderCard({ topic: question(), answerAs: 'me' });
     await user.click(screen.getByRole('button', { name: 'Answer Best cushion?' }));
-    await user.type(screen.getByRole('textbox', { name: /Your answer/ }), 'A ROHO.');
+    await user.type(await screen.findByRole('textbox', { name: /Your answer/ }), 'A ROHO.');
     await user.click(screen.getByRole('button', { name: 'Post answer' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('You cannot post in this room.');
     expect(screen.getByRole('textbox', { name: /Your answer/ })).toHaveValue('A ROHO.');
@@ -357,6 +403,7 @@ describe('answering a question from Home', () => {
     const user = userEvent.setup();
     renderCard({ topic: question(), answerAs: 'me' });
     await user.click(screen.getByRole('button', { name: 'Answer Best cushion?' }));
+    await screen.findByRole('textbox', { name: /Your answer/ });
     await user.click(screen.getByRole('button', { name: 'Cancel' }));
     expect(screen.queryByRole('textbox', { name: /Your answer/ })).toBeNull();
     expect(screen.getByRole('button', { name: 'Answer Best cushion?' })).toBeInTheDocument();
