@@ -21,8 +21,10 @@
  * What it will fetch is decided by `mayFetch` (extract.ts), on the first
  * address and on every redirect, because the address is whatever a member
  * typed; and by `resolvesPublicly`, on where the name actually resolves.
- * With LINK_FETCH_URL set, the fetch itself is made by the link-fetch Worker
- * on Cloudflare, so a name that changes its answer cannot reach Supabase. Pages are read to 512 KB, pictures to 2 MB, each request to six
+ * The fetch itself is made by the link-fetch Worker on Cloudflare, so a name
+ * that changes its answer cannot reach Supabase. Without LINK_FETCH_URL and
+ * LINK_FETCH_SECRET there is no preview: fetching from here would reopen that
+ * gap (2026-11-23). Pages are read to 512 KB, pictures to 2 MB, each request to six
  * seconds. Nothing it fails at is an error a member sees: the link stays a
  * link, without a card.
  */
@@ -48,13 +50,12 @@ declare const Deno: {
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
 const SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
 const BUCKET = 'link-previews';
-const USER_AGENT = 'Mozilla/5.0 (compatible; TheSCIClubLinkPreview/1.0; +https://thesciclub.com)';
 const PAGE_LIMIT = 512 * 1024;
 const IMAGE_LIMIT = 2 * 1024 * 1024;
 const TIMEOUT_MS = 6000;
 const MAX_REDIRECTS = 4;
 const TABLES = new Set(['chat_messages', 'chat_posts']);
-/** The link-fetch Worker; unset, link-preview fetches for itself as before. */
+/** The link-fetch Worker; unset, nothing is fetched. */
 const FETCH_URL = Deno.env.get('LINK_FETCH_URL') ?? '';
 const FETCH_SECRET = Deno.env.get('LINK_FETCH_SECRET') ?? '';
 
@@ -123,6 +124,7 @@ interface Fetched {
  * that is not a plain success.
  */
 async function fetchLimited(start: string, limit: number, accept: string): Promise<Fetched | null> {
+  if (!FETCH_URL || !FETCH_SECRET) return null;
   let href = start;
   for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
     // How the address is written, then where its name really leads.
@@ -132,17 +134,7 @@ async function fetchLimited(start: string, limit: number, accept: string): Promi
     }
     let response: Response;
     try {
-      response = FETCH_URL
-        ? await fetchThroughWorker(href, accept)
-        : await fetch(href, {
-            redirect: 'manual',
-            headers: {
-              'User-Agent': USER_AGENT,
-              Accept: accept,
-              'Accept-Language': 'en-US,en;q=0.8',
-            },
-            signal: AbortSignal.timeout(TIMEOUT_MS),
-          });
+      response = await fetchThroughWorker(href, accept);
     } catch {
       return null;
     }
