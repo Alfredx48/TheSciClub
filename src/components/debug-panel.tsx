@@ -310,6 +310,14 @@ function Summary({ screen }: { screen: DebugScreen }) {
         </dd>
         <dt className="text-ink2">All added (they overlap)</dt>
         <dd className="font-bold text-ink">{debugMs(summary.addedMs)}</dd>
+        {screen.media.length === 0 ? null : (
+          <>
+            <dt className="text-ink2">Pictures and videos</dt>
+            <dd className="font-bold text-ink">
+              {screen.media.length}, all loaded by {debugMs(mediaDoneMs(screen))}
+            </dd>
+          </>
+        )}
         {screen.cardsMs === null ? null : (
           <>
             <dt className="text-ink2">Cards shown after</dt>
