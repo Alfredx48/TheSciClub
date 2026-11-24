@@ -9,6 +9,7 @@ import {
   debugReport,
   debugState,
   markParts,
+  mediaDoneMs,
   subscribeDebug,
   summarize,
 } from '@/lib/debug-log';
@@ -164,6 +165,7 @@ export function DebugPanelView({
                   );
                 })}
             </ol>
+            <Media screen={screen} />
           </>
         ) : (
           <p className="py-6 text-center text-[0.875rem] text-grey">
@@ -207,6 +209,62 @@ function wholeOf(screen: DebugScreen): number {
     screen.cardsMs ?? 0,
     ...screen.marks.map((mark) => mark.ms),
     1,
+  );
+}
+
+/**
+ * The screen's photographs, link pictures and YouTube players, each from when
+ * the browser began on it to loaded, on a time line of their own (the owner,
+ * 2026-11-23).
+ */
+function Media({ screen }: { screen: DebugScreen }) {
+  if (screen.media.length === 0) return null;
+  const whole = Math.max(mediaDoneMs(screen), 1);
+  return (
+    <>
+      <h3 className="mt-1 font-bold font-head text-[0.875rem] text-ink">
+        Pictures and videos: {screen.media.length}, the last loaded after {debugMs(whole)}
+      </h3>
+      <p className="mt-1.5 flex items-baseline gap-2 font-semibold text-[0.6875rem] text-grey uppercase tracking-[0.08em]">
+        <span className="min-w-0 flex-1">What · bars from 0 to {debugMs(whole)}</span>
+        <span className="flex-none">Started</span>
+        <span className="w-[4.5rem] flex-none text-right">Took</span>
+      </p>
+      <ol aria-label="Pictures and videos" className="mt-1 space-y-2 pb-3">
+        {[...screen.media]
+          .sort((a, b) => a.at - b.at)
+          .map((media, at) => (
+            // biome-ignore lint/suspicious/noArrayIndexKey: a log, only added to
+            <li key={at}>
+              <p className="flex items-baseline gap-2 font-mono text-[0.75rem] text-ink">
+                <span className="min-w-0 flex-1 truncate font-semibold">
+                  {media.ok ? '' : '✕ '}
+                  {media.kind}
+                </span>
+                <span className="flex-none text-ink2">+{Math.round(media.at)} ms</span>
+                <span className="w-[4.5rem] flex-none text-right font-bold">
+                  {debugMs(media.ms)}
+                </span>
+              </p>
+              <div className="mt-0.5 h-1.5 overflow-hidden rounded-full bg-tint">
+                <div
+                  className={cn('h-1.5 rounded-full', media.ok ? 'bg-emphasis' : 'bg-destructive')}
+                  style={{
+                    marginLeft: `${(media.at / whole) * 100}%`,
+                    width: `max(3px, ${(media.ms / whole) * 100}%)`,
+                  }}
+                />
+              </div>
+              <p className="mt-0.5 font-mono text-[0.6875rem] text-grey [overflow-wrap:anywhere]">
+                {media.downloadMs === null
+                  ? 'already held, no download'
+                  : `download ${debugMs(media.downloadMs)}`}{' '}
+                · {media.label}
+              </p>
+            </li>
+          ))}
+      </ol>
+    </>
   );
 }
 

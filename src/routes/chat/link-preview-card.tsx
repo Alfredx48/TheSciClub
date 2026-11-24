@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useAttachmentUrls } from '@/lib/chat/attachments';
 import { appYoutubeEmbedUrl, siteOf, youtubeEmbedUrl } from '@/lib/chat/link-preview';
 import type { LinkPreview } from '@/lib/chat/types';
+import { debugMediaLoaded, debugMediaShown } from '@/lib/debug-log';
 import { isNative, isStandalone } from '@/lib/standalone';
 import { cn } from '@/lib/utils';
 
@@ -86,8 +87,13 @@ export function LinkPreviewCard({
           src={picture}
           alt=""
           loading="lazy"
+          ref={debugMediaShown}
           onLoad={(event) => {
+            debugMediaLoaded('link picture', site, event.currentTarget, true);
             if (event.currentTarget.naturalWidth < SMALL_PICTURE) setSmall(true);
+          }}
+          onError={(event) => {
+            debugMediaLoaded('link picture', site, event.currentTarget, false);
           }}
           className="h-full w-full object-cover"
         />
@@ -118,13 +124,11 @@ export function LinkPreviewCard({
                   loadingPlayer && 'invisible',
                 )}
                 aria-hidden={loadingPlayer || undefined}
-                onLoad={
-                  homeScreen
-                    ? () => {
-                        setLoadedVideo(video);
-                      }
-                    : undefined
-                }
+                ref={debugMediaShown}
+                onLoad={(event) => {
+                  debugMediaLoaded('video player', `YouTube ${video}`, event.currentTarget, true);
+                  if (homeScreen) setLoadedVideo(video);
+                }}
                 allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
                 allowFullScreen
                 referrerPolicy="strict-origin-when-cross-origin"

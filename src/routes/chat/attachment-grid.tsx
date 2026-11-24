@@ -1,6 +1,7 @@
 import { useContext, useRef, useState } from 'react';
 import { PhotoViewer } from '@/components/photo-viewer';
 import { useSmallCopies } from '@/lib/chat/attachments';
+import { debugMediaLoaded, debugMediaShown } from '@/lib/debug-log';
 import { LocalPhotos } from '@/routes/chat/local-photos';
 
 /**
@@ -87,6 +88,13 @@ export function AttachmentGrid({
             <img
               src={small.get(path)}
               alt=""
+              ref={debugMediaShown}
+              onLoad={(event) => {
+                debugMediaLoaded('photo', fileOf(path), event.currentTarget, true);
+              }}
+              onError={(event) => {
+                debugMediaLoaded('photo', fileOf(path), event.currentTarget, false);
+              }}
               loading={eager ? 'eager' : 'lazy'}
               fetchPriority={eager === 'first' ? 'high' : eager === 'later' ? 'low' : undefined}
               className={
@@ -124,4 +132,9 @@ export function AttachmentGrid({
       ) : null}
     </>
   );
+}
+
+/** A stored path's file name, for debug mode. */
+function fileOf(path: string): string {
+  return path.slice(path.lastIndexOf('/') + 1);
 }

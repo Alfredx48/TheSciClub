@@ -18,6 +18,7 @@ const KEY = 'sci-club:debug';
 const end = (request: DebugRequest) => request.at + request.ms;
 const SCREENS_KEPT = 6;
 const REQUESTS_KEPT = 300;
+const MEDIA_KEPT = 100;
 
 export interface DebugRequest {
   /** `rpc:home_topics_ranked`, `table:chat_topics`, `auth:token` (page-speed's endpointOf). */
@@ -30,6 +31,30 @@ export interface DebugRequest {
   ok: boolean;
   /** The reply's size, when the server said. */
   bytes: number | null;
+}
+
+/**
+ * A photograph, a link's picture or a YouTube player, from being put on the
+ * page to loaded (the owner, 2026-11-23: "the time it takes for the photos or
+ * link or youtube video embed to load").
+ */
+export type DebugMediaKind = 'photo' | 'link picture' | 'video player';
+
+export interface DebugMedia {
+  kind: DebugMediaKind;
+  /** Which one: a photo's file, a link's site, a video's id. Kept on this device. */
+  label: string;
+  /**
+   * Milliseconds after the screen was reached that the browser began on it:
+   * when it was put on the page, or later for a lazy picture fetched only
+   * once scrolled near.
+   */
+  at: number;
+  /** From then until it had loaded, or failed. */
+  ms: number;
+  /** The download alone, when the browser timed one; null for a copy it already held. */
+  downloadMs: number | null;
+  ok: boolean;
 }
 
 /** A moment a screen names, and the requests it was waiting for, by endpoint. */
@@ -56,6 +81,7 @@ export interface DebugScreen {
    */
   marks: readonly DebugMark[];
   requests: readonly DebugRequest[];
+  media: readonly DebugMedia[];
 }
 
 export interface DebugState {
@@ -73,6 +99,17 @@ function stored(): boolean {
 }
 
 let state: DebugState = { enabled: typeof window !== 'undefined' && stored(), screens: [] };
+roomForTimings();
+
+/** The browser keeps 250 timings by default; a long Home has more pictures than that. */
+function roomForTimings() {
+  if (!state.enabled) return;
+  try {
+    performance.setResourceTimingBufferSize(1000);
+  } catch {
+    // Not offered here: photos are timed from the page alone.
+  }
+}
 const listeners = new Set<() => void>();
 let nextId = 1;
 
@@ -100,6 +137,7 @@ export function setDebugEnabled(enabled: boolean) {
     // Storage refused (a private window): on for this page load all the same.
   }
   set({ enabled, screens: enabled ? state.screens : [] });
+  roomForTimings();
 }
 
 /** A screen was reached (page-speed's noteScreen). */
@@ -113,6 +151,7 @@ export function debugScreen(path: string, startedAt: number, opened: boolean) {
     cardsMs: null,
     marks: [],
     requests: [],
+    media: [],
   };
   nextId += 1;
   set({ ...state, screens: [...state.screens, screen].slice(-SCREENS_KEPT) });
@@ -141,6 +180,7 @@ export function debugRequest(
             cardsMs: null,
             marks: [],
             requests: [],
+            media: [],
           } satisfies DebugScreen,
         ];
   const last = screens[screens.length - 1];
@@ -157,6 +197,58 @@ export function debugRequest(
     ...state,
     screens: [...screens.slice(0, -1), { ...last, requests: [...last.requests, request] }],
   });
+}
+
+const shownAt = new WeakMap<Element, number>();
+
+/** An <img> or <iframe>'s ref: when it was put on the page. */
+export function debugMediaShown(element: Element | null) {
+  if (element && state.enabled && !shownAt.has(element)) shownAt.set(element, performance.now());
+}
+
+/** The browser's own timing of fetching `url`, if it kept one. */
+function fetched(url: string): PerformanceResourceTiming | undefined {
+  try {
+    return (performance.getEntriesByName(url, 'resource') as PerformanceResourceTiming[]).at(-1);
+  } catch {
+    return undefined;
+  }
+}
+
+/** An <img> or <iframe> given `debugMediaShown` as its ref has loaded (`ok`) or failed. */
+export function debugMediaLoaded(
+  kind: DebugMediaKind,
+  label: string,
+  element: HTMLImageElement | HTMLIFrameElement,
+  ok: boolean,
+) {
+  if (!state.enabled) return;
+  const last = state.screens[state.screens.length - 1];
+  if (!last || last.media.length >= MEDIA_KEPT) return;
+  const now = performance.now();
+  const shown = shownAt.get(element) ?? now;
+  const url = 'currentSrc' in element ? element.currentSrc || element.src : element.src;
+  const entry = fetched(url);
+  // Fetched for this element (a lazy one only once scrolled near), or held already.
+  const own = entry && entry.startTime >= shown - 5 ? entry : undefined;
+  const began = own ? own.startTime : shown;
+  const media: DebugMedia = {
+    kind,
+    label,
+    at: Math.max(0, began - last.startedAt),
+    ms: Math.max(0, now - began),
+    downloadMs: own && own.responseEnd > 0 ? own.responseEnd - own.startTime : null,
+    ok,
+  };
+  set({
+    ...state,
+    screens: [...state.screens.slice(0, -1), { ...last, media: [...last.media, media] }],
+  });
+}
+
+/** When the screen's last picture or player had loaded, from reaching it. */
+export function mediaDoneMs(screen: DebugScreen): number {
+  return screen.media.reduce((latest, media) => Math.max(latest, media.at + media.ms), 0);
 }
 
 /**
@@ -356,6 +448,19 @@ export function debugReport(screen: DebugScreen): string {
     '',
     ' started     took   request',
     ...rows,
+    ...(screen.media.length === 0
+      ? []
+      : [
+          '',
+          `pictures and videos: ${screen.media.length}, the last loaded after ${debugMs(mediaDoneMs(screen))}`,
+          ' started     took  download   what',
+          ...[...screen.media]
+            .sort((a, b) => a.at - b.at)
+            .map(
+              (media) =>
+                `+${Math.round(media.at).toString().padStart(5)} ms  ${Math.round(media.ms).toString().padStart(5)} ms  ${(media.downloadMs === null ? 'held' : `${Math.round(media.downloadMs)} ms`).padStart(8)}   ${media.ok ? '' : '✕ '}${media.kind}  ${media.label}`,
+            ),
+        ]),
   ].join('\n');
 }
 

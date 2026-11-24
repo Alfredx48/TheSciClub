@@ -5,6 +5,8 @@ import { DebugPanel } from '@/components/debug-panel';
 import {
   debugChain,
   debugMark,
+  debugMediaLoaded,
+  debugMediaShown,
   debugReport,
   debugRequest,
   debugScreen,
@@ -107,6 +109,35 @@ describe('debug mode', () => {
       { label: 'rendering, after the last reply', ms: 60 },
     ]);
     expect(parts.reduce((sum, part) => sum + part.ms, 0)).toBe(mark.ms);
+  });
+
+  // The owner, 2026-11-23: how long photos, link pictures and videos take.
+  // A lazy picture is timed from when it was fetched, not from waiting to be
+  // scrolled near; one the browser already held had no download.
+  it('times pictures from when the browser began on them, with their download', () => {
+    aVisit();
+    const lazy = document.createElement('img');
+    lazy.src = 'https://club.test/a.jpg';
+    const held = document.createElement('img');
+    held.src = 'https://club.test/b.jpg';
+    const now = vi.spyOn(performance, 'now').mockReturnValue(1100);
+    debugMediaShown(lazy);
+    debugMediaShown(held);
+    vi.spyOn(performance, 'getEntriesByName').mockImplementation((name) =>
+      name === lazy.src
+        ? [{ startTime: 3000, responseEnd: 3400 } as PerformanceResourceTiming]
+        : // Fetched once before, for another screen.
+          [{ startTime: 500, responseEnd: 600 } as PerformanceResourceTiming],
+    );
+    now.mockReturnValue(1300);
+    debugMediaLoaded('photo', 'b.jpg', held, true);
+    now.mockReturnValue(3500);
+    debugMediaLoaded('photo', 'a.jpg', lazy, true);
+    expect(visit().media).toEqual([
+      { kind: 'photo', label: 'b.jpg', at: 100, ms: 200, downloadMs: null, ok: true },
+      { kind: 'photo', label: 'a.jpg', at: 2000, ms: 500, downloadMs: 400, ok: true },
+    ]);
+    expect(debugReport(visit())).toContain('pictures and videos: 2, the last loaded after 2.50 s');
   });
 
   it('keeps nothing while it is off', () => {
