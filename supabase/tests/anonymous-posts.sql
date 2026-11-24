@@ -166,6 +166,10 @@ select count(*) as listed from public.chat_topics_for('general') where id = (sel
 select count(*) as one from public.chat_topic_for((select id from probe where key = 'topic'));
 select count(*) <= 1 as home_ran from public.home_topics_ranked(400) where topic_id = (select id from probe where key = 'topic');
 select count(*) <= 1 as shown_ran from public.home_topics_shown('all', 'new', 400) where topic_id = (select id from probe where key = 'topic');
+-- Home's card said "Deleted member" when home_feed left the flag out (the owner, 2026-11-24): expect true.
+select (c -> 'opening' -> 0 ->> 'anonymous')::boolean as home_says_anonymous
+  from jsonb_array_elements(public.home_feed('all', 'new', 400)) c
+ where (c ->> 'id')::uuid = (select id from probe where key = 'topic');
 reset role;
 
 \echo '13. the speed limit counts anonymous posts as the writer''s, one at a time as the site sends them: expect refused at their 21st this minute'
