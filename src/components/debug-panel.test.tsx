@@ -137,7 +137,9 @@ describe('debug mode', () => {
       { kind: 'photo', label: 'b.jpg', at: 100, ms: 200, downloadMs: null, ok: true },
       { kind: 'photo', label: 'a.jpg', at: 2000, ms: 500, downloadMs: 400, ok: true },
     ]);
-    expect(debugReport(visit())).toContain('pictures and videos: 2, the last loaded after 2.50 s');
+    expect(debugReport(visit())).toContain(
+      'pictures and videos: 2 pictures, the last loaded after 2.50 s',
+    );
   });
 
   it('keeps nothing while it is off', () => {

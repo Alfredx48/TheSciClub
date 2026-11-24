@@ -246,9 +246,28 @@ export function debugMediaLoaded(
   });
 }
 
-/** When the screen's last picture or player had loaded, from reaching it. */
+/**
+ * When the screen's last picture had loaded, from reaching it. A video player
+ * is left out: it loads on a press of Play, whenever that came.
+ */
 export function mediaDoneMs(screen: DebugScreen): number {
-  return screen.media.reduce((latest, media) => Math.max(latest, media.at + media.ms), 0);
+  return screen.media
+    .filter((media) => media.kind !== 'video player')
+    .reduce((latest, media) => Math.max(latest, media.at + media.ms), 0);
+}
+
+/** "5 pictures, the last loaded after 1.20 s; a video player 861 ms after Play". */
+export function mediaSummary(screen: DebugScreen): string {
+  const players = screen.media.filter((media) => media.kind === 'video player');
+  const pictures = screen.media.length - players.length;
+  return [
+    pictures > 0
+      ? `${pictures} ${pictures === 1 ? 'picture' : 'pictures'}, the last loaded after ${debugMs(mediaDoneMs(screen))}`
+      : '',
+    ...players.map((player) => `a video player ${debugMs(player.ms)} after Play`),
+  ]
+    .filter(Boolean)
+    .join('; ');
 }
 
 /**
@@ -452,7 +471,7 @@ export function debugReport(screen: DebugScreen): string {
       ? []
       : [
           '',
-          `pictures and videos: ${screen.media.length}, the last loaded after ${debugMs(mediaDoneMs(screen))}`,
+          `pictures and videos: ${mediaSummary(screen)}`,
           ' started     took  download   what',
           ...[...screen.media]
             .sort((a, b) => a.at - b.at)

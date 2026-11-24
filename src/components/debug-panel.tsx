@@ -9,7 +9,7 @@ import {
   debugReport,
   debugState,
   markParts,
-  mediaDoneMs,
+  mediaSummary,
   subscribeDebug,
   summarize,
 } from '@/lib/debug-log';
@@ -219,12 +219,10 @@ function wholeOf(screen: DebugScreen): number {
  */
 function Media({ screen }: { screen: DebugScreen }) {
   if (screen.media.length === 0) return null;
-  const whole = Math.max(mediaDoneMs(screen), 1);
+  const whole = Math.max(...screen.media.map((media) => media.at + media.ms), 1);
   return (
     <>
-      <h3 className="mt-1 font-bold font-head text-[0.875rem] text-ink">
-        Pictures and videos: {screen.media.length}, the last loaded after {debugMs(whole)}
-      </h3>
+      <h3 className="mt-1 font-bold font-head text-[0.875rem] text-ink">Pictures and videos</h3>
       <p className="mt-1.5 flex items-baseline gap-2 font-semibold text-[0.6875rem] text-grey uppercase tracking-[0.08em]">
         <span className="min-w-0 flex-1">What · bars from 0 to {debugMs(whole)}</span>
         <span className="flex-none">Started</span>
@@ -313,9 +311,7 @@ function Summary({ screen }: { screen: DebugScreen }) {
         {screen.media.length === 0 ? null : (
           <>
             <dt className="text-ink2">Pictures and videos</dt>
-            <dd className="font-bold text-ink">
-              {screen.media.length}, all loaded by {debugMs(mediaDoneMs(screen))}
-            </dd>
+            <dd className="font-bold text-ink">{mediaSummary(screen)}</dd>
           </>
         )}
         {screen.cardsMs === null ? null : (
