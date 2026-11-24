@@ -84,12 +84,10 @@ describe('segments', () => {
       filterMembers(wider, filters, segment).map((m) => m.displayName);
     expect(names(start)).not.toContain('Pat Pro');
     expect(names(start)).not.toContain('Fay Family');
-    // Unsure of their level are in from the start (the owner, 2026-11-24), and
-    // out only when their chip is unticked, unless the Unknown level is ticked.
+    // Unsure of their level are members with SCI/D, in from the start, with no
+    // chip of their own (the owner, 2026-11-24); the Unknown level finds them.
     expect(names(start)).toContain('Una Unsure');
-    const noUnsure = { ...start, leaveOut: [...start.leaveOut, 'unsure' as const] };
-    expect(names(noUnsure)).not.toContain('Una Unsure');
-    expect(names({ ...noUnsure, regions: ['Unknown'] })).toEqual(['Una Unsure']);
+    expect(names({ ...start, regions: ['Unknown'] })).toEqual(['Una Unsure']);
     expect(names(start)).toContain('Ada Admin');
     expect(names(start, 'mentors')).toEqual(['Mentor']);
     expect(names({ ...start, leaveOut: ['orgAdmins'] })).toEqual(
@@ -105,9 +103,7 @@ describe('segments', () => {
     expect(names({ ...start, search: 'Pat' })).toEqual(['Pat Pro']);
     // Where Peers starts is no filter; a change from it is one each.
     expect(activeFilterCount(start)).toBe(0);
-    expect(
-      activeFilterCount({ ...start, leaveOut: ['professionals', 'unsure', 'orgAdmins'] }),
-    ).toBe(3);
+    expect(activeFilterCount({ ...start, leaveOut: ['professionals', 'orgAdmins'] })).toBe(2);
   });
 });
 

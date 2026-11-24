@@ -678,16 +678,13 @@ export interface MemberFilters {
 
 /**
  * Who can be left out of Peers: members with SCI/D themselves, those without
- * (staff, family & friends), those unsure of their level, org admins. Mentors
- * have their own tab, so no chip (the owner, 2026-11-18).
+ * (staff, family & friends), org admins. Mentors have their own tab, so no
+ * chip (the owner, 2026-11-18). Those unsure of their level had a chip from
+ * 2026-11-15, gone on 2026-11-24: they are members with SCI/D, and the level
+ * filter's Unknown finds them (the owner: "why is that even a chip under
+ * include? Let's remove it").
  */
-export const PEERS_LEFT_OUT = [
-  'sciPeers',
-  'professionals',
-  'family',
-  'unsure',
-  'orgAdmins',
-] as const;
+export const PEERS_LEFT_OUT = ['sciPeers', 'professionals', 'family', 'orgAdmins'] as const;
 export type PeersLeftOut = (typeof PEERS_LEFT_OUT)[number];
 
 export const EMPTY_MEMBER_FILTERS: MemberFilters = {
@@ -705,9 +702,6 @@ export const EMPTY_MEMBER_FILTERS: MemberFilters = {
 /**
  * Where Peers starts, and what Clear goes back to (the owner, 2026-11-12):
  * professionals and family left out, so the deck is members with SCI/D.
- * Those unsure of their level were left out too from 2026-11-15, and are in
- * again: they are members with SCI/D (the owner, 2026-11-24: "We should not
- * filter unsure of level on peers tab by default"). Their chip stays.
  */
 export const DEFAULT_MEMBER_FILTERS: MemberFilters = {
   ...EMPTY_MEMBER_FILTERS,
