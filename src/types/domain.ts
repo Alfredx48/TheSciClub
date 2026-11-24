@@ -704,12 +704,14 @@ export const EMPTY_MEMBER_FILTERS: MemberFilters = {
 
 /**
  * Where Peers starts, and what Clear goes back to (the owner, 2026-11-12):
- * professionals and family left out, so the deck is members with SCI/D; and
- * those unsure of their level (2026-11-15).
+ * professionals and family left out, so the deck is members with SCI/D.
+ * Those unsure of their level were left out too from 2026-11-15, and are in
+ * again: they are members with SCI/D (the owner, 2026-11-24: "We should not
+ * filter unsure of level on peers tab by default"). Their chip stays.
  */
 export const DEFAULT_MEMBER_FILTERS: MemberFilters = {
   ...EMPTY_MEMBER_FILTERS,
-  leaveOut: ['professionals', 'family', 'unsure'],
+  leaveOut: ['professionals', 'family'],
 };
 
 /* ------------------------------------------------------------------ events */
