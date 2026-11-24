@@ -77,11 +77,36 @@ describe('startKeyboardRoom', () => {
     inner = 500;
     fire({ height: 500 });
     expect(root.style.getPropertyValue('--keyboard-height')).toBe('344px');
+    // The page is what shows above the keyboard, not 100dvh less the keyboard.
+    expect(root.style.getPropertyValue('--keyboard-top')).toBe('500px');
 
     box.blur();
     inner = 844;
     fire({ height: 844 });
     expect(root.dataset.keyboard).toBeUndefined();
+    stop();
+  });
+
+  // The owner, 2026-11-23: the page snapped back under the keyboard as they
+  // dragged it to reach the box.
+  it('puts back Safari’s slide only as the keyboard comes up, never the member’s drag', () => {
+    let clock = 1000;
+    vi.spyOn(performance, 'now').mockImplementation(() => clock);
+    vi.spyOn(window, 'innerHeight', 'get').mockReturnValue(844);
+    const scrollTo = vi.spyOn(window, 'scrollTo').mockImplementation(() => undefined);
+    const box = document.createElement('textarea');
+    document.body.append(box);
+    const { view, fire } = fakeViewport();
+    const stop = startKeyboardRoom(view);
+
+    box.focus();
+    fire({ height: 500, offsetTop: 200 });
+    expect(scrollTo).toHaveBeenCalledTimes(1);
+
+    clock += 2000;
+    Object.assign(view, { offsetTop: 120 });
+    window.dispatchEvent(new Event('scroll'));
+    expect(scrollTo).toHaveBeenCalledTimes(1);
     stop();
   });
 });

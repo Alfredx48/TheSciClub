@@ -912,7 +912,7 @@ a[href]:not([class^="rounded"]):not([class*=" rounded"]):not(:has(div, p, img, h
  * full-height screen ends at its top, rather than Safari sliding the whole
  * page, the way back included, up under the clock (the owner, 2026-11-22). */
 :root[data-installed-app]:not([data-native-app])[data-keyboard] .h-dvh {
-  height: calc(100dvh - var(--keyboard-height, 0px));
+  height: var(--keyboard-top, calc(100dvh - var(--keyboard-height, 0px)));
 }
 @media (width < 44rem) {
   :root[data-native-app][data-keyboard] nav[aria-label="Main"] {

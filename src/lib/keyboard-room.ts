@@ -54,8 +54,15 @@ export function startKeyboardRoom(view: VisualViewport | null = window.visualVie
   let full = 0;
   let fullWidth = -1;
 
-  function update() {
+  // Safari slides the page to the box just after it takes focus and the keyboard comes up,
+  // and that slide is put back. Later, a member dragging the page is never fought: that
+  // was the page snapping back under the keyboard (the owner, 2026-11-23).
+  let settleUntil = 0;
+  const SETTLE_MS = 800;
+
+  function update(settle = false) {
     if (!view) return;
+    if (settle) settleUntil = performance.now() + SETTLE_MS;
     const typing = takesTyping(document.activeElement);
     const now = Math.max(window.innerHeight, root.clientHeight);
     if (window.innerWidth !== fullWidth || !typing) {
@@ -73,43 +80,58 @@ export function startKeyboardRoom(view: VisualViewport | null = window.visualVie
     });
     if (height > 0) {
       root.style.setProperty('--keyboard-height', `${String(height)}px`);
+      // The page is exactly what Safari shows above the keyboard. Taking the keyboard off
+      // 100dvh instead left the page ending under it, as 100dvh and the visible height
+      // do not agree in the Home Screen app.
+      root.style.setProperty('--keyboard-top', `${String(Math.round(view.height * view.scale))}px`);
       root.dataset.keyboard = '';
       open = true;
     } else if (open) {
-      root.style.removeProperty('--keyboard-height');
-      delete root.dataset.keyboard;
-      open = false;
+      clear();
     }
     // The page ends at the keyboard now: Safari's slide only hides the top.
-    if (open && (window.scrollY !== 0 || view.offsetTop !== 0)) window.scrollTo(0, 0);
+    if (open && performance.now() < settleUntil && (window.scrollY !== 0 || view.offsetTop !== 0)) {
+      window.scrollTo(0, 0);
+    }
   }
+
+  function clear() {
+    root.style.removeProperty('--keyboard-height');
+    root.style.removeProperty('--keyboard-top');
+    delete root.dataset.keyboard;
+    open = false;
+  }
+
+  const settled = () => {
+    update(true);
+  };
+  const moved = () => {
+    update();
+  };
 
   // A moment's wait on leaving a box, as the keyboard stays up from one box to the next.
   let timer: ReturnType<typeof setTimeout> | undefined;
   function later() {
     clearTimeout(timer);
-    timer = setTimeout(update, 100);
+    timer = setTimeout(moved, 100);
   }
 
-  view.addEventListener('resize', update);
-  view.addEventListener('scroll', update);
-  window.addEventListener('scroll', update, { passive: true });
-  window.addEventListener('resize', update);
-  document.addEventListener('focusin', update);
+  view.addEventListener('resize', settled);
+  view.addEventListener('scroll', moved);
+  window.addEventListener('scroll', moved, { passive: true });
+  window.addEventListener('resize', settled);
+  document.addEventListener('focusin', settled);
   document.addEventListener('focusout', later);
   update();
 
   return () => {
     clearTimeout(timer);
-    view.removeEventListener('resize', update);
-    view.removeEventListener('scroll', update);
-    window.removeEventListener('scroll', update);
-    window.removeEventListener('resize', update);
-    document.removeEventListener('focusin', update);
+    view.removeEventListener('resize', settled);
+    view.removeEventListener('scroll', moved);
+    window.removeEventListener('scroll', moved);
+    window.removeEventListener('resize', settled);
+    document.removeEventListener('focusin', settled);
     document.removeEventListener('focusout', later);
-    if (open) {
-      root.style.removeProperty('--keyboard-height');
-      delete root.dataset.keyboard;
-    }
+    if (open) clear();
   };
 }
