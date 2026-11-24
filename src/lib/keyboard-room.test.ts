@@ -60,4 +60,28 @@ describe('startKeyboardRoom', () => {
     expect(root.style.getPropertyValue('--keyboard-height')).toBe('');
     stop();
   });
+
+  // The owner, 2026-11-23: in the Home Screen app the keyboard shortened the
+  // page itself, so nothing looked hidden and the reply box stayed under it.
+  it('counts the keyboard from the height before it, when it shortens the page too', () => {
+    let inner = 844;
+    vi.spyOn(window, 'innerHeight', 'get').mockImplementation(() => inner);
+    vi.spyOn(window, 'scrollTo').mockImplementation(() => undefined);
+    const root = document.documentElement;
+    const box = document.createElement('textarea');
+    document.body.append(box);
+    const { view, fire } = fakeViewport();
+    const stop = startKeyboardRoom(view);
+
+    box.focus();
+    inner = 500;
+    fire({ height: 500 });
+    expect(root.style.getPropertyValue('--keyboard-height')).toBe('344px');
+
+    box.blur();
+    inner = 844;
+    fire({ height: 844 });
+    expect(root.dataset.keyboard).toBeUndefined();
+    stop();
+  });
 });

@@ -12,7 +12,8 @@
  * nothing left under the keyboard to slide to.
  *
  * Safari tells a page only how much of it is visible (`visualViewport`), so the keyboard is
- * what is hidden of a layout that has not changed, while a text box has focus. Zoomed in, the
+ * what is missing from the page's height before it came up, while a text box has focus: Safari
+ * may lay the keyboard over the page, or, in the Home Screen app, shorten the page for it. Zoomed in, the
  * visible part is that much smaller and no more hidden, so it is counted at its zoom. Android's browsers make the page shorter themselves (index.html asks them to),
  * which leaves nothing hidden and nothing to do.
  */
@@ -28,7 +29,7 @@ export function keyboardHeight({
   scale,
   typing,
 }: {
-  /** The page's own height, which the keyboard does not change. */
+  /** The page's height before the keyboard came up. */
   layout: number;
   /** How much of it Safari shows. */
   visible: number;
@@ -46,14 +47,29 @@ export function startKeyboardRoom(view: VisualViewport | null = window.visualVie
   if (!view) return () => undefined;
   const root = document.documentElement;
   let open = false;
+  // The page's height with no keyboard, for this width. The Home Screen app can
+  // shorten the page itself for the keyboard and hide nothing from it, so the
+  // keyboard is what is missing from the height it had before (the owner,
+  // 2026-11-23: replying under the last post, the box stayed under the keyboard).
+  let full = 0;
+  let fullWidth = -1;
 
   function update() {
     if (!view) return;
+    const typing = takesTyping(document.activeElement);
+    const now = Math.max(window.innerHeight, root.clientHeight);
+    if (window.innerWidth !== fullWidth || !typing) {
+      // Turned, or no keyboard: what the page has now is all of it.
+      fullWidth = window.innerWidth;
+      full = now;
+    } else {
+      full = Math.max(full, now);
+    }
     const height = keyboardHeight({
-      layout: Math.max(window.innerHeight, root.clientHeight),
+      layout: full,
       visible: view.height,
       scale: view.scale,
-      typing: takesTyping(document.activeElement),
+      typing,
     });
     if (height > 0) {
       root.style.setProperty('--keyboard-height', `${String(height)}px`);
@@ -78,6 +94,7 @@ export function startKeyboardRoom(view: VisualViewport | null = window.visualVie
   view.addEventListener('resize', update);
   view.addEventListener('scroll', update);
   window.addEventListener('scroll', update, { passive: true });
+  window.addEventListener('resize', update);
   document.addEventListener('focusin', update);
   document.addEventListener('focusout', later);
   update();
@@ -87,6 +104,7 @@ export function startKeyboardRoom(view: VisualViewport | null = window.visualVie
     view.removeEventListener('resize', update);
     view.removeEventListener('scroll', update);
     window.removeEventListener('scroll', update);
+    window.removeEventListener('resize', update);
     document.removeEventListener('focusin', update);
     document.removeEventListener('focusout', later);
     if (open) {
