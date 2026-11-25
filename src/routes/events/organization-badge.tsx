@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { logoFillsTile } from '@/lib/organization-management';
 import { usePhotoUrl } from '@/lib/photos';
 import { cn } from '@/lib/utils';
 import { shortCodeFor } from '@/routes/peers/member-card';
@@ -108,7 +109,8 @@ export function OrganizationBadge({
           // page — several are dark marks that would vanish on the gold tile.
           className={cn(
             'absolute inset-0 h-full w-full bg-white object-contain',
-            tight ? 'p-[1px]' : 'p-1',
+            // One saved square on its own colour fills the tile.
+            logoFillsTile(organization?.logoPath) ? 'p-0' : tight ? 'p-[1px]' : 'p-1',
           )}
         />
       ) : null}

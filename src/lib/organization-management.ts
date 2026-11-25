@@ -1,5 +1,5 @@
 import { describeError, describeThrown, type Failure } from '@/lib/describe-error';
-import { preparePhoto } from '@/lib/image';
+import { preparePhoto, squareOnOwnGround } from '@/lib/image';
 import type { OrganizationCategory } from '@/lib/organization-categories';
 import { PHOTOS_BUCKET } from '@/lib/photos';
 import { calendarChanged } from '@/lib/shared-reads';
@@ -97,6 +97,15 @@ const LOGO_EDGE = 400;
 const LOGO_REFUSAL = 'The logo was not saved.';
 
 /**
+ * A logo saved square on its own colour (squareOnOwnGround) ends its name in
+ * -full: it fills its tile, where every other logo sits inside a white margin
+ * (the owner, 2026-11-24). Logos saved before keep the margin.
+ */
+export function logoFillsTile(path: string | null | undefined): boolean {
+  return Boolean(path && /-full\.[a-z0-9]+$/.test(path));
+}
+
+/**
  * Gives an organization a new logo, or none (`file` null).
  *
  * Upload, then point the row at it, then delete the file it replaced — see
@@ -113,8 +122,10 @@ export async function saveOrganizationLogo(
   try {
     let path: string | null = null;
     if (file) {
-      const { blob, ext } = await preparePhoto(file, LOGO_EDGE, '#ffffff');
-      path = `organizations/${organizationId}/${crypto.randomUUID()}.${ext}`;
+      const square = await squareOnOwnGround(file, LOGO_EDGE);
+      const { blob, ext } = await preparePhoto(square?.file ?? file, LOGO_EDGE, '#ffffff');
+      const name = `${crypto.randomUUID()}${square ? '-full' : ''}`;
+      path = `organizations/${organizationId}/${name}.${ext}`;
       const upload = await supabase.storage
         .from(PHOTOS_BUCKET)
         .upload(path, blob, { upsert: false, contentType: blob.type });

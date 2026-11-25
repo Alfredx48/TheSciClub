@@ -3,8 +3,10 @@ import { AddressField } from '@/components/address-field';
 import { motionReduced } from '@/lib/accessibility';
 import { useAnnounce } from '@/lib/announce';
 import { useFormDraft } from '@/lib/form-draft';
+import { squareOnOwnGround } from '@/lib/image';
 import { ORGANIZATION_CATEGORIES, type OrganizationCategory } from '@/lib/organization-categories';
 import {
+  logoFillsTile,
   type OrganizationDraft,
   saveOrganization,
   saveOrganizationLogo,
@@ -17,6 +19,7 @@ import {
 } from '@/lib/organization-requests';
 import { usePhotoUrl } from '@/lib/photos';
 import { useDraftMedia } from '@/lib/use-draft-media';
+import { cn } from '@/lib/utils';
 import { OrganizationGrantsEditor } from '@/routes/admin/organization-grants-editor';
 import {
   newPlace,
@@ -102,6 +105,8 @@ export function OrganizationEditor({
   );
   const { value: logo, setValue: setLogo } = logoDraft;
   const [preview, setPreview] = useState<string | null>(null);
+  // The chosen file fills its tile once saved (squareOnOwnGround).
+  const [newFills, setNewFills] = useState(false);
   const savedLogo = usePhotoUrl(organization?.logoPath);
   const shown = logo.kind === 'new' ? preview : logo.kind === 'remove' ? null : savedLogo;
   const announce = useAnnounce();
@@ -126,9 +131,20 @@ export function OrganizationEditor({
       setPreview(null);
       return;
     }
-    const url = URL.createObjectURL(logo.file);
+    let url = URL.createObjectURL(logo.file);
     setPreview(url);
+    setNewFills(false);
+    let gone = false;
+    // Shown as it will be saved: square on its own colour, filling the tile.
+    void squareOnOwnGround(logo.file, 400).then((square) => {
+      if (gone || !square) return;
+      URL.revokeObjectURL(url);
+      url = URL.createObjectURL(square.file);
+      setPreview(url);
+      setNewFills(true);
+    });
     return () => {
+      gone = true;
       URL.revokeObjectURL(url);
     };
   }, [logo]);
@@ -237,7 +253,12 @@ export function OrganizationEditor({
                   <img
                     src={shown}
                     alt={logo.kind === 'new' ? 'The logo you chose' : `${organization?.name} logo`}
-                    className="h-full w-full object-contain p-1.5"
+                    className={cn(
+                      'h-full w-full object-contain',
+                      (logo.kind === 'new' ? newFills : logoFillsTile(organization?.logoPath))
+                        ? 'p-0'
+                        : 'p-1.5',
+                    )}
                   />
                 ) : (
                   <span className="font-extrabold font-head text-[0.875rem] text-grey">

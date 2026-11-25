@@ -190,3 +190,70 @@ export async function prepareThumb(photo: Blob, max: number = THUMB_EDGE): Promi
     bitmap?.close();
   }
 }
+
+/**
+ * A logo that fills its own picture with one colour to every edge (a mark on a
+ * coloured square, say), made square on that colour, so a square tile can be
+ * filled with it instead of framing it in white. Null for anything else: a
+ * mark on white or on nothing, a photograph, or an image that will not decode.
+ */
+export async function squareOnOwnGround(
+  file: File,
+  edge: number,
+): Promise<{ file: File; ground: string } | null> {
+  if (typeof createImageBitmap !== 'function') return null;
+  let bitmap: ImageBitmap | null = null;
+  try {
+    bitmap = await decode(file);
+    const ground = ownGround(bitmap);
+    if (!ground) return null;
+    const { width, height } = fittedSize(bitmap.width, bitmap.height, edge);
+    const side = Math.max(width, height);
+    const canvas = document.createElement('canvas');
+    canvas.width = side;
+    canvas.height = side;
+    const context = canvas.getContext('2d');
+    if (!context) return null;
+    context.fillStyle = ground;
+    context.fillRect(0, 0, side, side);
+    context.drawImage(bitmap, (side - width) / 2, (side - height) / 2, width, height);
+    const blob = await new Promise<Blob | null>((resolve) => {
+      canvas.toBlob(resolve, 'image/png');
+    });
+    return blob ? { file: new File([blob], 'logo.png', { type: 'image/png' }), ground } : null;
+  } catch {
+    return null;
+  } finally {
+    bitmap?.close();
+  }
+}
+
+/** The one opaque, not-white colour around a picture's edge, as #rrggbb; else null. */
+function ownGround(bitmap: ImageBitmap): string | null {
+  const size = 48;
+  const canvas = document.createElement('canvas');
+  canvas.width = size;
+  canvas.height = size;
+  const context = canvas.getContext('2d', { willReadFrequently: true });
+  if (!context) return null;
+  context.drawImage(bitmap, 0, 0, size, size);
+  const { data } = context.getImageData(0, 0, size, size);
+  const ring: [number, number, number][] = [];
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      if (x > 1 && y > 1 && x < size - 2 && y < size - 2) continue;
+      const at = (y * size + x) * 4;
+      // See-through anywhere on the edge: a mark on nothing.
+      if ((data[at + 3] ?? 0) < 250) return null;
+      ring.push([data[at] ?? 0, data[at + 1] ?? 0, data[at + 2] ?? 0]);
+    }
+  }
+  const mean = [0, 1, 2].map((c) =>
+    Math.round(ring.reduce((sum, px) => sum + (px[c] ?? 0), 0) / ring.length),
+  ) as [number, number, number];
+  // One colour, allowing for JPEG's smudges.
+  if (ring.some((px) => px.some((v, c) => Math.abs(v - (mean[c] ?? 0)) > 28))) return null;
+  // White already matches the tile.
+  if (mean.every((v) => v > 240)) return null;
+  return `#${mean.map((v) => v.toString(16).padStart(2, '0')).join('')}`;
+}

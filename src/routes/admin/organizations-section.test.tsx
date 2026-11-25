@@ -72,6 +72,7 @@ vi.mock('@/lib/photos', () => ({
 // Resizing needs a canvas jsdom does not have.
 vi.mock('@/lib/image', () => ({
   preparePhoto: (file: File) => Promise.resolve({ blob: file, ext: 'png' }),
+  squareOnOwnGround: () => Promise.resolve(null),
 }));
 const organization = (id = 'org'): Organization => ({
   id,
