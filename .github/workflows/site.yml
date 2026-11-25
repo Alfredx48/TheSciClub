@@ -77,6 +77,12 @@ jobs:
           fi
           pnpm build
           node scripts/cloudflare-site.mjs
+          # What is on tests and not on main, for the admin site's change log, which is built
+          # only when main is pushed and asks the test site for this (admin/changes.mjs).
+          if [ "$GITHUB_REF" = refs/heads/tests ]; then
+            node admin/changes.mjs waiting dist/change-log/on-tests.json dist/change-log/shots \
+              || echo "::warning::The change log's list of what is on tests was not written"
+          fi
 
       - name: Deploy
         env:

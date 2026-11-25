@@ -70,6 +70,29 @@ reload, and several in a day felt slow and unstable. So:
   Admin › Page speed shows each release's times, and
   .github/workflows/release-speed.yml compares the day's releases each night.
 
+## The change log (owner, 2026-11-25)
+
+Admin › Change log (admin.thesciclub.com) shows what is waiting on `tests`,
+every release and what it brought, the changes by part of the club, and each
+week in seven lines. Most of it is read from git; what git cannot say is in
+`admin/changes/` (its README has the formats):
+
+- Every change members or administrators would notice gets an entry, in the
+  same commit: `admin/changes/entries/<date>-<a-few-words>.md`, with a
+  title, the part of the club, whether it is new, improved or a fix, and two
+  lines in plain words on what changed and how it was before. Not for
+  housekeeping (a renumbered migration, formatting, notes): that is listed
+  by its commit's first line.
+- When it looks different, add before and after screenshots to
+  `admin/changes/shots/` (JPEG, at most 200 KB each). **The repository is
+  public**: take them on the test site or a scratch page with made-up
+  people, never with a real member's name, face, words or place.
+- Before a release, open On tests: a change marked "No entry" gets one
+  first.
+- The first release of a new week: whoever makes it writes last week's
+  summary, `admin/changes/weeks/<that week's Monday>.md`, seven lines at
+  most.
+
 ## Installed apps must keep updating (owner, 2026-11-21)
 
 The site is on Cloudflare (since 2026-11-20). Installed apps find a new
