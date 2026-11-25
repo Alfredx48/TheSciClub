@@ -174,7 +174,7 @@ export function PostToHome({ event }: { event: ClubEvent }) {
             <button
               type="submit"
               disabled={saving || room === null}
-              className="flex min-h-[44px] items-center justify-center rounded-[13px] bg-emphasis px-3 font-bold font-head text-[0.9375rem] text-white disabled:opacity-40"
+              className="flex min-h-[44px] items-center justify-center rounded-[13px] bg-emphasis px-3 font-bold font-head text-[0.9375rem] text-paper disabled:opacity-40"
             >
               {saving ? 'Posting…' : 'Post'}
             </button>
