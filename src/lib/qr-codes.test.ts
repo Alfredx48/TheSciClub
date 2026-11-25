@@ -212,6 +212,7 @@ describe("an administrator's codes", () => {
       contactEmail: null,
       expiresAt,
       notes: 'Monday group',
+      madeAs: 'qr',
     });
     expect(made.ok && made.code.code).toBe('abc123');
     await createQrCode({
@@ -220,6 +221,7 @@ describe("an administrator's codes", () => {
       contactEmail: 'alfred@example.com',
       expiresAt: null,
       notes: null,
+      madeAs: 'link',
     });
     expect(db.calls).toEqual([
       [
@@ -230,6 +232,7 @@ describe("an administrator's codes", () => {
           p_contact_email: null,
           p_expires_at: '2026-10-31T17:00:00.000Z',
           p_notes: 'Monday group',
+          p_made_as: 'qr',
         },
       ],
       [
@@ -240,6 +243,7 @@ describe("an administrator's codes", () => {
           p_contact_email: 'alfred@example.com',
           p_expires_at: null,
           p_notes: null,
+          p_made_as: 'link',
         },
       ],
     ]);
@@ -254,6 +258,7 @@ describe("an administrator's codes", () => {
         contactEmail: 'x',
         expiresAt: null,
         notes: null,
+        madeAs: 'qr',
       }),
     ).toEqual({
       ok: false,
