@@ -1,3 +1,4 @@
+import { execFileSync } from 'node:child_process';
 import { copyFileSync, cpSync } from 'node:fs';
 import path from 'node:path';
 import tailwindcss from '@tailwindcss/vite';
@@ -32,6 +33,38 @@ function sharedFiles(): Plugin {
         'apple-touch-icon.png',
       ]) {
         copyFileSync(path.join(root, 'public', icon), path.join(outDir, icon));
+      }
+    },
+  };
+}
+
+/**
+ * The change log's data, /changes.json, and its entries' screenshots (admin/changes.mjs, the
+ * owner, 2026-11-25), from the repository's history. A build without that history (a shallow
+ * copy) still builds: the page then says it could not read the log.
+ */
+function changeLog(): Plugin {
+  let outDir = '';
+  return {
+    name: 'admin-change-log',
+    apply: 'build',
+    configResolved(config) {
+      outDir = config.build.outDir;
+    },
+    closeBundle() {
+      try {
+        execFileSync(
+          process.execPath,
+          [
+            path.join(root, 'admin/changes.mjs'),
+            'log',
+            path.join(outDir, 'changes.json'),
+            path.join(outDir, 'change-shots'),
+          ],
+          { stdio: 'inherit' },
+        );
+      } catch (thrown) {
+        this.warn(`The change log was not written: ${String(thrown)}`);
       }
     },
   };
@@ -94,6 +127,7 @@ export default defineConfig(({ mode }) => {
       react(),
       tailwindcss(),
       sharedFiles(),
+      changeLog(),
       ...(supabaseUrl ? [headersFile(supabaseUrl)] : []),
     ],
     resolve: {

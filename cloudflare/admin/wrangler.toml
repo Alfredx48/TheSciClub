@@ -15,15 +15,18 @@ preview_urls = false
 
 [vars]
 APP_ORIGIN = "https://thesciclub.com"
+# Where the change log reads what is waiting on tests (worker.ts, /on-tests/).
+TESTS_ORIGIN = "https://tests.thesciclub.com"
 
 [assets]
 directory = "../../dist-admin"
 binding = "ASSETS"
 not_found_handling = "single-page-application"
-run_worker_first = ["/app-status"]
+run_worker_first = ["/app-status", "/on-tests/*"]
 
 [env.tests]
 name = "thesciclub-admin-tests"
 
 [env.tests.vars]
 APP_ORIGIN = "https://tests.thesciclub.com"
+TESTS_ORIGIN = "https://tests.thesciclub.com"
