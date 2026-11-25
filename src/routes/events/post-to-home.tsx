@@ -12,12 +12,20 @@ import type { ClubEvent } from '@/types/domain';
 const GENERAL_ROOM = 'general';
 
 /**
+ * The Events room, where an event goes by default (the owner, 2026-11-25: "It
+ * should default to posting in the events room"). It was started in the app,
+ * so its id differs between the test and live clubs: found by its name, as
+ * App Feedback is (routes/home/feedback-card.tsx).
+ */
+const EVENTS_ROOM_NAME = /^events$/i;
+
+/**
  * Post on Home, for whoever may change the event (the owner, 2026-11-25: "an
  * option for an organizer to post an event to the Home [feed] in such a way
  * that people can RSVP from the home feed").
  *
- * It is a topic like any other, in a room that shows on Home (General unless
- * another is picked): its title the event's name, its first post the
+ * It is a topic like any other, in a room that shows on Home (Events, or
+ * General while there is none, unless another is picked): its title the event's name, its first post the
  * organizer's words and the event's link. Home and Chat draw a post that links
  * the club's own event as the event's card, RSVP and all (club-link-card.tsx),
  * so nothing new is kept in the database and replies, reports and removal work
@@ -41,6 +49,7 @@ export function PostToHome({ event }: { event: ClubEvent }) {
   );
   const room =
     onHome.find((r) => r.id === chosenRoom) ??
+    onHome.find((r) => EVENTS_ROOM_NAME.test(r.name.trim())) ??
     onHome.find((r) => r.id === GENERAL_ROOM) ??
     roomsByCategory(onHome)[0]?.[1][0] ??
     null;
