@@ -46,7 +46,7 @@ begin
              'id', i.id,
              'at', i.sent_at,
              'email', lower(i.email::text),
-             'name', coalesce(joined.display_name, i.invitee_name),
+             'name', i.invitee_name,
              'status', i.status,
              'sentBy', case when inviter.id is null then null
                          else jsonb_build_object('id', inviter.id, 'name', inviter.display_name) end,
