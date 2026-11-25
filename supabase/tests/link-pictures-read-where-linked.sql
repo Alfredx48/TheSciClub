@@ -42,7 +42,9 @@ insert into public.chat_thread_members (thread_id, member_id) values
 insert into public.chat_messages (thread_id, author_id, body, link_preview) values
   ('11111111-1823-0000-0000-000000000001', 'aaaaaaaa-1823-0000-0000-00000000000a',
    'Watch https://www.youtube.com/watch?v=probe1823',
-   '{"url": "https://www.youtube.com/watch?v=probe1823", "imagePath": "probe1823-conversation.jpg"}');
+   '{"url": "https://www.youtube.com/watch?v=probe1823", "imagePath": "probe1823-conversation.jpg",
+     "youtubeId": "probe1823aa", "videos": [{"url": "https://youtu.be/probe1823bb",
+     "imagePath": "probe1823-second-video.jpg", "youtubeId": "probe1823bb"}]}');
 
 insert into public.chat_topics (id, room_id, title, author_id)
 values ('22222222-1823-0000-0000-000000000001', 'bowel', 'A link',
@@ -55,7 +57,8 @@ insert into public.chat_posts (topic_id, author_id, body, link_preview) values
 insert into storage.objects (bucket_id, name, metadata) values
   ('link-previews', 'probe1823-conversation.jpg', '{"size": 1}'),
   ('link-previews', 'probe1823-room.jpg',         '{"size": 1}'),
-  ('link-previews', 'probe1823-nobody.jpg',       '{"size": 1}');
+  ('link-previews', 'probe1823-nobody.jpg',       '{"size": 1}'),
+  ('link-previews', 'probe1823-second-video.jpg', '{"size": 1}');
 
 -- ======================================================= as somebody in it
 select set_config('request.jwt.claims',
@@ -76,6 +79,11 @@ select name from storage.objects
 select name from storage.objects
  where bucket_id = 'link-previews' and name = 'probe1823-room.jpg';
 
+\echo ''
+\echo '== 3b. and the second video''s, 20261125100000 (expect probe1823-second-video.jpg) =='
+select name from storage.objects
+ where bucket_id = 'link-previews' and name = 'probe1823-second-video.jpg';
+
 reset role;
 
 -- ======================================================== as the outsider
@@ -92,6 +100,11 @@ select count(*) from storage.objects
 \echo '== 5. and cannot read the conversation''s by its name (expect 0 rows) =='
 select name from storage.objects
  where bucket_id = 'link-previews' and name = 'probe1823-conversation.jpg';
+
+\echo ''
+\echo '== 5b. nor the conversation''s second video (expect 0 rows) =='
+select name from storage.objects
+ where bucket_id = 'link-previews' and name = 'probe1823-second-video.jpg';
 
 \echo ''
 \echo '== 6. but reads the room post''s, as Home draws it (expect probe1823-room.jpg) =='

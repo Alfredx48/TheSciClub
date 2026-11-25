@@ -83,6 +83,25 @@ export function youtubeId(href: string): string | null {
   return id && VIDEO_ID.test(id) ? id : null;
 }
 
+/** Videos one card holds at most: the first link's and three more. */
+export const MAX_VIDEOS = 4;
+
+/**
+ * The YouTube videos in what a member wrote, in order, each once, at most
+ * MAX_VIDEOS. Several play side by side like photographs (the owner, 2026-11-25).
+ */
+export function youtubeLinks(body: string): { href: string; id: string }[] {
+  const found: { href: string; id: string }[] = [];
+  for (const match of body.matchAll(CANDIDATE)) {
+    const href = hrefFor(trimEnd(match[0]));
+    const id = href ? youtubeId(href) : null;
+    if (!href || !id || found.some((video) => video.id === id)) continue;
+    found.push({ href, id });
+    if (found.length === MAX_VIDEOS) break;
+  }
+  return found;
+}
+
 /* ------------------------------------------------- where it may be fetched */
 
 /**

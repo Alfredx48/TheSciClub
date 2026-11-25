@@ -34,11 +34,13 @@ import {
   firstLink,
   hostLabel,
   IMAGE_TYPES,
+  MAX_VIDEOS,
   mayFetch,
   type PageMeta,
   readMeta,
   resolvesPublicly,
   youtubeId,
+  youtubeLinks,
 } from './extract.ts';
 
 declare const Deno: {
@@ -288,6 +290,28 @@ Deno.serve(async (request) => {
   // A card with nothing on it but the address says less than the link does.
   if (!meta.title && !imagePath) return reply(200, { preview: false });
 
+  // When the first link is a video, the other videos in the words come too,
+  // drawn side by side like photographs (the owner, 2026-11-25).
+  const videos: {
+    url: string;
+    title: string | null;
+    imagePath: string | null;
+    youtubeId: string;
+  }[] = [];
+  if (video) {
+    for (const more of youtubeLinks(body ?? '').filter((v) => v.id !== video)) {
+      const moreMeta = await youtubeMeta(more.href, more.id);
+      const picture = moreMeta.image ? await keepPicture(moreMeta.image) : null;
+      videos.push({
+        url: more.href,
+        title: moreMeta.title,
+        imagePath: picture,
+        youtubeId: more.id,
+      });
+      if (videos.length === MAX_VIDEOS - 1) break;
+    }
+  }
+
   const preview = {
     url: link,
     title: meta.title,
@@ -295,6 +319,7 @@ Deno.serve(async (request) => {
     siteName: meta.siteName ?? hostLabel(link),
     imagePath,
     youtubeId: video,
+    ...(videos.length > 0 ? { videos } : {}),
   };
   const saved = await rpc('link_preview_save', {
     p_secret: secret,
