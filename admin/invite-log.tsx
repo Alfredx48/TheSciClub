@@ -7,7 +7,6 @@ import {
   type LogEntry,
   type Person,
 } from '@/lib/invite-log';
-import { madeWhen } from '@/routes/admin/sign-in-methods';
 
 /**
  * admin.thesciclub.com › Invites (the owner, 2026-11-25): "a chronological
@@ -43,9 +42,9 @@ const PAGE = 30;
 type Show = 'all' | 'email' | 'code';
 
 const SHOW: { value: Show; label: string }[] = [
-  { value: 'all', label: 'Everything' },
-  { value: 'email', label: 'Invite emails' },
-  { value: 'code', label: 'QR codes & links' },
+  { value: 'all', label: 'All' },
+  { value: 'email', label: 'Emails' },
+  { value: 'code', label: 'Codes & links' },
 ];
 
 const linkClass = 'underline underline-offset-2';
@@ -59,26 +58,43 @@ function Who({ person, gone }: { person: Person | null; gone: string }) {
   );
 }
 
-function Step({ on, children }: { on: boolean; children: React.ReactNode }) {
-  return (
-    <span
-      className={
-        on ? 'rounded-full bg-tint px-2 py-0.5 font-bold text-emphasis' : 'px-1 py-0.5 text-grey/75'
-      }
-    >
-      {on ? null : <span className="sr-only">Not yet: </span>}
-      {children}
-    </span>
-  );
+/**
+ * "Nov 20 at 3:05 PM" this year, "Nov 20, 2025 at 3:05 PM" before it, or the
+ * bare string if it does not read.
+ */
+function when(iso: string, now = new Date()): string {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return iso;
+  const day = date.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    ...(date.getFullYear() === now.getFullYear() ? {} : { year: 'numeric' }),
+  });
+  const time = date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+  // Kept on one line, so "AM" never wraps onto a line of its own.
+  return `${day} at ${time}`.replace(/\s/g, ' ');
 }
 
-/** "Nov 20, 2026 at 3:05 PM", or the bare string if it does not read. */
-const when = (iso: string) => madeWhen(iso) ?? iso;
+/** The steps an invite email can reach, in order. */
+function emailSteps(entry: EmailEntry): { label: string; reached: boolean }[] {
+  return [
+    // Clicking the link means they opened it, even when the mail app never said.
+    { label: 'Opened', reached: entry.openedAt !== null || entry.linkOpenedAt !== null },
+    { label: 'Clicked the link', reached: entry.linkOpenedAt !== null },
+    { label: 'Made an account', reached: entry.accountAt !== null },
+    { label: 'Joined', reached: entry.member !== null },
+  ];
+}
 
 function EmailRow({ entry }: { entry: EmailEntry }) {
   const sender = entry.organization ?? (
     <Who person={entry.sentBy} gone="a member no longer in the club" />
   );
+  const steps = emailSteps(entry);
+  const reached = steps.filter((step) => step.reached);
+  const notYet = steps.filter((step) => !step.reached);
+  // Says it below, with the date.
+  const halfJoinedAt = entry.member === null ? entry.accountAt : null;
   return (
     <li className="border-line border-b px-3 py-2.5 text-[0.8125rem] leading-[1.45] last:border-b-0">
       <span className="block [overflow-wrap:anywhere]">
@@ -98,16 +114,35 @@ function EmailRow({ entry }: { entry: EmailEntry }) {
         ) : null}
         {entry.status === 'revoked' ? ' · taken off the list' : ''}
       </span>
-      <span className="mt-1.5 flex flex-wrap gap-1 text-[0.75rem]">
-        <Step on={entry.openedAt !== null}>Opened</Step>
-        <Step on={entry.linkOpenedAt !== null}>Clicked the link</Step>
-        <Step on={entry.accountAt !== null}>Made an account</Step>
-        <Step on={entry.member !== null}>Joined</Step>
+      <span className="mt-1.5 flex flex-wrap items-center gap-1 text-[0.75rem]">
+        {reached.length ? (
+          reached.map((step) => (
+            <span
+              key={step.label}
+              className="rounded-full bg-tint px-2 py-0.5 font-bold text-emphasis"
+            >
+              {step.label}
+            </span>
+          ))
+        ) : (
+          <span className="text-grey">No sign it was opened yet</span>
+        )}
+        {reached.length && notYet.length && halfJoinedAt === null ? (
+          <span className="text-grey">
+            Not yet: {notYet.map((step) => step.label.toLowerCase()).join(', ')}
+          </span>
+        ) : null}
       </span>
+      {halfJoinedAt ? (
+        <span className="mt-1 block text-[0.75rem] text-ink2">
+          Made an account on {when(halfJoinedAt)} but has not set up a profile yet, so there is none
+          to open
+        </span>
+      ) : null}
       {entry.member ? (
         <span className="mt-1 block text-[0.75rem] text-ink2">
           Joined as{' '}
-          <AppLink to={`/peers/${entry.member.id}`} className={`${linkClass} font-bold text-ink`}>
+          <AppLink to={`/peers/${entry.member.id}`} className={`${linkClass} text-ink`}>
             {entry.member.name ?? 'a member'}
           </AppLink>{' '}
           on {when(entry.member.joinedAt)}
@@ -126,13 +161,22 @@ const CODE_KIND: Record<NonNullable<CodeEntry['madeAs']> | 'none', string> = {
 };
 
 const CODE_HOW: Record<NonNullable<CodeEntry['madeAs']> | 'none', string> = {
-  qr: ', with Make QR code on the Me tab',
-  link: ', with Make invite link on the Me tab',
-  qr_and_link: ', with both Make QR code and Make invite link on the Me tab',
+  qr: ', with “Make QR code” on the Me tab',
+  link: ', with “Make invite link” on the Me tab',
+  qr_and_link: ', with both “Make QR code” and “Make invite link” on the Me tab',
   // "Shared post link … Shared by" already says how.
   share: '',
-  none: '',
+  // Made before 2026-11-25, when the button started being kept.
+  none: ' (which button made it was not kept then)',
 };
+
+/** Turned off or past its end date: nobody new can join from it. */
+function codeOver(entry: CodeEntry, now: Date): boolean {
+  return (
+    entry.turnedOffAt !== null ||
+    (entry.expiresAt !== null && Date.parse(entry.expiresAt) <= now.getTime())
+  );
+}
 
 /** Live, turned off or expired, and until when. */
 function codeState(entry: CodeEntry, now: Date): string {
@@ -187,7 +231,9 @@ function CodeRow({ entry, now }: { entry: CodeEntry; now: Date }) {
           </ul>
         </>
       ) : (
-        <span className="mt-1 block text-[0.75rem] text-grey">Nobody has joined from it yet</span>
+        <span className="mt-1 block text-[0.75rem] text-grey">
+          {codeOver(entry, now) ? 'Nobody joined from it' : 'Nobody has joined from it yet'}
+        </span>
       )}
     </li>
   );
@@ -207,7 +253,12 @@ export function InviteLogSection() {
   }, []);
 
   const now = new Date();
-  const kept = (entries ?? []).filter((e) => show === 'all' || e.kind === show);
+  // Every shared post makes a link; in All, only the ones somebody joined from.
+  const kept = (entries ?? []).filter((e) =>
+    show === 'all'
+      ? !(e.kind === 'code' && e.madeAs === 'share' && e.joined.length === 0)
+      : e.kind === show,
+  );
   const shown = kept.slice(0, count);
 
   return (
@@ -217,9 +268,10 @@ export function InviteLogSection() {
           Invite log
         </h2>
         <p className="mt-1 mb-2 text-[0.75rem] text-grey leading-[1.45]">
-          Every invite email sent and every QR code and invite link made, newest first. Tap a name
-          to open their profile. “Opened” is approximate: some mail apps open every email
-          automatically, and others never report it.
+          Every invite email, QR code and invite link, newest first. Underlined names and events
+          open in the app. “Joined” means they set up a profile, not just an account. “Opened” is
+          approximate: some mail apps never report it. “All” leaves out shared post links nobody
+          joined from.
         </p>
       </div>
       <fieldset className="mb-2 flex flex-wrap gap-1.5">
