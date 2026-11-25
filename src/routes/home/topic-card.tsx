@@ -10,6 +10,7 @@ import {
   MemberAvatar,
 } from '@/components/member-avatar';
 import { type Anonymity, anonymousName, useAnonymity } from '@/lib/chat/anonymous';
+import { firstClubLink } from '@/lib/chat/club-links';
 import { useSeenOnHome } from '@/lib/chat/home-views';
 import type { PostVote } from '@/lib/chat/likes';
 import { chatTime } from '@/lib/chat/time';
@@ -19,6 +20,7 @@ import type { HomeReply, HomeReplyKind, HomeTopic } from '@/lib/home/types';
 import { markdownToPlain } from '@/lib/markdown';
 import { splitMentions } from '@/lib/mentions';
 import { useOrganizations } from '@/lib/organizations';
+import { ClubLinkCard } from '@/routes/chat/club-link-card';
 import { ROOM_ICON_COLOUR } from '@/routes/chat/continue-in-room';
 import { PostLikes } from '@/routes/chat/like-button';
 import { LinkPreviewCard } from '@/routes/chat/link-preview-card';
@@ -63,6 +65,8 @@ export function TopicCard({
 }) {
   useMinute();
   const opening = topic.opening;
+  const clubLink = opening ? firstClubLink(opening.body) : null;
+  const eventLink = clubLink?.kind === 'event' ? clubLink : null;
   // Read here is read: a view, as opening the topic is (home-views.ts).
   const seenRef = useSeenOnHome(topic.opening?.id);
   const { organizations } = useOrganizations(topic.title.includes('@'));
@@ -192,8 +196,14 @@ export function TopicCard({
       </p>
 
       {/* `relative`, like the Like control: above the title's stretched
-          link, so the card's own link and play button can be pressed. */}
-      {opening?.linkPreview ? (
+          link, so the card's own link and play button can be pressed. An
+          event's link is the event's card, with its RSVP, as in Chat (the
+          owner, 2026-11-25: "people can RSVP from the home feed"). */}
+      {eventLink ? (
+        <div className="relative">
+          <ClubLinkCard link={eventLink} />
+        </div>
+      ) : opening?.linkPreview ? (
         <LinkPreviewCard preview={opening.linkPreview} className="relative" />
       ) : null}
 

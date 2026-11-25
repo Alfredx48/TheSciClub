@@ -1,5 +1,6 @@
 import { MessageSquare } from 'lucide-react';
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Link, useNavigate } from 'react-router-dom';
 import { useRsvpSheet } from '@/components/rsvp-sheet';
 import { useAccount } from '@/lib/account';
@@ -91,9 +92,17 @@ function SharedEventCard({ eventId }: { eventId: string }) {
           {failure}
         </p>
       ) : null}
-      {sheet}
+      {/* The sheet places itself in the app's frame, as it does on Events.
+          Drawn here, a card that is \`relative\` (Home's, above its stretched
+          link) held it inside the card (2026-11-25). */}
+      {sheet ? createPortal(sheet, appFrame()) : null}
     </div>
   );
+}
+
+/** Where a sheet is drawn: the app's frame, or the page while there is none. */
+function appFrame(): Element {
+  return document.querySelector('.app-shell') ?? document.body;
 }
 
 function SharedTopicCard({ topicId, href }: { topicId: string; href: string }) {
