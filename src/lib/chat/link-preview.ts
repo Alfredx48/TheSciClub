@@ -1,4 +1,4 @@
-import type { LinkPreview } from '@/lib/chat/types';
+import type { LinkPreview, LinkVideo } from '@/lib/chat/types';
 import { SITE_ORIGIN } from '@/lib/site-origin';
 
 /**
@@ -19,17 +19,46 @@ export function toLinkPreview(raw: unknown): LinkPreview | null {
   };
   const url = text('url');
   if (!url || !/^https?:\/\//i.test(url)) return null;
-  const imagePath = text('imagePath');
-  const youtubeId = text('youtubeId');
+  const youtubeId = checkedVideo(text('youtubeId'));
   const preview: LinkPreview = {
     url,
     title: text('title'),
     description: text('description'),
     siteName: text('siteName'),
-    imagePath: imagePath && /^[0-9a-f]{64}\.(jpg|png|webp|gif)$/.test(imagePath) ? imagePath : null,
-    youtubeId: youtubeId && /^[A-Za-z0-9_-]{11}$/.test(youtubeId) ? youtubeId : null,
+    imagePath: checkedPicture(text('imagePath')),
+    youtubeId,
   };
+  const videos = youtubeId ? toVideos(row.videos) : [];
+  if (videos.length > 0) preview.videos = videos;
   return preview.title || preview.imagePath ? preview : null;
+}
+
+const checkedPicture = (path: string | null) =>
+  path && /^[0-9a-f]{64}\.(jpg|png|webp|gif)$/.test(path) ? path : null;
+const checkedVideo = (id: string | null) => (id && /^[A-Za-z0-9_-]{11}$/.test(id) ? id : null);
+
+/** The other videos, each taken only if it is whole; three at most. */
+function toVideos(raw: unknown): LinkVideo[] {
+  if (!Array.isArray(raw)) return [];
+  const videos: LinkVideo[] = [];
+  for (const item of raw.slice(0, 3)) {
+    if (typeof item !== 'object' || item === null) continue;
+    const video = item as Record<string, unknown>;
+    const text = (key: string) => {
+      const value = video[key];
+      return typeof value === 'string' && value.trim() !== '' ? value : null;
+    };
+    const url = text('url');
+    const youtubeId = checkedVideo(text('youtubeId'));
+    if (!url || !/^https?:\/\//i.test(url) || !youtubeId) continue;
+    videos.push({
+      url,
+      title: text('title'),
+      imagePath: checkedPicture(text('imagePath')),
+      youtubeId,
+    });
+  }
+  return videos;
 }
 
 /** The player's address, from YouTube's privacy-enhanced host. Only ever built from a checked id. */

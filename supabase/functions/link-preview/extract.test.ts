@@ -8,6 +8,7 @@ import {
   readMeta,
   resolvesPublicly,
   youtubeId,
+  youtubeLinks,
 } from './extract.ts';
 
 describe('firstLink', () => {
@@ -45,6 +46,15 @@ describe('youtubeId', () => {
     'https://www.youtube.com/playlist?list=PL123',
   ])('is not fooled by %s', (href) => {
     expect(youtubeId(href)).toBeNull();
+  });
+
+  it('lists each video in the words once, in order, four at most', () => {
+    const ids = ['aaaaaaaaaaa', 'bbbbbbbbbbb', 'ccccccccccc', 'ddddddddddd', 'eeeeeeeeeee'];
+    const body = `https://youtube.com/shorts/${ids[0]} and https://reeve.org then https://youtu.be/${ids[1]} again https://www.youtube.com/watch?v=${ids[0]} ${ids
+      .slice(2)
+      .map((id) => `https://youtu.be/${id}`)
+      .join(' ')}`;
+    expect(youtubeLinks(body).map((video) => video.id)).toEqual(ids.slice(0, 4));
   });
 });
 

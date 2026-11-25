@@ -40,6 +40,18 @@ describe('toLinkPreview', () => {
     expect(preview).toMatchObject({ imagePath: null, youtubeId: null, title: 'Reeve Foundation' });
   });
 
+  it('keeps the other videos only after a first one, and only whole ones', () => {
+    const good = {
+      url: 'https://youtu.be/bbbbbbbbbbb',
+      title: null,
+      imagePath: null,
+      youtubeId: 'bbbbbbbbbbb',
+    };
+    const videos = [good, { ...good, youtubeId: 'nope' }, { ...good, url: 'javascript:x' }, 'x'];
+    expect(toLinkPreview({ ...full, youtubeId: 'aaaaaaaaaaa', videos })?.videos).toEqual([good]);
+    expect(toLinkPreview({ ...full, videos })?.videos).toBeUndefined();
+  });
+
   it('ignores a field of the wrong type rather than drawing it', () => {
     expect(toLinkPreview({ ...full, title: 42, description: { x: 1 } })).toMatchObject({
       title: null,

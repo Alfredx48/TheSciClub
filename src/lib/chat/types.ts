@@ -195,6 +195,16 @@ export interface LinkPreview {
   imagePath: string | null;
   /** Set for a YouTube video: the card plays it, on a press. */
   youtubeId: string | null;
+  /** When the first link is a video, the next videos in the words (up to three), shown beside it. */
+  videos?: LinkVideo[];
+}
+
+/** One more YouTube video under the same words (20261125100000). */
+export interface LinkVideo {
+  url: string;
+  title: string | null;
+  imagePath: string | null;
+  youtubeId: string;
 }
 
 /** One post in a topic. */
