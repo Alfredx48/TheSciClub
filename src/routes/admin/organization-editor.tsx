@@ -261,7 +261,10 @@ export function OrganizationEditor({
                     )}
                   />
                 ) : (
-                  <span className="font-extrabold font-head text-[0.875rem] text-grey">
+                  <span
+                    className="grid h-full w-full place-items-center font-extrabold font-head text-[0.875rem] text-white tracking-[0.04em]"
+                    style={{ background: 'linear-gradient(140deg,#3A3A3A,#0B0B0B)' }}
+                  >
                     {draft.shortCode || '—'}
                   </span>
                 )}

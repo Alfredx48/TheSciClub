@@ -9,7 +9,7 @@ import type { Organization } from '@/types/domain';
  * The mark an organization is recognised by, on an event card or its own page.
  *
  * Three states, in order of preference: the organization's own logo, its short
- * code in the club's gold tile, or — for a host the club has no organization
+ * code on a black tile, or — for a host the club has no organization
  * for — letters derived from the name the feed gave.
  *
  * ---------------------------------------------------------------------------
@@ -70,9 +70,13 @@ export function OrganizationBadge({
         box,
         className,
       )}
-      // The gold tile sits underneath the logo rather than beside it, so a slow
-      // or failed image never leaves a hole in the row.
-      style={{ background: 'linear-gradient(140deg,#8A6512,#D4A83A)' }}
+      // The tile sits underneath the logo rather than beside it, so a slow or
+      // failed image never leaves a hole in the row. Black and white (the
+      // owner, 2026-11-25); the faint ring keeps it apart from a dark page.
+      style={{
+        background: 'linear-gradient(140deg,#3A3A3A,#0B0B0B)',
+        boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.14)',
+      }}
       // Decorative throughout: every place this is used renders the
       // organization's name as text right beside it, so giving the badge a
       // label of its own would read the organization twice to a screen reader.
@@ -106,7 +110,7 @@ export function OrganizationBadge({
             setLogoFailed(true);
           }}
           // White ground and padding because these are logos drawn for a white
-          // page — several are dark marks that would vanish on the gold tile.
+          // page — several are dark marks that would vanish on the black tile.
           className={cn(
             'absolute inset-0 h-full w-full bg-white object-contain',
             // One saved square on its own colour fills the tile.
