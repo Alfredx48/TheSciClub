@@ -143,8 +143,9 @@ export default function QrCodePage() {
         ? 'Your own code'
         : (code.eventName ?? 'No event');
 
-  function made() {
+  function made(madeAs: 'qr' | 'link') {
     return createQrCode({
+      madeAs,
       organizationId: forOrganization,
       eventName: event || null,
       contactEmail: null,
@@ -158,7 +159,7 @@ export default function QrCodePage() {
     setBusy('new');
     setError(null);
     setLinkNote(null);
-    const result = await made();
+    const result = await made('qr');
     setBusy(null);
     if (!result.ok) {
       setError(result.error);
@@ -176,7 +177,7 @@ export default function QrCodePage() {
     setBusy('link');
     setError(null);
     setLinkNote(null);
-    const making = made();
+    const making = made('link');
     void copyWhenReady(making.then((result) => (result.ok ? qrJoinUrl(result.code.code) : null)))
       .then(async (copied) => {
         const result = await making;

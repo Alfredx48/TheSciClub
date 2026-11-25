@@ -3,9 +3,10 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAccount } from '@/lib/account';
 import { chatDayHeading } from '@/lib/chat/time';
+import { PARTNER_ROLE_NAME } from '@/lib/club-partners';
 import { describeError } from '@/lib/describe-error';
 import { getSupabase } from '@/lib/supabase';
-import { methodLabel } from '@/routes/admin/sign-in-methods';
+import { madeWhen, methodLabel } from '@/routes/admin/sign-in-methods';
 import { firstName, mentorAskMailto, profileComplete } from '@/routes/peers/mentor-ask-email';
 import { DetailRow, Section } from '@/routes/peers/profile-parts';
 
@@ -45,7 +46,17 @@ export interface MemberStory {
     acceptedAt: string | null;
     by: { id: string; name: string | null } | null;
     organization: string | null;
-    qrCode: { event: string | null; organization: string | null } | null;
+    qrCode: {
+      event: string | null;
+      organization: string | null;
+      /** Who made the code, when, and how (20261125120000); absent before it. */
+      madeBy?: { id: string; name: string | null } | null;
+      madeAt?: string | null;
+      /** The button on Me, both, or a shared post; null for a code made before it was kept. */
+      madeAs?: 'qr' | 'link' | 'qr_and_link' | 'share' | null;
+      asPartner?: boolean;
+      post?: { id: string; roomId: string; title: string } | null;
+    } | null;
     event: { id: string; title: string } | null;
     note: string | null;
     message: string | null;
@@ -135,6 +146,83 @@ const plural = (n: number, one: string, many = `${one}s`) => `${String(n)} ${n =
 
 const capital = (line: string) => line.charAt(0).toUpperCase() + line.slice(1);
 
+type QrCodeCame = NonNullable<MemberStory['came']>['qrCode'];
+
+/**
+ * What they came by: a QR code or an invite link (both made on Me › Create
+ * QR code or invite link), or a shared post's link. Codes made before
+ * 20261125120000 do not say which button made them, so they are "a QR code
+ * or invite link".
+ */
+export function qrSentence(code: QrCodeCame): React.ReactNode {
+  const madeAs = code?.madeAs ?? null;
+  const from = code?.organization ? ` from ${code.organization}` : '';
+  const at = code?.event ? ` at ${code.event}` : '';
+  if (madeAs === 'share') {
+    return code?.post ? (
+      <>
+        Opened a shared link to the post{' '}
+        <Link
+          to={`/chat/rooms/${code.post.roomId}/topics/${code.post.id}`}
+          className="underline underline-offset-2"
+        >
+          {code.post.title}
+        </Link>
+        {from}
+      </>
+    ) : (
+      `Opened a shared link to a post${from}`
+    );
+  }
+  const what =
+    madeAs === 'qr'
+      ? 'Scanned a QR code'
+      : madeAs === 'link'
+        ? 'Opened an invite link'
+        : madeAs === 'qr_and_link'
+          ? 'Scanned a QR code or opened its invite link'
+          : 'Came by a QR code or invite link';
+  return `${what}${from}${at}`;
+}
+
+/**
+ * Who made the code, when and how (the owner, 2026-11-25: "it should specify
+ * who and when the code was generated and how. Same with invite link"). Null
+ * from a database that does not say yet.
+ */
+export function qrMadeLine(code: QrCodeCame): React.ReactNode {
+  if (!code || !('madeBy' in code)) return null;
+  const madeAs = code.madeAs ?? null;
+  const who = code.madeBy ? (
+    <Link to={`/peers/${code.madeBy.id}`} className="underline underline-offset-2">
+      {code.madeBy.name ?? 'a member'}
+    </Link>
+  ) : (
+    'somebody no longer in the club'
+  );
+  const when = code.madeAt ? madeWhen(code.madeAt) : null;
+  const partner =
+    code.asPartner && !code.organization ? ` as ${PARTNER_ROLE_NAME.toLowerCase()}` : '';
+  const how =
+    madeAs === 'qr'
+      ? ', as a QR code on Me'
+      : madeAs === 'link'
+        ? ', as an invite link on Me'
+        : madeAs === 'qr_and_link'
+          ? ', as a QR code and an invite link on Me'
+          : madeAs === 'share'
+            ? ', by sharing the post'
+            : ', on Me (whether as a QR code or a link was not kept then)';
+  return (
+    <>
+      {madeAs === 'share' ? 'Shared' : 'Made'} by {who}
+      {partner}
+      {when ? ` on ${when}` : ''}
+      {how}
+    </>
+  );
+}
+
 /** Who or what brought them. */
 export function cameSentence(story: MemberStory): React.ReactNode {
   const came = story.came;
@@ -153,11 +241,13 @@ export function cameSentence(story: MemberStory): React.ReactNode {
     </>
   ) : null;
   if (came.way === 'open') return 'Joined while anybody could join, with no invite';
-  if (came.way === 'qr') {
-    const from = came.qrCode?.organization ? ` from ${came.qrCode.organization}` : '';
-    const at = came.qrCode?.event ? ` at ${came.qrCode.event}` : '';
-    return `Scanned a QR code${from}${at}${claimed}`;
-  }
+  if (came.way === 'qr')
+    return (
+      <>
+        {qrSentence(came.qrCode)}
+        {claimed}
+      </>
+    );
   if (came.way === 'organization') {
     return (
       <>
@@ -352,6 +442,9 @@ function StoryCard({ story }: { story: MemberStory }) {
         value={
           <>
             {cameSentence(story)}
+            {story.came?.way === 'qr' && qrMadeLine(story.came.qrCode) ? (
+              <span className={note}>{qrMadeLine(story.came.qrCode)}</span>
+            ) : null}
             <span className={note}>{cameSteps(story)}</span>
             {story.came?.message ? (
               <span className={note}>Their invite said: “{story.came.message}”</span>

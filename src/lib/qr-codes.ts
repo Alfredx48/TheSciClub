@@ -210,6 +210,8 @@ export interface NewQrCode {
   contactEmail: string | null;
   expiresAt: Date | null;
   notes: string | null;
+  /** The button it was made with, kept so a member's page can say how they came (20261125120000). */
+  madeAs: 'qr' | 'link';
 }
 
 export async function createQrCode(
@@ -223,6 +225,7 @@ export async function createQrCode(
         p_contact_email: made.contactEmail,
         p_expires_at: made.expiresAt ? made.expiresAt.toISOString() : null,
         p_notes: made.notes,
+        p_made_as: made.madeAs,
       })
       .single();
     if (error) return { ok: false, error: describeError(error, 'The code was not made.') };

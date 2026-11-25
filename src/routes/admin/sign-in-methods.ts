@@ -32,6 +32,10 @@ export interface CameBy {
   by: string | null;
   /** A QR code's event. */
   event: string | null;
+  /** Who made the QR code or invite link, when and how (20261125120000); absent before it. */
+  madeBy?: string | null;
+  madeAt?: string | null;
+  madeAs?: 'qr' | 'link' | 'qr_and_link' | 'share' | null;
 }
 
 export interface SignInAccount {
@@ -111,15 +115,41 @@ export const CAME_LABELS: Record<CameBy['way'], string> = {
   open: 'While joining was open',
 };
 
-/** "Came by QR code from NorCal SCI, at Abilities Expo, after asking for an invite." */
+const CAME_BY_CODE: Record<NonNullable<CameBy['madeAs']>, string> = {
+  qr: 'QR code',
+  link: 'invite link',
+  qr_and_link: 'QR code or its invite link',
+  share: 'a shared post’s link',
+};
+
+/** When a code was made: "Nov 20, 2026 at 3:05 PM"; null for a date that does not read. */
+export function madeWhen(iso: string): string | null {
+  const at = new Date(iso);
+  if (Number.isNaN(at.getTime())) return null;
+  const day = at.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  const time = at.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+  return `${day} at ${time}`;
+}
+
+/**
+ * "Came by invite link from NorCal SCI, at Abilities Expo, made by Alfred
+ * Shaheen on Nov 20, 2026 at 3:05 PM, after asking for an invite." Who made
+ * the code, when and how: the owner, 2026-11-25.
+ */
 export function cameByPhrase({ cameBy, askedForInvite }: SignInAccount): string | null {
   if (!cameBy) return askedForInvite ? 'Asked for an invite.' : null;
   const { way, by, event } = cameBy;
   const asked = askedForInvite ? ', after asking for an invite' : '';
   if (way === 'open') return `Came while joining was open${asked}.`;
   if (way === 'qr') {
+    const what = cameBy.madeAs ? CAME_BY_CODE[cameBy.madeAs] : 'QR code';
     const where = event && event !== by ? `, at ${event}` : '';
-    return `Came by QR code${by ? ` from ${by}` : ''}${where}${asked}.`;
+    const when = cameBy.madeAt ? madeWhen(cameBy.madeAt) : null;
+    const made =
+      'madeBy' in cameBy
+        ? `, ${cameBy.madeAs === 'share' ? 'shared' : 'made'} by ${cameBy.madeBy ?? 'somebody no longer in the club'}${when ? ` on ${when}` : ''}`
+        : '';
+    return `Came by ${what}${by ? ` from ${by}` : ''}${where}${made}${asked}.`;
   }
   return `Came by invite${by ? ` from ${by}` : ''}${asked}.`;
 }
