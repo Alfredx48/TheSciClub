@@ -192,8 +192,8 @@ export async function prepareThumb(photo: Blob, max: number = THUMB_EDGE): Promi
 }
 
 /**
- * A logo that fills its own picture with one colour to every edge (a mark on a
- * coloured square, say), made square on that colour, so a square tile can be
+ * A logo that fills its own picture with one colour to nearly every edge (a
+ * mark on a coloured square, say), made square on that colour, so a square tile can be
  * filled with it instead of framing it in white. Null for anything else: a
  * mark on white or on nothing, a photograph, or an image that will not decode.
  */
@@ -228,7 +228,7 @@ export async function squareOnOwnGround(
   }
 }
 
-/** The one opaque, not-white colour around a picture's edge, as #rrggbb; else null. */
+/** The opaque, not-white colour nearly all of a picture's edge is, as #rrggbb; else null. */
 function ownGround(bitmap: ImageBitmap): string | null {
   const size = 48;
   const canvas = document.createElement('canvas');
@@ -248,11 +248,18 @@ function ownGround(bitmap: ImageBitmap): string | null {
       ring.push([data[at] ?? 0, data[at + 1] ?? 0, data[at + 2] ?? 0]);
     }
   }
+  // The colour most of the edge is: each channel's middle value.
+  const middle = [0, 1, 2].map((c) => {
+    const values = ring.map((px) => px[c] ?? 0).sort((x, y) => x - y);
+    return values[Math.floor(values.length / 2)] ?? 0;
+  });
+  // Allowing for JPEG's smudges, and for a little of the mark reaching the
+  // edge (BIAC's heron stands on it, the owner, 2026-11-25).
+  const near = ring.filter((px) => px.every((v, c) => Math.abs(v - (middle[c] ?? 0)) <= 28));
+  if (near.length < ring.length * 0.88) return null;
   const mean = [0, 1, 2].map((c) =>
-    Math.round(ring.reduce((sum, px) => sum + (px[c] ?? 0), 0) / ring.length),
-  ) as [number, number, number];
-  // One colour, allowing for JPEG's smudges.
-  if (ring.some((px) => px.some((v, c) => Math.abs(v - (mean[c] ?? 0)) > 28))) return null;
+    Math.round(near.reduce((sum, px) => sum + (px[c] ?? 0), 0) / near.length),
+  );
   // White already matches the tile.
   if (mean.every((v) => v > 240)) return null;
   return `#${mean.map((v) => v.toString(16).padStart(2, '0')).join('')}`;
