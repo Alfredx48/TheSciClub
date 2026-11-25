@@ -34,7 +34,7 @@ import {
   weekOf,
 } from './changes-lib.mjs';
 
-const WEEKS = 8;
+const WEEKS = 26;
 const ENTRIES = 'admin/changes/entries/';
 const here = path.dirname(import.meta.dirname);
 const [mode = 'log', out = 'dist-admin/changes.json', shotsOut] = process.argv.slice(2);

@@ -1,4 +1,4 @@
-import { type ReactNode, useEffect, useMemo, useState } from 'react';
+import { type CSSProperties, type ReactNode, useEffect, useMemo, useState } from 'react';
 import { PageTabs, TabPanel, useTabParam } from '@/components/page-tabs';
 import { cn } from '@/lib/utils';
 
@@ -115,6 +115,21 @@ export function ChangeLog() {
   const [fresh, setFresh] = useState<{ built: string; waiting: Change[] } | null>(null);
   // The change By surface was asked to show in On main.
   const [focus, setFocus] = useState<string | null>(null);
+  // How tall the site's own tab row is, which stays at the top of the screen: a week's heading
+  // in By surface stays just under it (--log-top). Nothing if that row does not stick.
+  const [barHeight, setBarHeight] = useState(0);
+  useEffect(() => {
+    const measure = () => {
+      const bar = document.querySelector('[role="tablist"]')?.parentElement;
+      const sticks = bar ? getComputedStyle(bar).position === 'sticky' : false;
+      setBarHeight(bar && sticks ? Math.floor(bar.getBoundingClientRect().height) : 0);
+    };
+    measure();
+    window.addEventListener('resize', measure);
+    return () => {
+      window.removeEventListener('resize', measure);
+    };
+  }, []);
 
   useEffect(() => {
     let live = true;
@@ -157,7 +172,7 @@ export function ChangeLog() {
   }
 
   return (
-    <div className="pt-3">
+    <div className="pt-3" style={{ '--log-top': `${String(barHeight)}px` } as CSSProperties}>
       <PageTabs
         id="change-log"
         label="Parts of the change log"
@@ -432,16 +447,29 @@ function OnMain({ releases, focus }: { releases: Release[]; focus: string | null
 interface Dated {
   change: Change;
   day: string;
+  week: string;
 }
 
-/** A week's changes by surface, the part of the club they touched, in the surfaces' own order. */
+/** The quarter of a day: '2026-Q4'. The day is already a Pacific one. */
+export function quarterOf(day: string): string {
+  return `${day.slice(0, 4)}-Q${String(Math.ceil(Number(day.slice(5, 7)) / 3))}`;
+}
+
+const QUARTERS = ['January to March', 'April to June', 'July to September', 'October to December'];
+
+/** '2026-Q4' said: October to December 2026. */
+export function quarterName(quarter: string): string {
+  return `${QUARTERS[Number(quarter.slice(6)) - 1] ?? quarter} ${quarter.slice(0, 4)}`;
+}
+
+/** Some pushes' changes by surface, the part of the club they touched, in the surfaces' own order. */
 function bySurface(releases: Release[], surfaces: string[]): [string, Dated[]][] {
   const found = new Map<string, Dated[]>();
   for (const release of releases) {
     for (const change of release.changes) {
       found.set(change.surface, [
         ...(found.get(change.surface) ?? []),
-        { change, day: release.day },
+        { change, day: release.day, week: release.week },
       ]);
     }
   }
@@ -461,63 +489,179 @@ function BySurface({
   surfaces: string[];
   onShow: (sha: string) => void;
 }) {
-  const weeks = useMemo(() => byWeek(releases), [releases]);
-  const { isOpen, open } = useOpenWeeks(weeks);
+  // Quarters outside, newest first; each surface opens on its own weeks (the owner,
+  // 2026-11-25: "a timeline by week within each expansion", where each week had listed every
+  // surface again).
+  const quarters = useMemo(() => {
+    const found = new Map<string, Release[]>();
+    for (const release of releases) {
+      const quarter = quarterOf(release.day);
+      found.set(quarter, [...(found.get(quarter) ?? []), release]);
+    }
+    return [...found].sort((a, b) => b[0].localeCompare(a[0]));
+  }, [releases]);
+  // The newest week of all, which is not over.
+  const currentWeek = releases.reduce((newest, r) => (r.week > newest ? r.week : newest), '');
   return (
     <div>
       <Note>
-        Each week’s changes grouped by surface: the part of the club they touched. Tap a change to
-        see it in On main. The surface comes from the change’s entry, or else is worked out from the
-        files it changed.
+        Each quarter’s changes grouped by surface: the part of the club they touched. Open a surface
+        to see its changes week by week, newest first, and tap a change to see it in On main. A
+        change’s surface is the one its entry names, or else a guess from the files it touched.
       </Note>
-      {weeks.map(([week, inWeek], index) => (
-        <section key={week} aria-label={`Week of ${weekName(week)}`}>
-          <WeekHeading week={week} current={index === 0}>
-            {count(changesIn(inWeek), 'change')}
-          </WeekHeading>
-          {isOpen(week, index) ? (
-            <div className="space-y-2">
-              {bySurface(inWeek, surfaces).map(([surface, changes]) => (
-                <details key={surface} className={CARD}>
-                  <summary className="min-h-11 cursor-pointer content-center font-semibold text-[0.875rem] text-ink">
-                    {surface}{' '}
-                    <span className="font-normal text-grey">({String(changes.length)})</span>
-                  </summary>
-                  <ul className="divide-y divide-line text-[0.8125rem]">
-                    {changes.map(({ change, day }) => (
-                      <li key={change.sha}>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            onShow(change.sha);
-                          }}
-                          className="block w-full py-2 text-left leading-[1.4]"
-                        >
-                          <span className="text-ink underline decoration-grey underline-offset-2">
-                            {change.entry?.title ?? change.title}
-                          </span>
-                          <span className="mt-0.5 block text-[0.6875rem] text-grey">
-                            {dayName(day)} · {change.by}
-                          </span>
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                </details>
-              ))}
-            </div>
-          ) : (
-            <ShowWeek
-              onClick={() => {
-                open(week);
-              }}
-            >
-              Show this week
-            </ShowWeek>
-          )}
+      {quarters.map(([quarter, inQuarter], index) => (
+        <section
+          key={quarter}
+          aria-label={quarterName(quarter)}
+          className={index === 0 ? 'mt-5' : 'mt-9 border-line border-t pt-6'}
+        >
+          <h3 className="mb-2 flex flex-wrap items-baseline gap-x-2 font-bold font-head text-[1.125rem] text-ink">
+            {quarterName(quarter)}
+            {index === 0 ? ', so far' : ''}
+            <span className="font-normal text-[0.75rem] text-grey">
+              {count(changesIn(inQuarter), 'change')}
+            </span>
+          </h3>
+          <div className="space-y-2">
+            {bySurface(inQuarter, surfaces).map(([surface, changes]) => (
+              <SurfaceTimeline
+                key={surface}
+                surface={surface}
+                changes={changes}
+                currentWeek={currentWeek}
+                onShow={onShow}
+              />
+            ))}
+          </div>
         </section>
       ))}
     </div>
+  );
+}
+
+/** One surface in a quarter: closed, its count; open, its weeks, the newest of them open. */
+function SurfaceTimeline({
+  surface,
+  changes,
+  currentWeek,
+  onShow,
+}: {
+  surface: string;
+  changes: Dated[];
+  currentWeek: string;
+  onShow: (sha: string) => void;
+}) {
+  // Drawn only once opened: a quarter of one surface can be hundreds of changes.
+  const [open, setOpen] = useState(false);
+  const weeks = useMemo(() => {
+    const found = new Map<string, Dated[]>();
+    for (const dated of changes) found.set(dated.week, [...(found.get(dated.week) ?? []), dated]);
+    return [...found].sort((a, b) => b[0].localeCompare(a[0]));
+  }, [changes]);
+  return (
+    <details
+      className={CARD}
+      onToggle={(event) => {
+        // A week inside toggling is not this.
+        if (event.target === event.currentTarget) setOpen(event.currentTarget.open);
+      }}
+    >
+      <summary className="min-h-11 cursor-pointer content-center font-semibold text-[0.875rem] text-ink">
+        {surface}{' '}
+        <span className="ml-1 font-normal text-[0.75rem] text-grey">
+          {count(changes.length, 'change')}
+        </span>
+      </summary>
+      {open ? (
+        <div className="space-y-1.5 pb-1">
+          {weeks.map(([week, inWeek], index) => (
+            <SurfaceWeek
+              key={week}
+              surface={surface}
+              week={week}
+              changes={inWeek}
+              current={week === currentWeek}
+              startsOpen={index === 0}
+              onShow={onShow}
+            />
+          ))}
+        </div>
+      ) : null}
+    </details>
+  );
+}
+
+/**
+ * One week of a surface. Its heading names the surface too and stays under the site's tabs
+ * while its changes scroll, so somebody far down a long week still knows where they are; a
+ * press closes it. The day is said once, over the changes pushed that day.
+ */
+function SurfaceWeek({
+  surface,
+  week,
+  changes,
+  current,
+  startsOpen,
+  onShow,
+}: {
+  surface: string;
+  week: string;
+  changes: Dated[];
+  current: boolean;
+  startsOpen: boolean;
+  onShow: (sha: string) => void;
+}) {
+  const [open, setOpen] = useState(startsOpen);
+  return (
+    <details
+      open={open}
+      onToggle={(event) => {
+        setOpen(event.currentTarget.open);
+      }}
+    >
+      <summary className="sticky top-[var(--log-top,0px)] z-[1] flex min-h-11 cursor-pointer list-none flex-wrap items-baseline gap-x-2 rounded-[8px] bg-tint px-2.5 py-2.5 font-semibold text-[0.8125rem] text-ink [&::-webkit-details-marker]:hidden">
+        {/* The row is a flex one, which drops the browser's own triangle. */}
+        <span aria-hidden="true" className="w-3.5 text-[0.9375rem] text-ink2 leading-none">
+          {open ? '▾' : '▸'}
+        </span>
+        <span>
+          <span className="text-ink2">{surface} · </span>
+          Week of {weekName(week)}
+          {current ? ', so far' : ''}
+        </span>
+        <span className="font-normal text-[0.6875rem] text-grey">
+          {count(changes.length, 'change')}
+        </span>
+      </summary>
+      {open ? (
+        <ul className="px-1 pb-2 text-[0.8125rem]">
+          {changes.map(({ change, day }, index) => (
+            <li key={change.sha}>
+              {index === 0 || changes[index - 1]?.day !== day ? (
+                <p className="mt-3 mb-0.5 font-semibold text-[0.6875rem] text-grey">
+                  {dayName(day)}
+                </p>
+              ) : null}
+              <button
+                type="button"
+                onClick={() => {
+                  onShow(change.sha);
+                }}
+                className="flex w-full items-start justify-between gap-3 py-1.5 text-left leading-[1.4]"
+              >
+                <span className="text-ink">
+                  {change.entry?.title ?? change.title}
+                  <span className="text-grey"> · {change.by}</span>
+                </span>
+                <span aria-hidden="true" className="text-grey">
+                  ›
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </details>
   );
 }
 
