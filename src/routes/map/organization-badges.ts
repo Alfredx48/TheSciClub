@@ -2,7 +2,7 @@ import type { MapLibreMap } from '@/lib/map';
 
 /**
  * An organization's place on the map: its own logo in a white disc, ringed
- * in the organizations' purple, or its short code on the gold of
+ * in the organizations' purple, or its short code on the black of
  * organization-badge.tsx when it has none. Drawn once into pixels and kept:
  * a theme change or a remounted map adds the same pixels again, never a
  * second download. A logo is fetched only when MapLibre asks for its badge,
@@ -13,8 +13,8 @@ import type { MapLibreMap } from '@/lib/map';
 export const PLUM = '#5b3d8f';
 const WHITE = '#ffffff';
 /** Matches organization-badge.tsx's tile. */
-const GOLD_FROM = '#8A6512';
-const GOLD_TO = '#D4A83A';
+const TILE_FROM = '#3A3A3A';
+const TILE_TO = '#0B0B0B';
 const HEAD = '"Atkinson Hyperlegible Next", "Segoe UI", system-ui, sans-serif';
 
 /** MapLibre's image id for an organization's badge. */
@@ -117,15 +117,15 @@ export function drawBadge(look: { logo: Logo } | { letters: string }): Badge | n
   } else {
     // CSS's 140deg, across the disc.
     const [dx, dy] = [Math.sin((140 * Math.PI) / 180), -Math.cos((140 * Math.PI) / 180)];
-    const gold = pen.createLinearGradient(
+    const tile = pen.createLinearGradient(
       MIDDLE - dx * INNER,
       MIDDLE - dy * INNER,
       MIDDLE + dx * INNER,
       MIDDLE + dy * INNER,
     );
-    gold.addColorStop(0, GOLD_FROM);
-    gold.addColorStop(1, GOLD_TO);
-    disc(INNER, gold);
+    tile.addColorStop(0, TILE_FROM);
+    tile.addColorStop(1, TILE_TO);
+    disc(INNER, tile);
     const letters = look.letters;
     if (letters) {
       // As the tile steps three and four letters down; then to fit the disc.
