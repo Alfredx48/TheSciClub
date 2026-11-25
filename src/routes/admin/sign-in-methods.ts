@@ -142,14 +142,20 @@ export function cameByPhrase({ cameBy, askedForInvite }: SignInAccount): string 
   const asked = askedForInvite ? ', after asking for an invite' : '';
   if (way === 'open') return `Came while joining was open${asked}.`;
   if (way === 'qr') {
-    const what = cameBy.madeAs ? CAME_BY_CODE[cameBy.madeAs] : 'QR code';
-    const where = event && event !== by ? `, at ${event}` : '';
+    if (!('madeBy' in cameBy)) {
+      // A database that does not say who made the code yet.
+      const where = event && event !== by ? `, at ${event}` : '';
+      return `Came by QR code${by ? ` from ${by}` : ''}${where}${asked}.`;
+    }
+    const what = cameBy.madeAs ? CAME_BY_CODE[cameBy.madeAs] : 'QR code or invite link';
+    // `by` is the organization, or the event when there is none.
+    const from = by && by !== event ? ` from ${by}` : '';
+    const forEvent = event ? ` for ${event}` : '';
     const when = cameBy.madeAt ? madeWhen(cameBy.madeAt) : null;
-    const made =
-      'madeBy' in cameBy
-        ? `, ${cameBy.madeAs === 'share' ? 'shared' : 'made'} by ${cameBy.madeBy ?? 'somebody no longer in the club'}${when ? ` on ${when}` : ''}`
-        : '';
-    return `Came by ${what}${by ? ` from ${by}` : ''}${where}${made}${asked}.`;
+    const how =
+      cameBy.madeAs === 'share' ? ', by sharing the post' : cameBy.madeAs ? ' on the Me tab' : '';
+    const made = `, ${cameBy.madeAs === 'share' ? 'shared' : 'made'} by ${cameBy.madeBy ?? 'somebody no longer in the club'}${when ? ` on ${when}` : ''}${how}`;
+    return `Came by ${what}${from}${forEvent}${made}${asked}.`;
   }
   return `Came by invite${by ? ` from ${by}` : ''}${asked}.`;
 }
