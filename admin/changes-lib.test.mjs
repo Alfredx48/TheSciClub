@@ -27,7 +27,7 @@ describe('the change log', () => {
     // A database change says no part: its first line does.
     const migration = ['supabase/migrations/20261119120000_a_boost_counts_as_a_new_reply.sql'];
     expect(surfaceOf(migration, 'A boost counts as a new reply would')).toBe('Chat');
-    expect(surfaceOf(migration, 'Tidy the indexes')).toBe('Database');
+    expect(surfaceOf(migration, 'Tidy the indexes')).toBe('Other');
     expect(surfaceOf(['.github/workflows/site.yml'], 'Deploy from an Action')).toBe(
       'Behind the scenes',
     );

@@ -1,6 +1,7 @@
 import { type CSSProperties, type ReactNode, useEffect, useMemo, useState } from 'react';
 import { PageTabs, TabPanel, useTabParam } from '@/components/page-tabs';
 import { cn } from '@/lib/utils';
+import { getSupabase } from './supabase';
 
 /**
  * The change log (the owner, 2026-11-25: "keep better track of all the changes we make"), in
@@ -108,7 +109,44 @@ async function readJson<T>(path: string): Promise<T | null> {
   }
 }
 
-export function ChangeLog() {
+/** Who marked a waiting change ready for main, and when. */
+interface ReadyMark {
+  by: string | null;
+  at: string;
+}
+
+/**
+ * The ticks on what is waiting (the owner, 2026-11-25: "a column for ready for push to main"):
+ * an administrator ticks a change once it has been tried on the test site. Kept in the club's
+ * database (change_log_ready, 20261125140000) under the change's key, so every administrator
+ * sees the same ticks and a tick follows its change until it is on main.
+ */
+export interface ReadyMarks {
+  /** The changes ticked, by key. Null when the database could not say (no table yet, say). */
+  load: () => Promise<Map<string, ReadyMark> | null>;
+  /** Ticks or unticks one. A sentence if it was refused. */
+  set: (key: string, ready: boolean) => Promise<string | null>;
+}
+
+const databaseMarks: ReadyMarks = {
+  async load() {
+    const { data, error } = (await getSupabase().rpc('admin_change_log_ready')) as {
+      data: { change_key: string; marked_by: string | null; marked_at: string }[] | null;
+      error: { message: string } | null;
+    };
+    if (error || !data) return null;
+    return new Map(data.map((row) => [row.change_key, { by: row.marked_by, at: row.marked_at }]));
+  },
+  async set(key, ready) {
+    const { error } = (await getSupabase().rpc('admin_mark_change_ready', {
+      change: key,
+      ready,
+    })) as { error: { message: string } | null };
+    return error ? error.message : null;
+  },
+};
+
+export function ChangeLog({ marks = databaseMarks }: { marks?: ReadyMarks }) {
   const [part, setPart] = useTabParam(PARTS, 'tests', undefined, 'log');
   const [log, setLog] = useState<ChangeLogData | 'loading' | 'failed'>('loading');
   // What the test site says is waiting now; null until it answers, or if it does not.
@@ -189,7 +227,13 @@ export function ChangeLog() {
       />
       <TabPanel id="change-log" value={part} className="pt-3">
         {part === 'tests' ? (
-          <OnTests changes={waiting.changes} asOf={waiting.asOf} live={waiting.live} />
+          <OnTests
+            changes={waiting.changes}
+            asOf={waiting.asOf}
+            live={waiting.live}
+            lastPush={releases.find((release) => release.kind === 'release')?.at ?? null}
+            marks={marks}
+          />
         ) : part === 'main' ? (
           <OnMain releases={releases} focus={focus} />
         ) : part === 'surface' ? (
@@ -238,6 +282,26 @@ function ChangeRow({
           iPhone app {change.ios} was built here. It includes this change and everything below it.
         </p>
       ) : null}
+      <ChangeBody change={change} shots={shots} wantsEntry={wantsEntry} />
+    </li>
+  );
+}
+
+/** What a change says of itself: title, summary and screenshots, then its surface and code. */
+function ChangeBody({
+  change,
+  shots,
+  wantsEntry = false,
+  author = true,
+}: {
+  change: Change;
+  shots: string;
+  wantsEntry?: boolean;
+  /** Left out where the row says who pushed it. */
+  author?: boolean;
+}) {
+  return (
+    <>
       <p className={cn('text-[0.875rem] text-ink leading-[1.4]', change.entry && 'font-semibold')}>
         {change.entry?.type ? (
           <span className={cn(TAG, 'text-ink2')}>{TYPES[change.entry.type]}</span>
@@ -270,7 +334,7 @@ function ChangeRow({
         </div>
       ) : null}
       <p className="mt-0.5 text-[0.6875rem] text-grey">
-        {change.surface} · {change.by} ·{' '}
+        {change.surface} · {author ? `${change.by} · ` : ''}
         <a
           href={`${REPOSITORY}/commit/${change.sha}`}
           aria-label={`The code of this change, ${change.sha}`}
@@ -279,29 +343,124 @@ function ChangeRow({
           code
         </a>
       </p>
-    </li>
+    </>
   );
 }
+
+/** "Pushed by Wojtek at 8:55 AM on Nov 17": who wrote a waiting change and when it reached tests. */
+export function pushedLine(change: Pick<Change, 'by' | 'at'>): string {
+  const at = new Date(change.at);
+  const time = at.toLocaleTimeString('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+    timeZone: ZONE,
+  });
+  const month = at.toLocaleDateString('en-US', { month: 'short', timeZone: ZONE });
+  const day = Number(at.toLocaleDateString('en-US', { day: 'numeric', timeZone: ZONE }));
+  const clock = time.replace(/\s?(AM|PM)$/, (_, half: string) => half.toLowerCase());
+  return `Pushed by ${change.by} at ${clock} on ${month} ${ordinal(day)}`;
+}
+
+/** 1st, 2nd, 3rd, 4th, 11th, 22nd. */
+function ordinal(n: number): string {
+  const tens = n % 100;
+  const end = tens >= 11 && tens <= 13 ? 'th' : (['th', 'st', 'nd', 'rd'][n % 10] ?? 'th');
+  return `${String(n)}${end}`;
+}
+
+/** How long ago, in whole days: today, 1 day, 16 days. */
+function daysSince(iso: string): string {
+  const days = Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000);
+  return days <= 0 ? 'today' : count(days, 'day');
+}
+
+/** "Alfred 51, Wojtek 22": how many of the changes fall under each name, most first. */
+function shares(changes: Change[], of: (change: Change) => string): string {
+  const found = new Map<string, number>();
+  for (const change of changes) found.set(of(change), (found.get(of(change)) ?? 0) + 1);
+  return (
+    [...found]
+      .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+      // A name and its number stay on one line.
+      .map(([name, n]) => `${name} ${String(n)}`.replaceAll(' ', '\u00a0'))
+      .join(', ')
+  );
+}
+
+/** The columns of On tests from a tablet's width: the change, who pushed it when, and the tick. */
+const WAITING_COLUMNS = 'md:grid md:grid-cols-[minmax(0,1fr)_15.5rem_8.5rem] md:gap-x-5';
 
 function OnTests({
   changes,
   asOf,
   live,
+  lastPush,
+  marks,
 }: {
   changes: Change[];
   asOf: string | null;
   live: boolean;
+  /** When main was last pushed, for the summary. */
+  lastPush: string | null;
+  marks: ReadyMarks;
 }) {
+  // The ticks: being read, not to be had (null), or by change.
+  const [ready, setReady] = useState<Map<string, ReadyMark> | null | 'reading'>('reading');
+  const [problem, setProblem] = useState<string | null>(null);
+  useEffect(() => {
+    let live = true;
+    void marks.load().then((found) => {
+      if (live) setReady(found);
+    });
+    return () => {
+      live = false;
+    };
+  }, [marks]);
+
+  // Shown at once and taken back if the database refuses.
+  const mark = async (key: string, on: boolean) => {
+    if (!(ready instanceof Map)) return;
+    const before = ready;
+    const next = new Map(ready);
+    if (on) next.set(key, { by: 'you', at: new Date().toISOString() });
+    else next.delete(key);
+    setReady(next);
+    setProblem(null);
+    const refused = await marks.set(key, on);
+    if (refused) {
+      setReady(before);
+      setProblem(`That tick was not saved: ${refused}`);
+    }
+  };
+
+  const ticked =
+    ready instanceof Map ? changes.filter((change) => ready.has(change.key)).length : 0;
+  const unwritten = changes.filter((c) => !c.entry && c.at >= ENTRIES_FROM).length;
+  const oldest = changes.reduce<string | null>(
+    (first, change) => (first === null || change.at < first ? change.at : first),
+    null,
+  );
+  const newest = changes.reduce<string | null>(
+    (last, change) => (last === null || change.at > last ? change.at : last),
+    null,
+  );
+  // With many waiting, the ticked ones can be put away to see what is left to try.
+  const [hideTicked, setHideTicked] = useState(false);
+  const shown =
+    hideTicked && ready instanceof Map
+      ? changes.filter((change) => !ready.has(change.key))
+      : changes;
+
   return (
     <div>
       <Note>
-        {count(changes.length, 'change')} on the test site and not on the live site yet: what the
-        next push to the live site will bring. A change marked “No entry” has no summary written yet
-        (asked for from November 26).{' '}
+        On the test site and not on the live site yet: what the next push to main will bring. Tick
+        Ready for main once you have tried a change on the test site; every administrator sees the
+        ticks.{' '}
         {asOf
           ? live
-            ? `Checked ${when(asOf)} Pacific, when the test site or the live site was last pushed.`
-            : `As of ${when(asOf)} Pacific, when this site was last built: the test site did not answer for anything newer.`
+            ? `This list was last updated ${when(asOf)} Pacific, and updates whenever the test site or the live site is pushed.`
+            : `This list is as of ${when(asOf)} Pacific, when this site was last built: the test site did not answer for anything newer.`
           : null}
       </Note>
       {changes.length === 0 ? (
@@ -309,11 +468,130 @@ function OnTests({
           Nothing is waiting: everything on the test site is live.
         </p>
       ) : (
-        <ul className={cn(CARD, 'mt-3 divide-y divide-line py-1')}>
-          {changes.map((change) => (
-            <ChangeRow key={change.sha} change={change} shots="/on-tests/shots/" wantsEntry />
-          ))}
-        </ul>
+        <>
+          <section aria-label="Summary of what is waiting" className={cn(CARD, 'mt-3')}>
+            <h3 className="font-bold font-head text-[1rem] text-ink">
+              {count(changes.length, 'change')} waiting for main
+            </h3>
+            <dl className="mt-1.5 grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-1 text-[0.8125rem] text-ink leading-[1.45]">
+              <dt className="text-grey">Ready for main</dt>
+              <dd>
+                {ready === 'reading'
+                  ? 'Reading…'
+                  : ready === null
+                    ? 'Not available: the ticks could not be read from the club’s database.'
+                    : `${String(ticked)} ticked, ${String(changes.length - ticked)} not yet`}
+              </dd>
+              <dt className="text-grey">Pushed by</dt>
+              <dd>{shares(changes, (change) => change.by)}</dd>
+              <dt className="text-grey">Surfaces</dt>
+              <dd>{shares(changes, (change) => change.surface)}</dd>
+              {newest ? (
+                <>
+                  <dt className="text-grey">Newest</dt>
+                  <dd>Pushed to tests {when(newest)}</dd>
+                </>
+              ) : null}
+              {oldest ? (
+                <>
+                  <dt className="text-grey">Oldest</dt>
+                  <dd>
+                    On tests since {when(oldest)} ({daysSince(oldest)})
+                  </dd>
+                </>
+              ) : null}
+              {lastPush ? (
+                <>
+                  <dt className="text-grey">Main</dt>
+                  <dd>Last pushed {when(lastPush)}</dd>
+                </>
+              ) : null}
+              {unwritten > 0 ? (
+                <>
+                  <dt className="text-grey">No entry</dt>
+                  <dd>{count(unwritten, 'change')} with no summary written yet</dd>
+                </>
+              ) : null}
+            </dl>
+          </section>
+          {problem ? (
+            <p role="alert" className="mt-2 text-[0.8125rem] text-destructive">
+              {problem}
+            </p>
+          ) : null}
+          {ready instanceof Map && ticked > 0 ? (
+            <label className="mt-2 flex min-h-11 cursor-pointer items-center gap-2.5 text-[0.8125rem] text-ink2">
+              <input
+                type="checkbox"
+                checked={hideTicked}
+                onChange={(event) => {
+                  setHideTicked(event.target.checked);
+                }}
+                className="h-5 w-5 flex-none accent-action"
+              />
+              Show only what is not ticked yet
+            </label>
+          ) : null}
+          <div className={cn(CARD, 'mt-3 py-1')}>
+            <div
+              aria-hidden="true"
+              className={cn(
+                'hidden border-line border-b py-2 font-semibold text-[0.75rem] text-grey',
+                WAITING_COLUMNS,
+              )}
+            >
+              <span>Change</span>
+              <span>Pushed to tests</span>
+              <span>Ready for main</span>
+            </div>
+            <ul className="divide-y divide-line">
+              {shown.map((change) => {
+                const tick = ready instanceof Map ? ready.get(change.key) : undefined;
+                return (
+                  <li key={change.sha} className={cn('py-2.5', WAITING_COLUMNS)}>
+                    <div>
+                      <ChangeBody
+                        change={change}
+                        shots="/on-tests/shots/"
+                        wantsEntry
+                        author={false}
+                      />
+                    </div>
+                    <p className="mt-1 text-[0.75rem] text-ink2 leading-[1.4] md:mt-0.5">
+                      {pushedLine(change)}
+                    </p>
+                    {ready instanceof Map ? (
+                      <label className="mt-1 flex min-h-11 cursor-pointer items-center gap-2.5 text-[0.8125rem] text-ink md:mt-0 md:min-h-0 md:items-start">
+                        <input
+                          type="checkbox"
+                          checked={tick !== undefined}
+                          onChange={(event) => {
+                            void mark(change.key, event.target.checked);
+                          }}
+                          className="h-5 w-5 flex-none accent-action"
+                        />
+                        <span>
+                          {/* Under its column's heading the words are only for a screen reader. */}
+                          <span className={tick ? 'md:sr-only' : undefined}>Ready for main</span>
+                          {tick ? (
+                            <span className="block text-[0.6875rem] text-grey md:text-[0.75rem]">
+                              Ticked by {tick.by ?? 'an administrator'},{' '}
+                              {new Date(tick.at).toLocaleDateString('en-US', {
+                                month: 'short',
+                                day: 'numeric',
+                                timeZone: ZONE,
+                              })}
+                            </span>
+                          ) : null}
+                        </span>
+                      </label>
+                    ) : null}
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        </>
       )}
     </div>
   );
@@ -539,6 +817,12 @@ function BySurface({
   );
 }
 
+/** What the two surfaces that are not a part of the club hold, said beside their counts. */
+const CATCH_ALLS: Record<string, string | undefined> = {
+  'Behind the scenes': 'deploys, speed checks and notes that nobody sees',
+  Other: 'shared code and database changes that belong to no one surface',
+};
+
 /** One surface in a quarter: closed, its count; open, its weeks, the newest of them open. */
 function SurfaceTimeline({
   surface,
@@ -570,6 +854,7 @@ function SurfaceTimeline({
         {surface}{' '}
         <span className="ml-1 font-normal text-[0.75rem] text-grey">
           {count(changes.length, 'change')}
+          {CATCH_ALLS[surface] ? `: ${CATCH_ALLS[surface]}` : ''}
         </span>
       </summary>
       {open ? (

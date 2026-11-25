@@ -127,10 +127,62 @@ function iosBuilds(main) {
   return built;
 }
 
+/**
+ * What is on tests and not on main: a commit of tests whose first line main does not have, and
+ * that still has something main lacks.
+ *
+ * The first line alone listed twice too many (73 where 36 were waiting, 2026-11-25): work that
+ * went to main squashed under another line, and a change and its revert, each stayed listed for
+ * good. So the two branches are compared as they are now, and each line tests has and main does
+ * not is traced to the commit of tests that wrote it (git blame). A commit that wrote none of
+ * them is not waiting, unless it only took lines out, or changed a picture, in a file where
+ * tests still lacks something main has.
+ */
 function waiting(main, tests) {
   const onMain = new Set(git('log', '--format=%s', main).split('\n'));
-  return commits(`${main}..${tests}`)
-    .filter((commit) => !onMain.has(commit.subject))
+  const candidates = commits(`${main}..${tests}`).filter((commit) => !onMain.has(commit.subject));
+  if (candidates.length === 0) return [];
+
+  // The lines only tests has, as [first line, how many] by file; and the files where tests
+  // only lacks lines, is not text, or is gone.
+  const added = new Map();
+  const lacking = new Set();
+  let file = null;
+  for (const line of git('diff', '-U0', '--no-renames', main, tests).split('\n')) {
+    if (line.startsWith('diff --git ')) {
+      file = null;
+    } else if (line.startsWith('--- a/')) {
+      // Stands unless lines of this file turn out to be only on tests.
+      lacking.add(line.slice(6));
+    } else if (line.startsWith('+++ b/')) {
+      file = line.slice(6);
+    } else if (line.startsWith('Binary files ')) {
+      const name = / and b\/(.+) differ$/.exec(line)?.[1];
+      if (name) lacking.add(name);
+    } else if (line.startsWith('@@ ') && file) {
+      const m = /^@@ -\d+(?:,\d+)? \+(\d+)(?:,(\d+))? @@/.exec(line);
+      const count = m ? (m[2] === undefined ? 1 : Number(m[2])) : 0;
+      if (m && count > 0) added.set(file, [...(added.get(file) ?? []), [Number(m[1]), count]]);
+    }
+  }
+  const wrote = new Set();
+  for (const [name, ranges] of added) {
+    lacking.delete(name);
+    const lines = ranges.flatMap(([start, count]) => ['-L', `${start},+${count}`]);
+    for (const line of git('blame', '-l', '-s', ...lines, tests, '--', name).split('\n')) {
+      const hash = /^\^?([0-9a-f]{40})/.exec(line)?.[1];
+      if (hash) wrote.add(hash);
+    }
+  }
+  const tookOut = (commit) =>
+    git('show', '--numstat', '--format=', '--no-renames', commit.hash)
+      .split('\n')
+      .filter(Boolean)
+      .map((line) => line.split('\t'))
+      .some(([plus, minus, name]) => lacking.has(name) && (plus === '-' || Number(minus) > 0));
+
+  return candidates
+    .filter((commit) => wrote.has(commit.hash) || tookOut(commit))
     .map((commit) => change(commit, tests));
 }
 

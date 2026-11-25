@@ -40,8 +40,10 @@ export function plainTitle(subject) {
 }
 
 /**
- * The parts of the club, in the order By surface lists them. The first seven are what a member
- * sees; the rest are named when a change touched none of those.
+ * The parts of the club, in the order By surface lists them. The first nine are what a member
+ * or an administrator sees. Behind the scenes is what nobody sees (deploys, scripts, notes),
+ * and Other, last, is what belongs to no one of them: shared code, a database change that names
+ * none (the owner, 2026-11-25: "have an other category as well").
  */
 export const SURFACES = [
   'Home',
@@ -53,9 +55,8 @@ export const SURFACES = [
   'Notifications',
   'Admin',
   'iPhone app',
-  'Whole app',
-  'Database',
   'Behind the scenes',
+  'Other',
 ];
 
 /** Which part a file belongs to: the first rule its path matches. */
@@ -81,8 +82,7 @@ const RULES = [
   [/^supabase\/functions\/(invite|join)/, 'Joining'],
   [/^(src\/routes\/(admin|stats)\/|admin\/|cloudflare\/admin\/|vite\.admin\.config\.ts$)/, 'Admin'],
   [/^(ios\/|capacitor\.config|src\/lib\/native)/, 'iPhone app'],
-  [/^(src\/|public\/|index\.html$)/, 'Whole app'],
-  [/^supabase\//, 'Database'],
+  [/^(src\/|public\/|index\.html$|supabase\/)/, 'Other'],
 ];
 const SEEN_BY_MEMBERS = new Set(SURFACES.slice(0, 9));
 
@@ -110,9 +110,9 @@ const WORDS = [
 
 /**
  * The part of the club a change touched, from the files it changed: the part with the most of
- * them among the parts members see; failing that the part its first line names; then the shared
- * code, the database, and anything else (deploys, scripts, notes) behind the scenes. The change log's own files are not counted, so
- * an entry does not make its change an Admin one.
+ * them among the parts members see; failing that the part its first line names; then Other for
+ * shared code or the database; and anything else (deploys, scripts, notes) is behind the scenes.
+ * The change log's own files are not counted, so an entry does not make its change an Admin one.
  */
 export function surfaceOf(paths, subject = '') {
   const counts = new Map();
@@ -128,8 +128,7 @@ export function surfaceOf(paths, subject = '') {
   return (
     most((surface) => SEEN_BY_MEMBERS.has(surface)) ??
     WORDS.find(([pattern]) => pattern.test(subject))?.[1] ??
-    most((surface) => surface === 'Whole app') ??
-    most((surface) => surface === 'Database') ??
+    most((surface) => surface === 'Other') ??
     'Behind the scenes'
   );
 }

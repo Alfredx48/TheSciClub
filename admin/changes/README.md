@@ -23,8 +23,8 @@ Before, your own message was announced by New messages ↓ and you had to tap it
 
 - `title`: a few plain words, as a member would say it.
 - `surface`: Home, Peers, Chat, Events, Me, Joining, Notifications, Admin,
-  iPhone app, Whole app, Database or Behind the scenes. Left out, it is worked
-  out from the files the commit changed.
+  iPhone app, Behind the scenes or Other. Left out, it is worked out from the
+  files the commit changed.
 - `type`: `new`, `improved` or `fix`.
 - Then two lines: what changed, and how it was before.
 - Screenshots only when something looks different: before and after.
@@ -43,3 +43,11 @@ made-up people: never a real member's name, face, words or place.
 `weeks/<the week's Monday>.md`: that week in seven lines at most, one sentence
 each, starting with the part of the club ("Events: …"). Written once the week
 (Monday to Sunday, Pacific) is over.
+
+## Ready for main
+
+On tests has a tick beside each waiting change, "Ready for main": an
+administrator ticks it in the admin site once the change has been tried on the
+test site. The ticks are in the club's database (`change_log_ready`,
+20261125140000), not here, under the change's key, so every administrator sees
+the same ones and a tick follows its change until it is on main.
