@@ -157,7 +157,7 @@ type QrCodeCame = NonNullable<MemberStory['came']>['qrCode'];
 export function qrSentence(code: QrCodeCame): React.ReactNode {
   const madeAs = code?.madeAs ?? null;
   const from = code?.organization ? ` from ${code.organization}` : '';
-  const at = code?.event ? ` at ${code.event}` : '';
+  const at = code?.event ? ` for ${code.event}` : '';
   if (madeAs === 'share') {
     return code?.post ? (
       <>
@@ -205,14 +205,14 @@ export function qrMadeLine(code: QrCodeCame): React.ReactNode {
     code.asPartner && !code.organization ? ` as ${PARTNER_ROLE_NAME.toLowerCase()}` : '';
   const how =
     madeAs === 'qr'
-      ? ', as a QR code on Me'
+      ? ', with Make QR code on the Me tab'
       : madeAs === 'link'
-        ? ', as an invite link on Me'
+        ? ', with Make invite link on the Me tab'
         : madeAs === 'qr_and_link'
-          ? ', as a QR code and an invite link on Me'
+          ? ', with both Make QR code and Make invite link on the Me tab'
           : madeAs === 'share'
             ? ', by sharing the post'
-            : ', on Me (whether as a QR code or a link was not kept then)';
+            : ' (which button made it was not kept then)';
   return (
     <>
       {madeAs === 'share' ? 'Shared' : 'Made'} by {who}
@@ -276,7 +276,9 @@ export function cameSentence(story: MemberStory): React.ReactNode {
 /** "Sent Nov 3 · email opened Nov 3 · link used Nov 4 · joined Nov 4": the one join date. */
 function cameSteps(story: MemberStory): string {
   const came = story.came;
-  const sent = came ? (came.sentAt ?? came.invitedAt) : null;
+  // A code's invite is written as they arrive, so nothing was sent; the line
+  // above says when the code was made (the owner, 2026-11-25).
+  const sent = came && came.way !== 'qr' ? (came.sentAt ?? came.invitedAt) : null;
   const steps = [
     sent ? `sent ${shortDate(sent)}` : null,
     came?.emailOpenedAt ? `email opened ${shortDate(came.emailOpenedAt)}` : null,
