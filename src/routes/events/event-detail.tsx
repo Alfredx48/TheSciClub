@@ -45,6 +45,7 @@ import { organizationTown } from '@/routes/events/organization-places';
 import { OutOfStateMark } from '@/routes/events/out-of-state';
 import { mapsUrl, placeLine } from '@/routes/events/place';
 import { Place } from '@/routes/events/place-link';
+import { PostToHome } from '@/routes/events/post-to-home';
 import { PrivacyChip, privacyLabel } from '@/routes/events/privacy-chip';
 import { RepeatsLine } from '@/routes/events/repeats-line';
 import { EventDescription, safeHref } from '@/routes/events/rich-text';
@@ -619,6 +620,11 @@ export default function EventDetailPage() {
             adminOf={adminOf}
             onChanged={() => reload?.()}
           />
+
+          {/* An event open to the whole club, still to come (post-to-home.tsx). */}
+          {canChange && event.audience === 'club' && !isPastEvent(event) ? (
+            <PostToHome event={event} />
+          ) : null}
 
           {canChange ? <InvitationEmails eventId={event.id} /> : null}
 
