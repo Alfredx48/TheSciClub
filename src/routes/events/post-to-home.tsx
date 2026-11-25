@@ -113,8 +113,8 @@ export function PostToHome({ event }: { event: ClubEvent }) {
           }}
         >
           <p className="text-[0.8125rem] text-ink2 leading-[1.45]">
-            A post titled “{event.title}”, with the event’s card under it, so members can RSVP right
-            from Home. It is posted in your name.
+            This makes a post titled “{event.title}” in the room below, in your name. It shows on
+            Home with the event’s card, so members can RSVP from there.
           </p>
           <label
             htmlFor="post-to-home-words"
