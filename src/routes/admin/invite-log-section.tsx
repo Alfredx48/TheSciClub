@@ -110,7 +110,8 @@ const CODE_HOW: Record<NonNullable<CodeEntry['madeAs']> | 'none', string> = {
   qr: ', with Make QR code on the Me tab',
   link: ', with Make invite link on the Me tab',
   qr_and_link: ', with both Make QR code and Make invite link on the Me tab',
-  share: ', by sharing the post',
+  // "Shared post link … Shared by" already says how.
+  share: '',
   none: '',
 };
 
