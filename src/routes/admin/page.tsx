@@ -28,6 +28,7 @@ import { cn } from '@/lib/utils';
 import { ReasonField, SmallButton } from '@/routes/admin/controls';
 import { EventContactsSection } from '@/routes/admin/event-contacts-section';
 import { InviteForm } from '@/routes/admin/invite-form';
+import { InviteLogSection } from '@/routes/admin/invite-log-section';
 import { InviteTrackingSection } from '@/routes/admin/invite-tracking-section';
 import { JoinTally } from '@/routes/admin/join-tally';
 import { JoiningSection } from '@/routes/admin/joining-section';
@@ -92,6 +93,7 @@ import { ReportedReviews } from '@/routes/reviews/reported-reviews';
 const ADMIN_TAB_VALUES = [
   'members',
   'invites',
+  'invite-log',
   'stats',
   'organizations',
   'reports',
@@ -514,6 +516,8 @@ export default function AdminPage() {
         tabs={[
           { value: 'members', label: 'Members' },
           { value: 'invites', label: 'Invites' },
+          // Every invite email and code, newest first (the owner, 2026-11-25).
+          { value: 'invite-log', label: 'Invite log' },
           { value: 'stats', label: 'Stats' },
           { value: 'organizations', label: 'Organizations' },
           { value: 'reports', label: 'Reports', count: reports.openCount, countLabel: 'waiting' },
@@ -627,6 +631,7 @@ export default function AdminPage() {
               </div>
             ) : null}
 
+            {tab === 'invite-log' ? <InviteLogSection /> : null}
             {tab === 'going' ? <EventContactsSection /> : null}
             {tab === 'rooms' ? <RoomsSection /> : null}
             {tab === 'stats' ? <StatsSection /> : null}
