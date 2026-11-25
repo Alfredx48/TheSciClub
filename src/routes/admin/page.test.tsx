@@ -1793,8 +1793,6 @@ describe('the tabs', () => {
     expect(tabs.map((tab) => tab.textContent)).toEqual([
       'Members',
       'Invites',
-      // The owner, 2026-11-25.
-      'Invite log',
       'Stats',
       'Organizations',
       'Reports',

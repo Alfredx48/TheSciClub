@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { FilterChip } from '@/components/filter-sheet-shell';
 import {
   type CodeEntry,
@@ -11,13 +10,33 @@ import {
 import { madeWhen } from '@/routes/admin/sign-in-methods';
 
 /**
- * Admin › Invite log (the owner, 2026-11-25): "a chronological list of all
- * e-mail invites sent and by whom, if the invites were opened and if they
- * were used to create an account (if so what account with a link to the
- * users profile page), and QR codes generated. For all QR codes and links
+ * admin.thesciclub.com › Invites (the owner, 2026-11-25): "a chronological
+ * list of all e-mail invites sent and by whom, if the invites were opened and
+ * if they were used to create an account (if so what account with a link to
+ * the users profile page), and QR codes generated. For all QR codes and links
  * have the author, show a list of users that created profiles from them."
- * Newest first, from admin_invite_log (20261125130000).
+ * ("By admin I mean on admin.thesciclub.com.") Newest first, from
+ * admin_invite_log (20261125130000).
  */
+
+/** Profiles, events and posts are the members' app's: links open it. */
+const APP_ORIGIN = (import.meta.env.VITE_APP_ORIGIN as string | undefined) ?? '';
+
+function AppLink({
+  to,
+  className,
+  children,
+}: {
+  to: string;
+  className?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <a href={`${APP_ORIGIN}${to}`} target="_blank" rel="noreferrer" className={className}>
+      {children}
+    </a>
+  );
+}
 
 const PAGE = 30;
 
@@ -34,9 +53,9 @@ const linkClass = 'underline underline-offset-2';
 function Who({ person, gone }: { person: Person | null; gone: string }) {
   if (!person) return <>{gone}</>;
   return (
-    <Link to={`/peers/${person.id}`} className={linkClass}>
+    <AppLink to={`/peers/${person.id}`} className={linkClass}>
       {person.name ?? 'A member'}
-    </Link>
+    </AppLink>
   );
 }
 
@@ -72,9 +91,9 @@ function EmailRow({ entry }: { entry: EmailEntry }) {
           <>
             {' '}
             for{' '}
-            <Link to={`/events/${entry.event.id}`} className={linkClass}>
+            <AppLink to={`/events/${entry.event.id}`} className={linkClass}>
               {entry.event.title}
-            </Link>
+            </AppLink>
           </>
         ) : null}
         {entry.status === 'revoked' ? ' · taken off the list' : ''}
@@ -88,9 +107,9 @@ function EmailRow({ entry }: { entry: EmailEntry }) {
       {entry.member ? (
         <span className="mt-1 block text-[0.75rem] text-ink2">
           Joined as{' '}
-          <Link to={`/peers/${entry.member.id}`} className={`${linkClass} font-bold text-ink`}>
+          <AppLink to={`/peers/${entry.member.id}`} className={`${linkClass} font-bold text-ink`}>
             {entry.member.name ?? 'a member'}
-          </Link>{' '}
+          </AppLink>{' '}
           on {when(entry.member.joinedAt)}
         </span>
       ) : null}
@@ -133,12 +152,12 @@ function CodeRow({ entry, now }: { entry: CodeEntry; now: Date }) {
         {entry.post ? (
           <>
             {': '}
-            <Link
+            <AppLink
               to={`/chat/rooms/${entry.post.roomId}/topics/${entry.post.id}`}
               className={linkClass}
             >
               {entry.post.title}
-            </Link>
+            </AppLink>
           </>
         ) : null}
         {entry.organization ? ` from ${entry.organization}` : ''}
@@ -159,9 +178,9 @@ function CodeRow({ entry, now }: { entry: CodeEntry; now: Date }) {
           <ul className="mt-0.5 space-y-0.5 text-[0.75rem] text-ink2">
             {entry.joined.map((member) => (
               <li key={member.id}>
-                <Link to={`/peers/${member.id}`} className={`${linkClass} text-ink`}>
+                <AppLink to={`/peers/${member.id}`} className={`${linkClass} text-ink`}>
                   {member.name ?? 'A member'}
-                </Link>{' '}
+                </AppLink>{' '}
                 <span className="text-grey">· {when(member.joinedAt)}</span>
               </li>
             ))}
