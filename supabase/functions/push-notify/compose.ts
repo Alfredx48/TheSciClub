@@ -459,6 +459,16 @@ export function compose(owed: Owed): PushMessage | null {
         ...where,
       };
     }
+    // An administrator made them staff (20261125160000); subject the organization.
+    case 'staff_verified':
+      return {
+        title: 'You’re verified as staff',
+        body:
+          subject === ''
+            ? 'Add your profession on Me, so members know what you do.'
+            : `You’re staff of ${subject}. Add your profession on Me, so members know what you do.`,
+        ...where,
+      };
     // A change for whoever said Going or Interested (20261120140000):
     // detail what changed, photo_count how many dates.
     case 'event_changed': {

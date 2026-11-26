@@ -34,4 +34,6 @@ export const EVENTS: ReadonlySet<string> = new Set([
   'event_changed',
   'important',
   'waiting',
+  // An administrator made them staff (20261125160000).
+  'staff_verified',
 ]);

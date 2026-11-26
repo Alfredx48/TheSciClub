@@ -1,6 +1,9 @@
-import { useEffect, useId, useState } from 'react';
+import { BadgeCheck } from 'lucide-react';
+import { useEffect, useId, useRef, useState } from 'react';
+import { useLocation } from 'react-router-dom';
+import { useAccount } from '@/lib/account';
 import { useAnnounce } from '@/lib/announce';
-import { PARTNER_ROLE_NAME } from '@/lib/club-partners';
+import { PARTNER_ROLE_NAME, useStaffOrganizations } from '@/lib/club-partners';
 import { fetchMyPartnerCard, setMyProfessionalTitle } from '@/lib/partner-hub';
 
 const MAX = 80;
@@ -9,6 +12,10 @@ const MAX = 80;
  * A verified professional writes the profession shown beside their name (the
  * owner, 2026-11-04; 20261104100000, 20261104160000): "Verified professional ·
  * Physical therapist, SCI-FIT". Nobody else does, not even when they are made one.
+ *
+ * It names the organization they are verified staff of, and the notification
+ * that tells them (20261125160000) opens it at /me#profession, the box in view
+ * and ready to type in (the owner, 2026-11-25).
  */
 export function ProfessionField() {
   const id = useId();
@@ -17,6 +24,22 @@ export function ProfessionField() {
   const [draft, setDraft] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const account = useAccount();
+  const memberId = account.status === 'member' ? account.userId : null;
+  const staffOf = useStaffOrganizations();
+  const organization = memberId ? staffOf?.get(memberId)?.name : undefined;
+  const { hash } = useLocation();
+  const form = useRef<HTMLFormElement>(null);
+  const input = useRef<HTMLInputElement>(null);
+  const loaded = saved !== null;
+
+  // From the notification: once, when the box is there.
+  useEffect(() => {
+    if (hash !== '#profession' || !loaded) return;
+    const at = form.current;
+    if (at && 'scrollIntoView' in at) at.scrollIntoView({ block: 'center' });
+    input.current?.focus({ preventScroll: true });
+  }, [hash, loaded]);
 
   useEffect(() => {
     let live = true;
@@ -59,12 +82,20 @@ export function ProfessionField() {
 
   return (
     <form
-      className="mt-2.5 rounded-[17px] border border-line bg-paper p-3.5"
+      ref={form}
+      id="profession"
+      className="mt-2.5 scroll-mt-24 rounded-[17px] border border-line bg-paper p-3.5"
       onSubmit={(event) => {
         event.preventDefault();
         save();
       }}
     >
+      <p className="mb-2 flex items-center gap-1.5 font-bold text-[0.8125rem] text-ink">
+        <BadgeCheck aria-hidden="true" className="h-4 w-4 flex-none text-emphasis" />
+        {organization
+          ? `Verified ${PARTNER_ROLE_NAME.toLowerCase()} of ${organization}`
+          : `Verified ${PARTNER_ROLE_NAME.toLowerCase()}`}
+      </p>
       <label htmlFor={id} className="block font-extrabold font-head text-[0.96875rem] text-ink">
         Your profession
       </label>
@@ -75,6 +106,7 @@ export function ProfessionField() {
       {saved !== null ? (
         <>
           <input
+            ref={input}
             id={id}
             value={draft}
             maxLength={MAX}

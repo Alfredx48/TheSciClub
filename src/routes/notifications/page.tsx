@@ -1,5 +1,6 @@
 import {
   AtSign,
+  BadgeCheck,
   Ban,
   Bell,
   CalendarDays,
@@ -90,6 +91,7 @@ const KIND_ICON: Record<NotificationKind, LucideIcon> = {
   strike_given: Flag,
   strike_message: MessageCircle,
   strike_withdrawn: Flag,
+  staff_verified: BadgeCheck,
   grant_open: HandCoins,
   profile_reminder: UserPen,
   blocks_weekly: Ban,

@@ -68,7 +68,8 @@ export type NotificationKind =
   | 'anonymous_flagged'
   | 'strike_given'
   | 'strike_message'
-  | 'strike_withdrawn';
+  | 'strike_withdrawn'
+  | 'staff_verified';
 
 interface Row {
   id: string;
@@ -414,6 +415,11 @@ export function notificationSentence(n: AppNotification): string {
         ? '1 member was blocked this week'
         : `${blocked} members were blocked this week`;
     }
+    // An administrator made them staff (20261125160000); place the organization.
+    case 'staff_verified':
+      return n.place
+        ? `You’re verified as staff of ${n.place}. Add your profession on Me.`
+        : 'You’re verified as staff. Add your profession on Me.';
     // An administrator flagged the reader's anonymous post (20261120110000):
     // detail is what it cost them and the reason.
     case 'anonymous_flagged': {
