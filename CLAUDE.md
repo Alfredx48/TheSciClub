@@ -83,6 +83,14 @@ week in seven lines. Most of it is read from git; what git cannot say is in
   lines in plain words on what changed and how it was before. Not for
   housekeeping (a renumbered migration, formatting, notes): that is listed
   by its commit's first line.
+- The entry ends with the prompts that led to the change, under
+  `## Prompts`: what the person you are working for typed, as typed and in
+  order, each a quote. The change log shows them under the change. **They
+  are public too**: first take out names (of anybody but the people who
+  build the club, and of organizations that take part in it), contact
+  details, codes, anything pasted or said by somebody else, and personal
+  details, each with a short note in square brackets in its place. Leave out
+  prompts about something else and the words that only released it.
 - When it looks different, add before and after screenshots to
   `admin/changes/shots/` (JPEG, at most 200 KB each). **The repository is
   public**: take them on the test site or a scratch page with made-up
