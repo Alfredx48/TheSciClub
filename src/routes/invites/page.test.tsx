@@ -83,15 +83,24 @@ vi.mock('@/lib/organization-members', () => ({
 vi.mock('@/lib/organization-representatives', () => ({
   useMyOrganizations: () => ({ ids: new Set(['ncs']), loading: false }),
 }));
+const directory = [
+  { id: 'ncs', name: 'NorCal SCI' },
+  { id: 'able', name: 'Able Bodied' },
+  { id: 'closed', name: 'Closed Club', joinsNeedApproval: true },
+  { id: 'far', name: 'Faraway Rugby' },
+];
 vi.mock('@/lib/organizations', () => ({
   useOrganizations: () => ({
-    byId: new Map([
-      ['ncs', { id: 'ncs', name: 'NorCal SCI' }],
-      ['able', { id: 'able', name: 'Able Bodied' }],
-      ['closed', { id: 'closed', name: 'Closed Club', joinsNeedApproval: true }],
-    ]),
+    organizations: directory,
+    byId: new Map(directory.map((o) => [o.id, o])),
   }),
 }));
+
+/** Opens an organization box's list and picks one by name. */
+async function pickOrganization(box: HTMLElement, name: string) {
+  await userEvent.click(box);
+  await userEvent.click(screen.getByRole('option', { name: new RegExp(`^${name}`) }));
+}
 
 const { default: InvitesPage } = await import('@/routes/invites/page');
 
@@ -290,17 +299,18 @@ describe('a request for an invite', () => {
     privileges.representative = true;
   });
 
-  it('lets a club administrator choose among their organizations', async () => {
+  // The owner, 2026-11-25: any organization, not only theirs.
+  it('lets a club administrator choose any organization', async () => {
     account.current = { status: 'member', userId: 'me', isAdmin: true, displayName: 'Todd' };
     renderInvites();
     await screen.findByRole('button', { name: 'Send invite' });
-    // The request's own, beside the form's (which now lists theirs too).
+    // The request's own, beside the form's.
     const forRequest = document.getElementById('request-organization-r1');
     if (!forRequest) throw new Error('no organization choice on the request');
-    await userEvent.selectOptions(forRequest, 'Able Bodied');
+    await pickOrganization(forRequest, 'Faraway Rugby');
     await userEvent.click(screen.getByRole('button', { name: 'Send invite' }));
     await waitFor(() => {
-      expect(api.created[0]).toMatchObject({ organizationId: 'able' });
+      expect(api.created[0]).toMatchObject({ organizationId: 'far' });
     });
   });
 
@@ -322,8 +332,10 @@ describe('who a new invite is for', () => {
     requests.memberOf = ['ncs', 'able'];
     renderInvites();
     const picker = await screen.findByLabelText('Inviting for');
-    expect(within(picker).getByRole('option', { name: 'Able Bodied' })).toBeInTheDocument();
-    await userEvent.selectOptions(picker, 'Able Bodied');
+    await userEvent.click(picker);
+    // Not an administrator: theirs only.
+    expect(screen.queryByRole('option', { name: /^Faraway Rugby/ })).toBeNull();
+    await userEvent.click(screen.getByRole('option', { name: /^Able Bodied/ }));
     await userEvent.type(screen.getByLabelText('Email address'), 'friend2@example.com');
     await userEvent.click(screen.getByRole('button', { name: 'Add and send the link' }));
     await waitFor(() => {
@@ -456,6 +468,9 @@ describe('unlimited invites', () => {
       expect(await screen.findByText('You can invite people without a limit.')).toBeInTheDocument();
       expect(screen.queryByText(/of your 10|All 10/)).toBeNull();
       await userEvent.type(screen.getByLabelText(/Email address/), 'dana@example.com');
+      // An administrator always chooses (the owner, 2026-11-25).
+      if (role === 'admin')
+        await pickOrganization(screen.getByLabelText('Inviting for'), 'NorCal SCI');
       const send = screen.getByRole('button', { name: 'Add and send the link' });
       expect(send).toBeEnabled();
       await userEvent.click(send);

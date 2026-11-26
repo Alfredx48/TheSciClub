@@ -7,7 +7,7 @@ import { getSupabase } from '@/lib/supabase';
 import { detailsFrom } from '@/routes/profile/details-api';
 import { answersFrom } from '@/routes/profile/profile-api';
 import { nextStep, profilePercent, stepAction } from '@/routes/profile/progress';
-import { memberType } from '@/types/domain';
+import { memberType, type Organization } from '@/types/domain';
 
 /**
  * The administrative view of the roster, and the two things an administrator
@@ -401,6 +401,16 @@ export async function fetchPendingInvites(): Promise<
     return { ok: false, error: describeError(result.error, 'Could not count the invites.') };
   const row = (result.data as { pending: number }[] | null)?.[0];
   return { ok: true, pending: row?.pending ?? 0 };
+}
+
+/**
+ * Who an administrator may invite under: every organization in the directory
+ * (the owner, 2026-11-25), but not the club itself, which is "no organization".
+ */
+export function invitableOrganizations(organizations: readonly Organization[]): Organization[] {
+  return organizations
+    .filter((organization) => !/^the sci club$/i.test(organization.name.trim()))
+    .sort((a, b) => a.name.localeCompare(b.name));
 }
 
 /** Organizations allowed to vouch. Public data, but only listed to admins here. */

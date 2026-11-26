@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { BackLink } from '@/components/back-link';
 import { MentorField } from '@/components/invite-list';
+import { OrganizationCombobox } from '@/components/organization-combobox';
 import { useAccount } from '@/lib/account';
 import { looksLikeEmail } from '@/lib/auth-email';
 import { describeThrown } from '@/lib/describe-error';
@@ -71,7 +72,7 @@ export default function InvitesPage() {
   // database knows which.
   const [organizationId, setOrganizationId] = useState('');
   const mine = useMyOrganizations(userId);
-  const { byId } = useOrganizations();
+  const { byId, organizations } = useOrganizations();
   const isAdmin = account.status === 'member' && account.isAdmin;
   const memberOf = useMemberOrganizations(userId ?? undefined);
   // Every organization they belong to, not only those they run (the owner,
@@ -89,9 +90,14 @@ export default function InvitesPage() {
   // auto-associated with an organization"). It was required of an org admin
   // of several (2026-10-30). An administrator or org admin with only one is
   // given it ("If an admin has only one org then just assign it to that org").
+  // The club's administrators choose from every organization (the owner,
+  // 2026-11-25), so theirs is never assumed.
   const assigned =
-    (isAdmin || mine.ids.size > 0) && myOrganizations.length === 1 ? myOrganizations[0] : undefined;
-  const choosesOrganization = !assigned && myOrganizations.length > 0;
+    !isAdmin && mine.ids.size > 0 && myOrganizations.length === 1 ? myOrganizations[0] : undefined;
+  const choosesOrganization = isAdmin || (!assigned && myOrganizations.length > 0);
+  const everyOrganization = isAdmin
+    ? [...organizations].sort((a, b) => a.name.localeCompare(b.name))
+    : [];
   // The organization the invite is for, once known, and whether they may make
   // its mentors (the owner, 2026-11-19; 20261119200000).
   const inviteOrganization =
@@ -307,28 +313,20 @@ export default function InvitesPage() {
                         {request.note}
                       </p>
                     ) : null}
-                    {isAdmin && organizationsFor(request).length > 1 ? (
+                    {isAdmin ? (
                       <div className="mt-2.5">
-                        <label
-                          htmlFor={`request-organization-${request.id}`}
-                          className="block font-bold text-[0.75rem] text-ink"
-                        >
-                          Inviting for
-                        </label>
-                        <select
+                        <OrganizationCombobox
                           id={`request-organization-${request.id}`}
+                          label="Inviting for"
+                          labelClassName="block font-bold text-[0.75rem] text-ink"
+                          yours={organizationsFor(request)}
+                          others={everyOrganization}
                           value={invitingFor[request.id] ?? request.organizationId}
-                          onChange={(e) => {
-                            setInvitingFor((now) => ({ ...now, [request.id]: e.target.value }));
+                          onChange={(id) => {
+                            setInvitingFor((now) => ({ ...now, [request.id]: id }));
                           }}
-                          className="mt-1.5 w-full rounded-[11px] border-[1.6px] border-line bg-paper px-3 py-2 text-[0.9375rem] text-ink"
-                        >
-                          {organizationsFor(request).map((organization) => (
-                            <option key={organization.id} value={organization.id}>
-                              {organization.name}
-                            </option>
-                          ))}
-                        </select>
+                          className="mt-1.5 w-full rounded-[11px] border-[1.6px] border-line bg-paper px-3 py-2 text-[0.9375rem] text-ink outline-none focus:border-emphasis"
+                        />
                       </div>
                     ) : null}
                     <div className="mt-2.5 flex gap-2">
@@ -389,31 +387,20 @@ export default function InvitesPage() {
 
             {choosesOrganization ? (
               <div className="mt-3">
-                <label
-                  htmlFor="mentor-invite-organization"
-                  className="block font-bold text-[0.75rem] text-ink"
-                >
-                  Inviting for
-                </label>
-                <select
+                <OrganizationCombobox
                   id="mentor-invite-organization"
+                  label="Inviting for"
+                  labelClassName="block font-bold text-[0.75rem] text-ink"
+                  yours={myOrganizations}
+                  others={everyOrganization}
                   value={organizationId}
+                  onChange={setOrganizationId}
+                  none="No organization, just the club"
+                  noneValue={NO_ORGANIZATION}
+                  placeholder="Choose an organization"
                   disabled={left === 0}
-                  onChange={(e) => {
-                    setOrganizationId(e.target.value);
-                  }}
                   className="mt-1.5 w-full rounded-[11px] border-[1.6px] border-line bg-paper px-3 py-2 text-[0.9375rem] outline-none focus:border-emphasis disabled:opacity-40"
-                >
-                  <option value="" disabled>
-                    Choose an organization
-                  </option>
-                  {myOrganizations.map((organization) => (
-                    <option key={organization.id} value={organization.id}>
-                      {organization.name}
-                    </option>
-                  ))}
-                  <option value={NO_ORGANIZATION}>No organization, just the club</option>
-                </select>
+                />
               </div>
             ) : null}
 

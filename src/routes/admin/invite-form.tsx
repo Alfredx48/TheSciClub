@@ -1,14 +1,12 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { MentorField } from '@/components/invite-list';
+import { OrganizationCombobox } from '@/components/organization-combobox';
 import { useAccount } from '@/lib/account';
 import { looksLikeEmail } from '@/lib/auth-email';
 import { describeThrown } from '@/lib/describe-error';
 import { useMemberOrganizations } from '@/lib/organization-members';
-import {
-  createInvite,
-  fetchInvitingOrganizations,
-  type InvitingOrganization,
-} from '@/routes/admin/members-admin';
+import { useOrganizations } from '@/lib/organizations';
+import { createInvite, invitableOrganizations } from '@/routes/admin/members-admin';
 
 /**
  * Putting an address on the list, and emailing it the link.
@@ -22,15 +20,13 @@ const NO_ORGANIZATION = 'none';
 
 export function InviteForm({ onCreated }: { onCreated: () => void }) {
   const account = useAccount();
-  const [inviting, setInviting] = useState<InvitingOrganization[]>([]);
-  // Only the organizations they belong to (the owner, 2026-11-05).
+  // Any organization, theirs first (the owner, 2026-11-25).
   const memberOf = useMemberOrganizations(
     account.status === 'member' ? (account.userId ?? undefined) : undefined,
   );
-  const organizations = inviting.filter((o) => memberOf.includes(o.id));
-  // Only one: it is theirs (the owner, 2026-11-15: "If an admin has only one
-  // org then just assign it to that org").
-  const assigned = organizations.length === 1 ? organizations[0] : undefined;
+  const { organizations: directory, loading } = useOrganizations();
+  const organizations = invitableOrganizations(directory);
+  const theirs = organizations.filter((o) => memberOf.includes(o.id));
   const [email, setEmail] = useState('');
   // '' is the club itself — the administrator vouching in their own name —
   // rather than "nothing chosen"; picking an organization is the deliberate act.
@@ -47,15 +43,12 @@ export function InviteForm({ onCreated }: { onCreated: () => void }) {
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<string | null>(null);
 
-  useEffect(() => {
-    void fetchInvitingOrganizations().then(setInviting);
-  }, []);
-
   // Chosen, never left at a default (the owner, 2026-11-15: "better to have an
   // explicit no org selection. To prevent people from being lazy").
-  const ready = looksLikeEmail(email) && (assigned !== undefined || organizationId !== '');
-  const inviteOrganization =
-    assigned ?? organizations.find((o) => o.id === organizationId && o.id !== NO_ORGANIZATION);
+  const ready = looksLikeEmail(email) && organizationId !== '';
+  const inviteOrganization = organizations.find(
+    (o) => o.id === organizationId && o.id !== NO_ORGANIZATION,
+  );
 
   function submit() {
     const address = email.trim();
@@ -65,11 +58,7 @@ export function InviteForm({ onCreated }: { onCreated: () => void }) {
     setDone(null);
     createInvite({
       email: address,
-      organizationId: assigned
-        ? assigned.id
-        : organizationId === NO_ORGANIZATION
-          ? null
-          : organizationId,
+      organizationId: organizationId === NO_ORGANIZATION ? null : organizationId,
       note: note.trim() || null,
       ...(name.trim() ? { name } : {}),
       ...(message.trim() ? { message } : {}),
@@ -122,35 +111,22 @@ export function InviteForm({ onCreated }: { onCreated: () => void }) {
           />
         </div>
 
-        {assigned ? (
-          <p className="min-w-[160px] flex-1 pb-2 text-[0.8125rem] text-ink2 leading-[1.45]">
-            For <b className="font-bold text-ink">{assigned.name}</b>
-          </p>
-        ) : (
-          <div className="min-w-[160px] flex-1">
-            <label htmlFor="invite-org" className="block font-bold text-[0.75rem] text-ink">
-              Vouched for by
-            </label>
-            <select
-              id="invite-org"
-              value={organizationId}
-              onChange={(e) => {
-                setOrganizationId(e.target.value);
-              }}
-              className="mt-1.5 w-full rounded-[11px] border-[1.6px] border-line px-3 py-2 text-[0.9375rem] outline-none focus:border-emphasis"
-            >
-              <option value="" disabled>
-                Choose an organization
-              </option>
-              {organizations.map((o) => (
-                <option key={o.id} value={o.id}>
-                  {o.name}
-                </option>
-              ))}
-              <option value={NO_ORGANIZATION}>No organization — you are vouching</option>
-            </select>
-          </div>
-        )}
+        <div className="min-w-[160px] flex-1">
+          <OrganizationCombobox
+            id="invite-org"
+            label="Vouched for by"
+            labelClassName="block font-bold text-[0.75rem] text-ink"
+            yours={theirs}
+            others={organizations}
+            value={organizationId}
+            onChange={setOrganizationId}
+            none="No organization — you are vouching"
+            noneValue={NO_ORGANIZATION}
+            placeholder={loading ? 'Loading organizations…' : 'Choose an organization'}
+            disabled={loading}
+            className="mt-1.5 w-full rounded-[11px] border-[1.6px] border-line bg-paper px-3 py-2 text-[0.9375rem] outline-none focus:border-emphasis"
+          />
+        </div>
       </div>
 
       {inviteOrganization ? (

@@ -326,6 +326,8 @@ vi.mock('@/lib/organizations', async (importOriginal) => ({
     organizations: [
       { id: 'o1', name: 'The SCI Club', shortCode: 'TSC', city: '' },
       { id: 'o2', name: 'Craig Hospital', shortCode: 'CH', city: 'Englewood' },
+      { id: 'org1', name: 'NorCal SCI', shortCode: 'NCS', city: 'Sacramento' },
+      { id: 'org2', name: 'Elsewhere Rugby', shortCode: 'ER', city: 'Bend' },
     ],
     byId: new Map(),
     loading: false,
@@ -442,6 +444,12 @@ beforeEach(() => {
   confirmSpy.mockClear();
 });
 
+/** Opens an organization box's list and picks one by name. */
+async function pickOrganization(label: string | RegExp, name: string) {
+  await userEvent.click(screen.getByLabelText(label));
+  await userEvent.click(screen.getByRole('option', { name: new RegExp(`^${name}`) }));
+}
+
 // 20261029100000; no title asked for, 20261104160000; staff of an
 // organization, which Make staff asks for first (the owner, 2026-11-16).
 describe('staff', () => {
@@ -453,7 +461,7 @@ describe('staff', () => {
     const make = screen.getAllByRole('button', { name: 'Make staff' }).at(-1);
     if (!make) throw new Error('no button');
     expect(make).toBeDisabled();
-    await userEvent.selectOptions(screen.getByLabelText('Organization'), 'o1');
+    await pickOrganization('Organization', 'The SCI Club');
     await userEvent.click(make);
     await waitFor(() => {
       expect(api.staffCalls).toEqual([['m1', 'o1']]);
@@ -1257,6 +1265,9 @@ describe('the invite list', () => {
     await userEvent.type(screen.getByLabelText('Email address'), 'dana@example');
     expect(add).toBeDisabled();
     await userEvent.type(screen.getByLabelText('Email address'), '.com');
+    // Who vouches is chosen, never assumed.
+    expect(add).toBeDisabled();
+    await pickOrganization('Vouched for by', 'NorCal SCI');
     expect(add).toBeEnabled();
   });
 
@@ -1265,22 +1276,33 @@ describe('the invite list', () => {
     expect(screen.queryByLabelText('Phone number')).toBeNull();
   });
 
-  // The owner, 2026-11-15: "If an admin has only one org then just assign it
-  // to that org." This administrator belongs to NorCal SCI alone.
-  it('invites for their only organization, without asking', async () => {
+  // The owner, 2026-11-25: the club's administrators choose any organization
+  // to invite under, theirs first, from one list that narrows as they type.
+  it('invites under any organization, theirs first, found by typing', async () => {
     await openInvites();
+    await userEvent.click(screen.getByRole('combobox', { name: 'Vouched for by' }));
+    const list = screen.getByRole('listbox', { name: 'Vouched for by' });
+    const yours = within(list).getByRole('group', { name: 'Your organizations' });
+    expect(within(yours).getByRole('option', { name: /^NorCal SCI/ })).toBeInTheDocument();
+    const all = within(list).getByRole('group', { name: 'All organizations' });
+    expect(within(all).getByRole('option', { name: /^Elsewhere Rugby/ })).toBeInTheDocument();
+    expect(within(all).getByRole('option', { name: /^Craig Hospital/ })).toBeInTheDocument();
+    // The club itself is "No organization", not one to choose.
+    expect(within(list).queryByRole('option', { name: /^The SCI Club/ })).toBeNull();
+    await userEvent.type(screen.getByRole('combobox', { name: 'Vouched for by' }), 'rugby');
     expect(
-      await screen.findByText(
-        (_, el) => el?.tagName === 'P' && el.textContent === 'For NorCal SCI',
-      ),
-    ).toBeInTheDocument();
-    expect(screen.queryByLabelText(/Vouched for by/)).toBeNull();
+      within(list)
+        .getAllByRole('option')
+        .map((o) => o.textContent),
+    ).toEqual(['Elsewhere RugbyBend']);
+    await userEvent.click(within(list).getByRole('option', { name: /^Elsewhere Rugby/ }));
+    expect(screen.getByRole('combobox', { name: 'Vouched for by' })).toHaveValue('Elsewhere Rugby');
     await userEvent.type(screen.getByLabelText('Email address'), '  Dana@Example.com ');
     await userEvent.click(screen.getByRole('button', { name: 'Add and send the link' }));
     await waitFor(() => {
       // Trimmed here; lowercased by the database (normalize_email).
       expect(api.created).toEqual([
-        { email: 'Dana@Example.com', organizationId: 'org1', note: null },
+        { email: 'Dana@Example.com', organizationId: 'org2', note: null },
       ]);
     });
     expect(await screen.findByText(/on its way to Dana@Example.com/)).toBeInTheDocument();
@@ -1288,7 +1310,7 @@ describe('the invite list', () => {
 
   it('sends the note, the name and the email note when they are given', async () => {
     await openInvites();
-    await screen.findByText((_, el) => el?.tagName === 'P' && el.textContent === 'For NorCal SCI');
+    await pickOrganization('Vouched for by', 'NorCal SCI');
     await userEvent.type(screen.getByLabelText('Email address'), 'dana@example.com');
     await userEvent.type(screen.getByLabelText(/Their name/), 'Dana Lee');
     await userEvent.type(screen.getByLabelText('Note (optional)'), 'Met at rugby');
@@ -1307,19 +1329,10 @@ describe('the invite list', () => {
     });
   });
 
-  it('offers only the organizations they belong to', async () => {
-    await openInvites();
-    expect(
-      await screen.findByText(
-        (_, el) => el?.tagName === 'P' && el.textContent === 'For NorCal SCI',
-      ),
-    ).toBeInTheDocument();
-    expect(screen.queryByText('Elsewhere Rugby')).toBeNull();
-  });
-
   it('shows the database’s refusal and keeps what was typed', async () => {
     api.failWith = 'That email address is blocked from the club and cannot be invited';
     await openInvites();
+    await pickOrganization('Vouched for by', 'NorCal SCI');
     await userEvent.type(screen.getByLabelText('Email address'), 'dana@example.com');
     await userEvent.click(screen.getByRole('button', { name: 'Add and send the link' }));
     expect(await screen.findByRole('alert')).toHaveTextContent(/blocked from the club/);
@@ -1370,7 +1383,7 @@ describe('mentor status', () => {
     renderAdmin();
     await manage();
     await userEvent.click(await screen.findByRole('button', { name: 'Make mentor' }));
-    await userEvent.selectOptions(screen.getByLabelText('Organization'), 'o1');
+    await pickOrganization('Organization', 'The SCI Club');
     const make = screen.getAllByRole('button', { name: 'Make mentor' }).at(-1);
     if (!make) throw new Error('no button');
     await userEvent.click(make);

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import {
   EmailPreview,
   inviteListField,
@@ -11,16 +11,14 @@ import {
   SendResults,
   sendEach,
 } from '@/components/invite-list';
+import { OrganizationCombobox } from '@/components/organization-combobox';
 import { useAccount } from '@/lib/account';
 import { describeThrown } from '@/lib/describe-error';
 import { type ReadSheet, SHEET_LIMIT } from '@/lib/invite-sheet';
 import { useMemberOrganizations } from '@/lib/organization-members';
 import { setInvitesMentor } from '@/lib/organization-mentors';
-import {
-  fetchInvitingOrganizations,
-  type InvitingOrganization,
-  inviteList,
-} from '@/routes/admin/members-admin';
+import { useOrganizations } from '@/lib/organizations';
+import { invitableOrganizations, inviteList } from '@/routes/admin/members-admin';
 import { inviteEmail } from '../../../supabase/functions/send-invite/compose';
 
 /**
@@ -56,11 +54,13 @@ export function suggestedMessage(organization: string | null, mentors = false): 
 
 export function InviteSheet({ onCreated }: { onCreated: () => void }) {
   const account = useAccount();
-  const [inviting, setInviting] = useState<InvitingOrganization[]>([]);
+  // Any organization, theirs first (the owner, 2026-11-25).
   const memberOf = useMemberOrganizations(
     account.status === 'member' ? (account.userId ?? undefined) : undefined,
   );
-  const organizations = inviting.filter((o) => memberOf.includes(o.id));
+  const { organizations: directory, loading } = useOrganizations();
+  const organizations = invitableOrganizations(directory);
+  const theirs = organizations.filter((o) => memberOf.includes(o.id));
   const [read, setRead] = useState<ReadSheet | null>(null);
   const [round, setRound] = useState(0);
   const [organizationId, setOrganizationId] = useState<string | null>(null);
@@ -77,12 +77,7 @@ export function InviteSheet({ onCreated }: { onCreated: () => void }) {
     setRead(next);
   }, []);
 
-  useEffect(() => {
-    void fetchInvitingOrganizations().then(setInviting);
-  }, []);
-
-  // One organization of theirs is the one they mean; with several, they pick.
-  const chosen = organizationId ?? (organizations.length === 1 ? (organizations[0]?.id ?? '') : '');
+  const chosen = organizationId ?? '';
   const organizationName = organizations.find((o) => o.id === chosen)?.name ?? null;
   const people = read?.people ?? [];
   const tooMany = people.length > SHEET_LIMIT;
@@ -182,24 +177,20 @@ export function InviteSheet({ onCreated }: { onCreated: () => void }) {
     <div className="p-3.5">
       {/* Who they join with and whether they mentor come first: the table
           below starts from them (the owner, 2026-11-19). */}
-      <label htmlFor="sheet-organization" className={inviteListLabel}>
-        They join with
-      </label>
-      <select
+      <OrganizationCombobox
         id="sheet-organization"
+        label="They join with"
+        labelClassName={inviteListLabel}
+        yours={theirs}
+        others={organizations}
         value={chosen}
-        onChange={(e) => {
-          setOrganizationId(e.target.value);
-        }}
+        onChange={setOrganizationId}
+        none="Just the club"
+        noneValue=""
+        placeholder={loading ? 'Loading organizations…' : 'Just the club'}
+        disabled={loading}
         className={inviteListField}
-      >
-        <option value="">Just the club</option>
-        {organizations.map((o) => (
-          <option key={o.id} value={o.id}>
-            {o.name}
-          </option>
-        ))}
-      </select>
+      />
 
       {organizationName ? (
         <MentorField

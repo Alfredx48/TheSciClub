@@ -45,14 +45,14 @@ set local role authenticated;
 \echo ''
 \echo '== 1. an invite with no organization is attributed to the admin =='
 \echo '   expect: invited_by_organization empty, invited_by_member Club Admin, is_admin t'
-select email is not null as made from public.admin_create_invite('first@probe.test', null, 'Met at an event');
+select email is not null as made from public.admin_create_invite('first@probe.test'::text, null::uuid, 'Met at an event'::text);
 select invited_by_organization, invited_by_member, invited_by_member_is_admin
   from public.admin_invites where email = 'first@probe.test';
 
 \echo ''
 \echo '== 2. naming an organization still works and is attributed to it =='
 \echo '   expect: NorCal SCI | empty | empty'
-select email is not null as made from public.admin_create_invite('second@probe.test', :'ncs_id', null);
+select email is not null as made from public.admin_create_invite('second@probe.test'::text, :'ncs_id'::uuid, null::text);
 select invited_by_organization, invited_by_member, invited_by_member_is_admin
   from public.admin_invites where email = 'second@probe.test';
 
@@ -67,37 +67,42 @@ select count(*) filter (where invited_by_organization is not null and invited_by
 \echo '== 4. the address is stored trimmed and lowercase, and the row is a pending invite with no phone =='
 \echo '   expect: third@probe.test | pending | (null) | (null) | (null)'
 select email, status, phone, token_hash, sent_at
-  from public.admin_create_invite('   Third@Probe.TEST ', null, null);
+  from public.admin_create_invite('   Third@Probe.TEST '::text, null::uuid, null::text);
 
 \echo ''
 \echo '== 5. the same address cannot be on the list twice, in any case =='
 \echo '   expect: ERROR 23505 ... already on the list   (twice)'
 savepoint twice;
-select public.admin_create_invite('first@probe.test', null, null);
+select public.admin_create_invite('first@probe.test'::text, null::uuid, null::text);
 rollback to savepoint twice;
 savepoint twice_other_case;
-select public.admin_create_invite('FIRST@PROBE.TEST', :'ncs_id', null);
+select public.admin_create_invite('FIRST@PROBE.TEST'::text, :'ncs_id'::uuid, null::text);
 rollback to savepoint twice_other_case;
 
 \echo ''
 \echo '== 5b. and something that is not an address is refused =='
 \echo '   expect: ERROR 22023 ... does not look like an email address   (three times)'
 savepoint not_an_address;
-select public.admin_create_invite('not an address', null, null);
+select public.admin_create_invite('not an address'::text, null::uuid, null::text);
 rollback to savepoint not_an_address;
 savepoint a_phone_number;
-select public.admin_create_invite('(408) 555-2100', null, null);
+select public.admin_create_invite('(408) 555-2100'::text, null::uuid, null::text);
 rollback to savepoint a_phone_number;
 savepoint nothing;
-select public.admin_create_invite(null, null, null);
+select public.admin_create_invite(null::text, null::uuid, null::text);
 rollback to savepoint nothing;
 
 \echo ''
-\echo '== 6. an organization that cannot invite is still refused =='
-\echo '   expect: ERROR:  That organization cannot issue invites'
-savepoint bad_org;
-select public.admin_create_invite('fourth@probe.test', :'no_invite_id', null);
-rollback to savepoint bad_org;
+\echo '== 6. any organization will do, can_invite or not (the owner, 2026-11-25), but not a removed one =='
+\echo '   expect: made t, then the organization named; then ERROR P0002 ... no such organization'
+select email is not null as made from public.admin_create_invite('fourth@probe.test'::text, :'no_invite_id'::uuid, null::text);
+select invited_by_organization is not null as under_it from public.admin_invites where email = 'fourth@probe.test';
+savepoint removed_org;
+set local role postgres;
+update public.organizations set removed_at = now() where id = :'no_invite_id';
+set local role authenticated;
+select public.admin_create_invite('sixth@probe.test'::text, :'no_invite_id'::uuid, null::text);
+rollback to savepoint removed_org;
 
 \echo ''
 \echo '== 7. an ordinary member cannot call it at all =='
@@ -105,13 +110,13 @@ rollback to savepoint bad_org;
 savepoint not_admin;
 select set_config('request.jwt.claims',
   '{"sub":"bbbbbbbb-2222-2222-2222-222222222222","role":"authenticated"}', true) is not null as ok;
-select public.admin_create_invite('fifth@probe.test', null, null);
+select public.admin_create_invite('fifth@probe.test'::text, null::uuid, null::text);
 rollback to savepoint not_admin;
 
 \echo ''
 \echo '== 8. the old phone signature is gone (expect ERROR: function ... does not exist) =='
 savepoint old_signature;
-select public.admin_create_invite('4085552100', null, null, 'Met at an event');
+select public.admin_create_invite('4085552100'::text, null::uuid, null::uuid, 'Met at an event'::text);
 rollback to savepoint old_signature;
 
 set local role postgres;

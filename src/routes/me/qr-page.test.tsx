@@ -184,12 +184,11 @@ describe('who may make a code', () => {
 describe("an administrator's code", () => {
   it('can be for any organization, not only one they run', async () => {
     renderPage();
-    // Not one of theirs, so it is a search rather than in the list (the owner, 2026-11-05).
-    await screen.findByLabelText("Who it's for");
-    expect(screen.queryByRole('option', { name: 'NorCal SCI' })).toBeNull();
-    await userEvent.type(screen.getByLabelText('Or find another organization'), 'norcal');
-    await userEvent.click(screen.getByRole('button', { name: /^NorCal SCI/ }));
-    expect(screen.getByLabelText("Who it's for")).toHaveValue('ncs');
+    // Not one of theirs: found by typing in the same box (the owner, 2026-11-25).
+    const who = await screen.findByLabelText("Who it's for");
+    await userEvent.type(who, 'norcal');
+    await userEvent.click(screen.getByRole('option', { name: /^NorCal SCI/ }));
+    expect(who).toHaveValue('NorCal SCI');
     await userEvent.click(screen.getByRole('button', { name: 'Make a link' }));
     await waitFor(() => {
       expect(state.created[0]?.organizationId).toBe('ncs');
@@ -201,7 +200,7 @@ describe("an org admin's code", () => {
   it('is for their organization, with no event and no email to show', async () => {
     asOrgAdmin();
     renderPage();
-    expect(await screen.findByText('NorCal SCI')).toBeInTheDocument();
+    expect(await screen.findByDisplayValue('NorCal SCI')).toBeInTheDocument();
     expect(screen.queryByRole('radio', { name: 'At an event' })).toBeNull();
     expect(screen.queryByLabelText('Email shown while joining is closed')).toBeNull();
     expect(
@@ -314,8 +313,9 @@ describe("an administrator's code", () => {
     state.mine = new Set(['ncs']);
     renderPage();
     const which = await screen.findByLabelText("Who it's for");
-    expect(which).toHaveValue('ncs');
-    await userEvent.selectOptions(which, 'No organization');
+    expect(which).toHaveValue('NorCal SCI');
+    await userEvent.click(which);
+    await userEvent.click(screen.getByRole('option', { name: 'No organization' }));
     await userEvent.click(screen.getByRole('button', { name: 'Make the QR code' }));
     expect(state.created[0]?.organizationId).toBeNull();
   });
@@ -470,8 +470,8 @@ describe("a professional's own code", () => {
     asPartner();
     state.mine = new Set(['ncs']);
     renderPage();
-    const who = await screen.findByLabelText("Who it's for");
-    expect(within(who).getByRole('option', { name: 'Just you, as staff' })).toBeInTheDocument();
-    expect(within(who).getByRole('option', { name: 'NorCal SCI' })).toBeInTheDocument();
+    await userEvent.click(await screen.findByLabelText("Who it's for"));
+    expect(screen.getByRole('option', { name: 'Just you, as staff' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: /^NorCal SCI/ })).toBeInTheDocument();
   });
 });

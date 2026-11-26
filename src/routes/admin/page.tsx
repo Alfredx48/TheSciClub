@@ -2,7 +2,7 @@ import { ChevronDown, Loader2 } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import { BackLink } from '@/components/back-link';
-import { OrganizationPicker } from '@/components/organization-picker';
+import { OrganizationCombobox } from '@/components/organization-combobox';
 import { PageTabs, TabPanel, useTabParam } from '@/components/page-tabs';
 import { SegmentPills } from '@/components/segment-pills';
 import { StrikeRuleSelect } from '@/components/strike-rule-select';
@@ -1798,8 +1798,8 @@ function ChooseOrganizationPanel({
       panel.scrollIntoView({ block: 'center', behavior: motionReduced() ? 'auto' : 'smooth' });
     }
   }, []);
-  // The club first, and a search for the rest: the directory is too long to
-  // scroll (OrganizationPicker, the owner, 2026-11-05).
+  // The club first, then every organization in one list that narrows as you
+  // type (the owner, 2026-11-05 and 2026-11-25).
   const club = organizations.filter((organization) =>
     /^the sci club$/i.test(organization.name.trim()),
   );
@@ -1823,7 +1823,7 @@ function ChooseOrganizationPanel({
         </>
       }
     >
-      <OrganizationPicker
+      <OrganizationCombobox
         id={`choose-organization-${memberId}`}
         label="Organization"
         labelClassName="mt-1 block font-semibold text-[0.75rem] text-ink"

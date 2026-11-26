@@ -2,7 +2,7 @@ import { Link as LinkIcon, Loader2, X } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { BackLink } from '@/components/back-link';
-import { OrganizationPicker } from '@/components/organization-picker';
+import { OrganizationCombobox } from '@/components/organization-combobox';
 import { QrCode } from '@/components/qr-code';
 import { useAccount } from '@/lib/account';
 import { useAnnounce } from '@/lib/announce';
@@ -244,7 +244,7 @@ export default function QrCodePage() {
           {/* An org admin may leave their organization out too (20261119140000). */}
           {offered.length > 0 || (isAdmin && everyOrganization.length > 0) ? (
             <>
-              <OrganizationPicker
+              <OrganizationCombobox
                 id="qr-organization"
                 label="Who it's for"
                 yours={offered}
