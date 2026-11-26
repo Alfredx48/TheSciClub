@@ -1,10 +1,17 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { BackLink } from '@/components/back-link';
 import { useAccount } from '@/lib/account';
 import { attachmentFolder, deleteAttachments, uploadAttachments } from '@/lib/chat/attachments';
 import { memberDraftKey, readKeptDraft, writeDraft } from '@/lib/chat/drafts';
 import { PRICED_ROOM, parsePrice, setListingPrice } from '@/lib/chat/listing-prices';
+import {
+  holdsOtherPost,
+  otherDraftKey,
+  savedPost,
+  setAsideFor,
+  swapDrafts,
+} from '@/lib/chat/other-draft';
 import { POST_COUNT_FROM, POST_MAX } from '@/lib/chat/post-length';
 import { roomPrompt } from '@/lib/chat/room-prompts';
 import { roomsByCategory, useChatRooms } from '@/lib/chat/rooms';
@@ -58,13 +65,40 @@ export default function NewTopicPage() {
     );
   }
   const draftKey = draftKeyFor(roomId);
+  // The words carried from the quick box win over a different unfinished post,
+  // which is set aside, not lost (lib/chat/other-draft.ts). Decided once, when
+  // the rooms say which draft this is; choosing another room afterwards, or
+  // "Switch to it", changes nothing more.
+  const words = carriedDraft(location.state).draft;
+  const [decided, setDecided] = useState(false);
+  const [opened, setOpened] = useState(0);
+  const settling = !decided && holdsOtherPost(draftKey, words);
+  const loading = roomsRead.loading;
+  useEffect(() => {
+    if (decided || loading) return;
+    if (!draftKey || !holdsOtherPost(draftKey, words)) {
+      setDecided(true);
+      return;
+    }
+    let live = true;
+    void setAsideFor(draftKey, words).finally(() => {
+      if (live) setDecided(true);
+    });
+    return () => {
+      live = false;
+    };
+  }, [decided, draftKey, loading, words]);
+  if (settling) return null;
   return (
     <NewTopicForm
-      key={draftKey}
+      key={`${draftKey ?? ''}:${String(opened)}`}
       draftKey={draftKey}
       draftKeyFor={draftKeyFor}
       roomId={roomId}
       roomsRead={roomsRead}
+      onOpenedOther={() => {
+        setOpened((n) => n + 1);
+      }}
     />
   );
 }
@@ -74,11 +108,13 @@ function NewTopicForm({
   draftKeyFor,
   roomId,
   roomsRead,
+  onOpenedOther,
 }: {
   draftKey: string | undefined;
   draftKeyFor: (roomId: string) => string | undefined;
   roomId: string | undefined;
   roomsRead: ReturnType<typeof useChatRooms>;
+  onOpenedOther: () => void;
 }) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -99,10 +135,14 @@ function NewTopicForm({
       anonymous: false,
       priceText: '',
       destination: roomId,
+      // The quick box's words it was started from, so the next "Add details"
+      // with them opens it again even once its title has changed.
+      askedAs: '',
     }),
     undefined,
     (initial) => ({
       ...initial,
+      askedAs: carried.draft,
       title: carried.draft,
       isQuestion: carried.question,
       anonymous: carried.anonymous,
@@ -114,6 +154,10 @@ function NewTopicForm({
   }
   const photoDraft = useDraftFiles(draftKey);
   const { value: files, setValue: setFiles } = photoDraft;
+  // An unfinished post set aside for this one, offered back.
+  const [other] = useState(() => (draftKey ? savedPost(otherDraftKey(draftKey)) : null));
+  const otherTitle = typeof other?.title === 'string' ? other.title.trim() : '';
+  const [swapping, setSwapping] = useState(false);
 
   /** Choosing another room takes what is written along, unless that room
    * keeps a draft of its own (a Marketplace room's listing), which then opens
@@ -295,6 +339,39 @@ function NewTopicForm({
             : 'Every member can read this, including members who join later. Nothing here is public.'}
         </p>
 
+        {other && draftKey ? (
+          <div className="mt-2 rounded-[12px] border border-line bg-paper px-3 pt-2">
+            <p className="text-[0.8125rem] text-ink2 leading-[1.45]">
+              {otherTitle ? (
+                <>
+                  Another unfinished post:{' '}
+                  <span className="font-semibold text-ink">“{otherTitle}”</span>
+                </>
+              ) : (
+                'Another unfinished post, with no title yet'
+              )}
+            </p>
+            <div className="flex flex-wrap items-center gap-x-2">
+              <button
+                type="button"
+                disabled={
+                  saving || swapping || photoDraft.loading || photoDraft.status === 'saving'
+                }
+                className="min-h-11 font-semibold text-[0.8125rem] text-emphasis underline disabled:opacity-50"
+                onClick={() => {
+                  // This one takes its place, so neither is lost.
+                  setSwapping(true);
+                  void swapDrafts(draftKey, otherDraftKey(draftKey)).finally(onOpenedOther);
+                }}
+              >
+                Switch to it
+              </button>
+              <span className="text-[0.75rem] text-grey">
+                The post you are writing is kept too.
+              </span>
+            </div>
+          </div>
+        ) : null}
         {draft.storage || photoDraft.status !== 'idle' ? (
           <div className="mt-1 flex flex-wrap items-center gap-x-3">
             <DraftStatus
@@ -312,7 +389,7 @@ function NewTopicForm({
                 setFailure(null);
               }}
             >
-              Discard draft
+              {other ? 'Discard this draft' : 'Discard draft'}
             </button>
           </div>
         ) : null}
