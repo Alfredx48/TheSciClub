@@ -158,6 +158,32 @@ describe('asking, from a room', () => {
     expect(screen.getByRole('checkbox', { name: 'Question' })).toBeChecked();
   });
 
+  // The owner, 2026-11-26: "when I hit add Details it brought up my previous
+  // post. I should be adding Details to a question I was in the middle of
+  // asking." The question opens; the post left unfinished is kept, and swaps back.
+  it('opens on the words carried over, not on a post left unfinished, and keeps that one', async () => {
+    const user = userEvent.setup();
+    const { writeDraft } = await import('@/lib/chat/drafts');
+    const left = { title: 'Cushion for a long drive', body: 'Half written', askedAs: '' };
+    writeDraft('member:new-post:post', JSON.stringify({ version: 1, value: left }));
+    renderPage({ draft: 'Which side guards last?', question: true });
+
+    expect(await screen.findByLabelText('What is it about?')).toHaveValue(
+      'Which side guards last?',
+    );
+    expect(screen.getByLabelText(/^Details/)).toHaveValue('');
+    await user.type(screen.getByLabelText(/^Details/), 'Aluminium or plastic?');
+    await user.click(screen.getByRole('button', { name: 'Switch to it' }));
+
+    expect(await screen.findByLabelText('What is it about?')).toHaveValue(
+      'Cushion for a long drive',
+    );
+    expect(screen.getByLabelText(/^Details/)).toHaveValue('Half written');
+    expect(screen.getByText('“Which side guards last?”')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Switch to it' }));
+    expect(await screen.findByLabelText(/^Details/)).toHaveValue('Aluminium or plastic?');
+  });
+
   it('opens the topic with no state for Home', async () => {
     const user = userEvent.setup();
     renderPage();
