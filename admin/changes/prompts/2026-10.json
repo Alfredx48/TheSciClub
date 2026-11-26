@@ -1,0 +1,705 @@
+{
+  "00f64cbbadad": {
+    "change": "Events read more easily: details first, answers smaller, a sheet after Going or Interested",
+    "prompts": [
+      "Can we make the details more clear on the events page? At a minimum add a Details header. Also the join online, going and join online buttons take up a lot of space. Maybe we can move these below the details and possibly make them smaller? Also, let's get rid of the \"going shares your e-mail\" text. Could we instead have a pop-up when a user clicks going or interested. The popup can have that text as well as a button to add the event to their personal calendar.",
+      "It would be nice if the events feed was easier to grock. It is dominated by the buttons as well as the \"going shares...\" text. I think we should include the first couple sentences of the details and again show the \"going shares\" after the user taps going or interested.",
+      "Also, we are only specifying the city for organizations/events, we should specify the city and state"
+    ]
+  },
+  "0263063007b9": {
+    "change": "Use my location says to check the ZIP it fills in, and the hint no longer says the ZIP is not stored",
+    "prompts": [
+      "For some reason the location I get when using my laptop is incorrect. The zip code is  [a zip code] vs [a zip code]",
+      "Ok, I think it is probably fine. The user can correct it..",
+      "Is it usually higher when on a phone?"
+    ]
+  },
+  "0708d42a63dd": {
+    "change": "Make org admins members of their organizations",
+    "prompts": ["Org admins should by default be in the org chat group.They are by default members"]
+  },
+  "082eacd267b1": {
+    "change": "Choose an event's cover picture, and show it on its page and card",
+    "prompts": [
+      "Can we make the \"About it\" description field take markdown. Maybe add some buttons for adding links, changing font. Maybe add the ability to add pictures."
+    ]
+  },
+  "0ff0bb86a22a": {
+    "change": "Check-in timing and reminders, join request notifications",
+    "prompts": [
+      "Speaking of checking in. The button should only be illuminated during the actual event. Can join requests from orgs that require approval trigger a notification?",
+      "Can we make the check-in button light up maybe an hour before and after the event?",
+      "Also, can we notify people that specified they are going 30 minutes after the event to check in?"
+    ]
+  },
+  "11e837d84fee": {
+    "change": "Add \"Before you join\": the terms agreed, and kept with the account",
+    "prompts": [
+      "Can we work on the onboarding screens. After further thought, it might be useful to have one screen dedicated to accepting the terms of service and privacy policy. Specifically calling out that information on this platform is not medical advice and just opinions of people with a similar lived experience. To consult a doctor before making any medical changes. Please reword. Keep it short, clear, and clean. I figure this could be the first screen. Show me a mockup",
+      "I don't want to have a checkbox, just say by clicking continue you agree to our Terms of Service and Privacy Policy",
+      "Anything else you might flag on here that makes sense to cover us from a legal perspective?",
+      "Let's try 1,3, and 4. Maybe on the injury level screen put (optional) next to your spinal cord to make it a little more clear.  Should we maybe add a blurb, by hitting continue you agree to display this information inside the club?",
+      "yes, build it and drop the duplicate optional"
+    ]
+  },
+  "12aa4baebc36": {
+    "change": "HANDOFF: onboarding picks up where it was left; Admin → Stats",
+    "prompts": [
+      "Why is the photo and e-mail not saved if the user did not finish onboarding? The e-mail is necessary to figure out who just signed in no?"
+    ]
+  },
+  "13bd3b627318": {
+    "change": "A topic has its own Share under its title, not only its posts",
+    "prompts": [
+      "So I can share a response inside a topic, but not the topic itself",
+      "Can we also add the ability to add pictures to topics after they have been created. I think you can only add one when creating it."
+    ]
+  },
+  "17fbcabee9eb": {
+    "change": "Public event form: our list, and the host's own registration may still be needed",
+    "prompts": [
+      "A lot of organizations are not in our system. How can we word it in a way that makes either this clear? Maybe say you have been added to our list. You may need to register with XXX so check the event details.."
+    ]
+  },
+  "1b48bcbae85a": {
+    "change": "Onboarding: Continue right under the answer, in sight with the keyboard out",
+    "prompts": [
+      "Can we also push the continue button up to right below the text? SO you can see it with the keyboard out"
+    ]
+  },
+  "1bda008a74d3": {
+    "change": "Events from calendar invitations to events@thesciclub.org",
+    "prompts": [
+      "Can you add a feature where I can add events@thesciclub.org to any Google calender or any other calendar app as a guest and it will automatically create an event in the club if the from e-mail address is an organization admin?",
+      "After we submit this change. next.. When a user changes the room for a question or topic and taps \"move it\", it should close the move this topic to expansion. Otherwise it feels like nothing happens."
+    ]
+  },
+  "1f77d19fb85d": {
+    "change": "A sign-up is confirmed by a code typed in the app, and the blocked screen asks in one tap",
+    "prompts": [
+      "I also tried signing up and never got an e-mail with a link to click. How can we debug this? I am not sure we want to gate onboarding by people clicking the link sent. When they click create account it should allow them to continue to onboarding. Specify the e-mail address used to send the e-mail so people can check it. Also, let people request an invite by clicking an org directly on the \"This email isn't on the list\", page. Save them a click. just replace \"oining is by invitation only. If you have not received an invitation you can request one.\" with \"Joining The SCI Club is by invitation only. These organizations can invite you. Tap a name to ask that person for an invite.\" then list of orgs. Push the other two sentences above the signout and try another e-mail button"
+    ]
+  },
+  "2261cd30606c": {
+    "change": "The App Feedback room's form reads as feedback",
+    "prompts": [
+      "When you tap on Send feedback, the form is confusing. Can you make it more clear this is feedback. Instead of New Topic, say New App Feedback. In the default text, put something relevant to app feedback. This should only apply for the App Feedback room.\n[1 picture attached]"
+    ]
+  },
+  "23b8c435e392": {
+    "change": "Stats: the way in is started onboarding, reached Home, notifications on",
+    "prompts": [
+      "Can you show me what the stats change will do?",
+      "By made an account means signed in, but did not necessarily finish onboarding?",
+      "Yeah the stat I am interested in is unique visitors that open the app starting onboarding and how many of those got to the homescreen as well as how many enabled notifications",
+      "ok raw counts is probably fine for now.."
+    ]
+  },
+  "24ad17c4cccf": {
+    "change": "The how-to video plays by itself, muted and on repeat, when the steps open",
+    "prompts": [
+      "I don't see the video pop up on my iphone",
+      "Can we auto-play the video on repeat?"
+    ]
+  },
+  "2641bd380330": {
+    "change": "Let an administrator give an imported event a cover picture",
+    "prompts": ["I found an issue with the editable events. I cannot add a cover image"]
+  },
+  "2f30fe7737c9": {
+    "change": "Reorder and reword the profile survey, ask equipment and grants, and say why to mentor",
+    "prompts": [
+      "Can you move \"Topics you are happy to talk about\" to after self-care devices",
+      "Also add a question \"Do you own any adaptive sports equipment?\" also \"Did you receive any grants?\" For grants, specify [an organization], [an organization], [an organization], [an organization], [an organization], and Other (with a text field to specify)",
+      "I am getting an error when I select yes to the question do you own any adaptive equipment.\n[1 picture attached]",
+      "Let's actually first change the question to be open ended text box and have the default text say, Top End Force 3 handcycle, Freewheel, and HOC Glide ski",
+      "Change the text from \"Somebody trying one for the first time will want to ask you about it.\" to \"Somebody trying one for the first time may want to ask you about it.\"",
+      "Let's also make this freeform, that will be easier. For default text say. \"I received a [an organization] grant and [an organization] grant for my handcycle and a [an organization] rehab grant to go to [an organization].\"",
+      "The specifics are supposed to be after self care devices, and should only trigger if the user selected one of the last three selections. Let's move the adaptive sports equipment question to before the grant question. Move topics you are happy to talk about to after the mentoring question",
+      "On the mentoring screen. Start with something on top about the value of mentorship. Maybe \"Mentoring peers is not only helpful to the community, but also very rewarding. Help someone newly injured navigate SCI and all the complications involved. Become a mentor..\" then have the details of what you get."
+    ]
+  },
+  "2f8c21bccef4": {
+    "change": "Let other members read a profile's adaptive sports equipment and grants",
+    "prompts": [
+      "Can we update the profile page with the new info we collected? Instead of saying Function and living situation say bio and put that up top, how it happened next, followed by happy to talk about, interests, uses day to day, adaptive sports equipment, and grants, then details.",
+      "Do we need a database update for me to see the adaptive equipment? I did not see it in my profile"
+    ]
+  },
+  "2f96001f1f7d": {
+    "change": "Share a link to a post outside the club; whoever opens it lands on it once in",
+    "prompts": [
+      "Can you add a share link to posts and threads. Give people the ability to share content outside the app. Of course when users try to see it they need to sign in or request an invite. Make sure to keep track of the landing page so when a user signs in or completes the onboarding flow they are taken to the content they were linked to."
+    ]
+  },
+  "2fe1b1fcbdc8": {
+    "change": "The how-to video plays with iPhone Safari's steps too",
+    "prompts": ["add the video for Safari too", "I think it is fairly similar"]
+  },
+  "30cee72abce1": {
+    "change": "Stats: how many members added each part of a profile",
+    "prompts": [
+      "Maybe we should have a more detailed view. Can we add stats for # created username, # added birthday. # added disability, # added location, # added number, # added profile picture, # turned on notifications",
+      "Hold on, why can't we log this as people go through the flow?"
+    ]
+  },
+  "316d9aa14862": {
+    "change": "Let an administrator change an imported event, and keep it over the import",
+    "prompts": ["can we enable for admins to be able to edit or change imported events?"]
+  },
+  "37bf062b5215": {
+    "change": "Stats migration renumbered to 20261015020000, after the ones already live",
+    "prompts": [
+      "Can we merge in the latest changes with our changes. What do we have outstanding that we started?"
+    ]
+  },
+  "38d5e6bd5e58": {
+    "change": "The day-ahead reminder is 24 hours before a timed event, never in the night",
+    "prompts": [
+      "Is the 9 am reminder the most common? Looking at google calendar I think it is 24 hours",
+      "yes, 24 hours with the quiet hours"
+    ]
+  },
+  "3bb27f30bb89": {
+    "change": "Names on the map have a soft glow, not an outline, so they read plain",
+    "prompts": ["the font is a bit strong. Can we use a non highlighted font."]
+  },
+  "42129233d2a6": {
+    "change": "Onboarding picks up where it was left, on any device; Stats counts each step",
+    "prompts": [
+      "What happens when someone exits half way through?",
+      "I think we should definitly save progress in ther device and ideally in our database, in case they start again on a different device.",
+      "will this slow down the app?"
+    ]
+  },
+  "434192de3b5b": {
+    "change": "Public event page asks the reader to join the club, set apart; the confirmation says only that and the list",
+    "prompts": [
+      "We should have a stronger action recommendation to join the club. Maybe highlight in a separate place \"Join the club to see who is coming and join the group chat.\"",
+      "Maybe just keep the confirmation page simple, \"You are on our list. Join the club to see who is coming and join the group chat.\""
+    ]
+  },
+  "457e2a52e290": {
+    "change": "Organization members, their group chat, and event check-ins",
+    "prompts": [
+      "I think we should add a concept of org members. These are active participants in an organization. When new members join through an invite from an admin of a single org or from an invite link or QR code that was created for that org, place them into a group of members of that org. If someone attends an event, they should also be added to the members of that org.",
+      "Let's add a selector for org if the admin is an admin of more than one for the email invites. Can we add check ins for when they go to an event. Let them do it in the app or let the event organizer print out a QR code that will lett people check in.",
+      "We should track both members and followers. We could highlight both. Also on a users account we could highlight which orgs they are members of and which one they follow.",
+      "We should create a group chat for all members..",
+      "Actually we should let anybody join an event chat, even if they are not going. They should also stay open after the event."
+    ]
+  },
+  "4648c07d6824": {
+    "change": "Ask an org admin for an invite while joining is by invitation only",
+    "prompts": [
+      "Can we continue working on the change requesting an invite. When the app is invite only mode, make sure to highlight the app is invite only. Make sure \"Joining is by invitation\" in bold and say \"Joining is by invitation only\". Add a sentence in bold after the first set. \"If you have not received an invitation you can request one\". Make request one a link to the page where they can request them. When you list the organizations, list the admins next to them and tell the user to click on one to request an invite."
+    ]
+  },
+  "470301154b0f": {
+    "change": "The Privacy Policy names the email provider by what it does, as it does every provider",
+    "prompts": [
+      "Can we send notification reminders for events people are \"going\" to 10 minutes before they start?",
+      "I saw one the day before, but not one 10 minutes before. Should send one 24 hours before and 10 minutes before",
+      "the one the day before should be sent by e-mail as well."
+    ]
+  },
+  "536e47ab974e": {
+    "change": "Stats: choose the period, all time by default",
+    "prompts": [
+      "Can you add date range selection to the stats screen? last 24 hours, previpous 24 hours, Last 7 days, previous 7 days, last 30 days, previous 30 days, alltime. alltime should be default"
+    ]
+  },
+  "5605e92d4c61": {
+    "change": "Cards offer Register for Going when the host has a sign-up, and the sheet says plainly what Going shares",
+    "prompts": [
+      "Yes, change to register on the list if we have a link to register.",
+      "I thought the popup was supposed to say we chare the phone number and e-mail with the host? Also can we open the registration link and pre-fill it with the information we have somehow?"
+    ]
+  },
+  "5631c2129f1e": {
+    "change": "Send app feedback: from Me, and a card below the first post on Home",
+    "prompts": [
+      "Can you add a feedback button or something for providing app feedback. It should create a post in the app feedback room",
+      "We should probably add it to the home feed as well. Maybe below the first post they scroll through, there could be an entry for adding feeddback"
+    ]
+  },
+  "56934364c80c": {
+    "change": "Photographs can be added to a post when it is edited, up to four",
+    "prompts": [
+      "So I can share a response inside a topic, but not the topic itself",
+      "Can we also add the ability to add pictures to topics after they have been created. I think you can only add one when creating it."
+    ]
+  },
+  "5928a806e5ed": {
+    "change": "An event's place links to Google Maps, on the members' and the public page",
+    "prompts": [
+      "Can you make the address on the event a clickable link to google maps with that address?"
+    ]
+  },
+  "5b0e0968e85b": {
+    "change": "An org admin's QR code or link lets their people in, until it expires",
+    "prompts": [
+      "Let's add a feature for org admins to be able to send invites out to their people. Can you give them the ability to either create a QR code or link, but with an expiration, default to 3 days (72 hours). So when they go to the me tab and click on your QR code, it creates one with a timestamp of when it was created. Add a check box to add an expiration timeframe for the QR code (default is 72 hours). No need to specify at an event or no event so take that part out (that should only be for app admins), but there should be an optional notes field. ."
+    ]
+  },
+  "5b61dbe696c5": {
+    "change": "Close the move panel once a topic has moved, and say where to",
+    "prompts": [
+      "Can you add a feature where I can add events@thesciclub.org to any Google calender or any other calendar app as a guest and it will automatically create an event in the club if the from e-mail address is an organization admin?",
+      "After we submit this change. next.. When a user changes the room for a question or topic and taps \"move it\", it should close the move this topic to expansion. Otherwise it feels like nothing happens."
+    ]
+  },
+  "5ea664cc29b1": {
+    "change": "The going list and tally update right after an RSVP",
+    "prompts": [
+      "If I tap on going on an event that I previously clicked going to, meaning I am not going, it should update the list of users going to remove me from it. Not sure if this was a corner case as it was a situation where instead of going it is a register link, but I was still on the going list after I clicked going and the button changed back to register"
+    ]
+  },
+  "6a27a21c4ed2": {
+    "change": "Show me how plays Able Bodied's clip of adding the club in Chrome on an iPhone",
+    "prompts": [
+      "Can we add this video to the prompt to get users to add the app to their homescreens? https://youtube.com/shorts/91ONNOqvitI",
+      "Do you want to just have the raw video? It is 2.8mb, but I thought youtube might load faster?",
+      "This video was recorder using chrome on iphone"
+    ]
+  },
+  "6f292af2f1e3": {
+    "change": "Simplify the React picker: the emoji, and a short quote",
+    "prompts": [
+      "Can you make the color and the font of the React and Reply text under each text box the same font and color as the timestamp?",
+      "Could you simplify the react to a popup with the emojis and as soon as you select one it attaches it.  Get rid of the done button. Also don't reprint the entire text of what you are reacting to as it can take up a lot of space? Maybe trim it to the first 80 characters and put it in quotes and not bold."
+    ]
+  },
+  "785d2aec2c79": {
+    "change": "Leave organization descriptions off the \"not on the list\" screen",
+    "prompts": [
+      "Can we create a flow where a user taps on a link and it sends an e-mail to me or another organization admin requesting an invite. The e-mail to the admin should contain a deep link that pre-fills the invite fields appropriately. How could something like this work.",
+      "Sounds good. Also remove the organization descriptions on the page"
+    ]
+  },
+  "791f34f79a5e": {
+    "change": "Names link to profiles; event cards show a count that opens who is going",
+    "prompts": [
+      "Can you also make all instances of username, for example in a chat be clickable and take them to the users profile?",
+      "Probably same for instances of organizations, which I think is already the case..",
+      "Can we pull in the first couple lines of the event details into the events tab. So you can kind of tell what the event is about",
+      "Some peers are hidden from others?",
+      "If speed is an issue, maybe we should not pull the full list of people going in the event list page. That pulls profile pictures and names. We could just say 3 going on the events tab page and show the full list if someone clicks on the evnt. That would speed things up?",
+      "Considering we have many people going to many events, which is not the case today.",
+      "I think having a count is fine, and cleans up the page a bit..",
+      "Can we make the 3 going a tapable link that expands to the full list of people going?",
+      "or would doing so pull all the info we just talked about saving from having to pull. Ideally it would send a request to the server to popullate the list if and when a user taps on this.."
+    ]
+  },
+  "7c2cfbd9ae01": {
+    "change": "Admin → Stats: how the club is used, counted from what it already keeps",
+    "prompts": ["I want to add google analytics to the sci club"]
+  },
+  "7dd7732fa5ab": {
+    "change": "Every event public by default; an event's address opens its public page",
+    "prompts": [
+      "I see an error, could not load events in the tab",
+      "public events only, push it",
+      "I tried opening an event in an incogneto window and it just took me to the onboarding splash screen",
+      "All events should default to public.",
+      "even existing ones. They were all imported from public pages"
+    ]
+  },
+  "801146c592b9": {
+    "change": "A tap on a map bubble of places apart zooms in around them, so they come apart",
+    "prompts": [
+      "Can you modify the map function so if you are zoomed out and you click on a bubble with say 3 peers, if are in separate locations, zooms in around those three locations so that they are seperate now",
+      "Also, if there is only one peer in an area, use the peers profile picture on the map instead of a 1 in the box"
+    ]
+  },
+  "80451ebe5dca": {
+    "change": "Join replaces Follow; org admins review who joined and invite from a profile",
+    "prompts": [
+      "I am wondering if we should combine members and followers somehow? Maybe org admins canse a list of their followers and let them upgrade the followers to members. Or maybe for simplicity we could just combine the two? What do you think? Can you show me creenshots of all the pages with changes?",
+      "Why are followers private? I am not sure they should be. Maybe just replace the follow button with join?",
+      "I think everyone should see what orgs you are a member of. To get inspired what org to follow or join.. Yes let's combine membership with follow. Let org admins remove approve members members who clicked the member button. People become a member as soon as they say they are a member, but admins can deny a membership and explain why..",
+      "Also when you go to a users page you can see what orgs they are members of. Maybe as an admin we can let them invite members to join."
+    ]
+  },
+  "815ecc61f01e": {
+    "change": "Show the cover picture field on an imported event's form",
+    "prompts": ["I found an issue with the editable events. I cannot add a cover image"]
+  },
+  "83a2ecd38a8e": {
+    "change": "Store adaptive sports equipment and grants as a member's own words",
+    "prompts": [
+      "Can you move \"Topics you are happy to talk about\" to after self-care devices",
+      "Also add a question \"Do you own any adaptive sports equipment?\" also \"Did you receive any grants?\" For grants, specify [an organization], [an organization], [an organization], [an organization], [an organization], and Other (with a text field to specify)",
+      "I am getting an error when I select yes to the question do you own any adaptive equipment.\n[1 picture attached]",
+      "Let's actually first change the question to be open ended text box and have the default text say, Top End Force 3 handcycle, Freewheel, and HOC Glide ski",
+      "Change the text from \"Somebody trying one for the first time will want to ask you about it.\" to \"Somebody trying one for the first time may want to ask you about it.\"",
+      "Let's also make this freeform, that will be easier. For default text say. \"I received a [an organization] grant and [an organization] grant for my handcycle and a [an organization] rehab grant to go to [an organization].\"",
+      "The specifics are supposed to be after self care devices, and should only trigger if the user selected one of the last three selections. Let's move the adaptive sports equipment question to before the grant question. Move topics you are happy to talk about to after the mentoring question",
+      "On the mentoring screen. Start with something on top about the value of mentorship. Maybe \"Mentoring peers is not only helpful to the community, but also very rewarding. Help someone newly injured navigate SCI and all the complications involved. Become a mentor..\" then have the details of what you get."
+    ]
+  },
+  "83c116f69fe8": {
+    "change": "\"Create QR code or invite link\", and a join from a code opens who joined",
+    "prompts": [
+      "Can we rename \"Your QR code\" to \"Create QR code or invite link\" and yes fix the notification link"
+    ]
+  },
+  "87acb9fcfe2b": {
+    "change": "Members show their state next to their city",
+    "prompts": [
+      "can we add states next to cities for members",
+      "Also org admins and club admins can add people to the membership of an org by adding members to the org group chat",
+      "Given that this is an easy way to add members, let's remove the invite button on individual peer pages for admins.",
+      "Can we also move member of above the adaptive sports equipment section."
+    ]
+  },
+  "87c8cf75eb69": {
+    "change": "The @username above Bio copies itself when pressed, instead of a Copy button",
+    "prompts": [
+      "I don't think we need a copy button. just make clicking on the username copy it maybe?"
+    ]
+  },
+  "925070cac8c2": {
+    "change": "Let an event added by hand have a cover picture",
+    "prompts": [
+      "Can we make the \"About it\" description field take markdown. Maybe add some buttons for adding links, changing font. Maybe add the ability to add pictures."
+    ]
+  },
+  "94ea4c81d245": {
+    "change": "A database test for organization mentors",
+    "prompts": [
+      "How do I make peers into mentors as the head of Able Bodied in the app?",
+      "What might be another term for organistration admin or org admin?",
+      "I think it is confusing to make a person an organization. Maybe we should call it \"Org admin\". I assume this grants them the ability to mark someone as a mentor?",
+      "So I think admins should be associated with organizations. Mentors as well. They should be badged as such as well. Not all mentors are the same. You should be badged by the organization that made you a mentor. If someone is an admin for an organization then they can make people mentors as mentors of that organization. Maybe use the org logo next to the word mentor instead of a star"
+    ]
+  },
+  "952ce098057b": {
+    "change": "A QR code or invite link expires on the hour, and the same one again is the one made",
+    "prompts": [
+      "Can you make the invite links created by the admins snap to the hour. No need to have second resolution on these. limits the amount of invites we create to",
+      "Also, allow users to change the room they post a question as they are posting it. When I click on add more details the room is locked."
+    ]
+  },
+  "9bba1706123f": {
+    "change": "An \"@\" suggests after its first letter: a conversation's own members, a topic's people first",
+    "prompts": [
+      "When a user types the @ symbol in a chat or text box, help them autocomplete after the first letter they type in after the @. For example in a group chat, check against the users in the group. In a comment response, first look at users in the topic and then branch out to the rest.",
+      "Am I supposed to see suggestions in group chat today? Maybe I need to refresh my browser?"
+    ]
+  },
+  "9c29031bcca6": {
+    "change": "The landing page offers Request an invite instead of a call",
+    "prompts": [
+      "On the landing page, replace \"Book a call with Wojtek\" to \"Request an invite\" and send them to the invite page"
+    ]
+  },
+  "a431b2b5cd6e": {
+    "change": "An event whose place is only a city links to that city in Google Maps",
+    "prompts": ["Seems the map link is no longer working?"]
+  },
+  "a5bc51945dd1": {
+    "change": "Every place's mark on the map is a third bigger and one size: logos, members' boxes and events' dots",
+    "prompts": [
+      "Also can you make the map icons bigger on both events and in the new peer map/ So you can see the logos a bit clearer?",
+      "by icons I mean the location markers with the photos or logos",
+      "Sorry let's make it consistent",
+      "So all location markers are a similar size"
+    ]
+  },
+  "a8ad78787e93": {
+    "change": "Keep the ask box off Home's Events pill",
+    "prompts": ["Something broke. Now I see the ask/post dialogue on top of the events feed"]
+  },
+  "aa3cd66d45c4": {
+    "change": "An event's group chat: anyone who can see the event, at any time",
+    "prompts": [
+      "you should not have to be going to an event to enter the chatroom for it",
+      "There should be a chatroom attached to all events and it should be accessible at anytime. Sometimes people might want to ask questions about an event they missed.."
+    ]
+  },
+  "ab54f697bb15": {
+    "change": "An event with its host's own sign-up says to register there too, and shows both of its links",
+    "prompts": [
+      "Can you show me a screenshot of what it looks like if the event has a details page as well as a registration link. We also need to tell the user to register with the org if there is a separate registration link. Could we use the users info to fill out details when hitting register on their site?"
+    ]
+  },
+  "ab7561b6d6e9": {
+    "change": "Offer Repeats when adding an event, and ask which dates to delete",
+    "prompts": [
+      "Can you add an ability to make an event recurring when you add it?",
+      "This might be adding a lot of options. On Google calendar you dont specify an end date. Let's make the default no end date. Let's copy Google calendar. There they have a drop down that defaults to \"Does not repeat\". Then user can select daily, weekly, monthly or custom. if they hit the drop down.",
+      "If they select custom, Then have options repeats every # , then drop down for day, weeks, or months and have the option 3 of ends on date or after # occurances."
+    ]
+  },
+  "adc2ecbc45d6": {
+    "change": "Ask to add the club to the Home Screen after joining",
+    "prompts": [
+      "Can we move the prompt to add the app to the homescreen to after onboarding? That may make it easier to sign on after a passkey is created?"
+    ]
+  },
+  "af309e99c82b": {
+    "change": "Change imported events from the app, and carry the changes through the import",
+    "prompts": ["can we enable for admins to be able to edit or change imported events?"]
+  },
+  "aff95bbe2951": {
+    "change": "Record the equipment and grants migration as live and released",
+    "prompts": [
+      "Seems the home ask change is also live or Alfred already implemented it. So I think we are good there. What is the one line fix to handoff.md?",
+      "Ok go ahead and fix it and push it"
+    ]
+  },
+  "b32169eec594": {
+    "change": "Take formatting marks out of a post's words in a phone notification",
+    "prompts": ["fix the push notification text too"]
+  },
+  "b384a34e3748": {
+    "change": "A city with one member shows their photograph in the peers' box on the map, not 1",
+    "prompts": [
+      "Can you modify the map function so if you are zoomed out and you click on a bubble with say 3 peers, if are in separate locations, zooms in around those three locations so that they are seperate now",
+      "Also, if there is only one peer in an area, use the peers profile picture on the map instead of a 1 in the box"
+    ]
+  },
+  "b4b47c971815": {
+    "change": "A peer is placed on the map at the middle of their zip code",
+    "prompts": [
+      "For the map, are we using city resolution or using zip codes? I think if a peer has a zip code we should use that.. Same with orgs, although orgs we should map more exactly if we have an address",
+      "Let's use zips, push it"
+    ]
+  },
+  "b97b7cf90fad": {
+    "change": "Ask box: its choices open with the tap, not the first word",
+    "prompts": [
+      "Can you update the behavior of the ask question box. When a user taps inside the box, it auto expands the options to specify if it is a question or post or to add details? Also, add a check box for \"ask anonymously\""
+    ]
+  },
+  "bd2023f63975": {
+    "change": "More pictures on an event",
+    "prompts": [
+      "Can we add the ability to add multiple pictures to events? Have one main image and then other images that users could select below?"
+    ]
+  },
+  "c42750856f03": {
+    "change": "Online events count from their host's city in the distance filter",
+    "prompts": [
+      "Can we apply the distance filter to online events based on the location of the organization hosting it?"
+    ]
+  },
+  "c73233f749d3": {
+    "change": "Format a room's first post with the toolbar, and show posts formatted",
+    "prompts": [
+      "Can you add a richer markdown text editor for the \"first post\" field when a user tries to create a new topic  in a room?"
+    ]
+  },
+  "c882b947b2a0": {
+    "change": "Onboarding: Disability details, with high and low para, other disability and relatives",
+    "prompts": [
+      "Let's change the \"Your spinal cord\" sceen. Title should say \"Disability details\". Top should be \"When were you injured (optional)\". It should be optional. Below should be  \"Which describes you best\" the options should be \"quadriplegic (tetraplegic)\" \"High para (T1-T8)\", \"Low para (T9+)\", \"Other Disability\", \"Relative/Spouse\". If the user selects tetra or para open the level of injury questions with appropriate selection options as well as complete / incomplete. If they select \"Other disability\", have a drop down of disabilities in the attached screenshot as well as central cord syndrome and other"
+    ]
+  },
+  "c95a8e0d8422": {
+    "change": "Stats: onboarding starts and new accounts, the rest behind Onboarding details",
+    "prompts": [
+      "Can you hide the onboarding stats behind a tab or button called onboarding details. At the top should just be # onboarding starts and # new accounts."
+    ]
+  },
+  "cb087e6bbb0f": {
+    "change": "HANDOFF: ask anonymously is put off, with what it will take",
+    "prompts": [
+      "if it is that large a change, we can punt the anonymous change for later. I want a few other smaller changes first"
+    ]
+  },
+  "cc20b149852b": {
+    "change": "Calendar invitations go to invites@events.thesciclub.com, as set up in Resend",
+    "prompts": [
+      "I think he made the change but used a different e-mail address, invites@events.thesciclub.com",
+      "no, I think whatever is set up works",
+      "oh actually never mind, yes use the address I put in"
+    ]
+  },
+  "ccf328845f6d": {
+    "change": "Let an event added by hand repeat, as a series of ordinary dates",
+    "prompts": [
+      "Can you add an ability to make an event recurring when you add it?",
+      "This might be adding a lot of options. On Google calendar you dont specify an end date. Let's make the default no end date. Let's copy Google calendar. There they have a drop down that defaults to \"Does not repeat\". Then user can select daily, weekly, monthly or custom. if they hit the drop down.",
+      "If they select custom, Then have options repeats every # , then drop down for day, weeks, or months and have the option 3 of ends on date or after # occurances."
+    ]
+  },
+  "ce7269b3a42c": {
+    "change": "A mentor is an organization's: its org admins make its mentors, badged with its logo",
+    "prompts": [
+      "How do I make peers into mentors as the head of Able Bodied in the app?",
+      "What might be another term for organistration admin or org admin?",
+      "I think it is confusing to make a person an organization. Maybe we should call it \"Org admin\". I assume this grants them the ability to mark someone as a mentor?",
+      "So I think admins should be associated with organizations. Mentors as well. They should be badged as such as well. Not all mentors are the same. You should be badged by the organization that made you a mentor. If someone is an admin for an organization then they can make people mentors as mentors of that organization. Maybe use the org logo next to the word mentor instead of a star"
+    ]
+  },
+  "d17331ca3cf9": {
+    "change": "Public event page: description links are underlined, and the form is the guest list, not the host's sign-up",
+    "prompts": [
+      "I think there are also issues on the signed out event page. For example links do not seem to render as underlined in the event details. Also I think saying Register for this event could be misleading as filling out the email and phone number does not actually register you with [an organization]. Maybe just say \"Get added to our list\" or something along those lines"
+    ]
+  },
+  "d63a309c14a4": {
+    "change": "Use my location fills in the ZIP code too",
+    "prompts": [
+      "When I select use my location in onboarding it does not fill in the zip code field"
+    ]
+  },
+  "da16150fe64b": {
+    "change": "Format an event's description with a toolbar",
+    "prompts": [
+      "Can we make the \"About it\" description field take markdown. Maybe add some buttons for adding links, changing font. Maybe add the ability to add pictures."
+    ]
+  },
+  "df086c64397e": {
+    "change": "A reminder ten minutes before an event, and the day-before reminder by email",
+    "prompts": [
+      "Can we send notification reminders for events people are \"going\" to 10 minutes before they start?",
+      "I saw one the day before, but not one 10 minutes before. Should send one 24 hours before and 10 minutes before",
+      "the one the day before should be sent by e-mail as well."
+    ]
+  },
+  "e0430d276399": {
+    "change": "Onboarding: the birthday goes on by itself once the year is typed",
+    "prompts": [
+      "On the birthday screen as soon as someone enters the year, let's auto advance to the next screen"
+    ]
+  },
+  "e11034f4f027": {
+    "change": "The room can be changed while writing a topic, after Add details too",
+    "prompts": [
+      "Can you make the invite links created by the admins snap to the hour. No need to have second resolution on these. limits the amount of invites we create to",
+      "Also, allow users to change the room they post a question as they are posting it. When I click on add more details the room is locked."
+    ]
+  },
+  "e2c176a031df": {
+    "change": "A QR code or invite link expires after a day unless its maker chooses otherwise",
+    "prompts": ["Can we make the default time for the invite link or QR code to be 1 day"]
+  },
+  "e30a08b36120": {
+    "change": "Onboarding: the owner's list under Other disability",
+    "prompts": ["Oh for other disability here is the list,\n[1 picture attached]"]
+  },
+  "e459a19a45ce": {
+    "change": "Public event pages, registrations, and who can see an event",
+    "prompts": [
+      "Can we make the events page public without any club details such as who is going etc. Just so we can create an event in the club and invite people to it, even if not in the club. If a user selects going or interested it asks for a name and e-mail address (if not signed in). Then asks the user to join the club if they are not in it or to log in if they are.  If they are not in the club, ask them to join \"Join the club to complete your event registration\"",
+      "So the form to collect e-mail, phone number, and name is just a generic form that anybody can fill out. Once it is filled it, then we decide if to ask for login or to join. The events page would indeed need to be changed to protect club members. There should be only the details of the event. No counts on who is going etc. Basically similar to the info any org would post publicly on their calendars. Whenever a user would interact with the buttons such as going or interested, then we would ask them to sign in.",
+      "So the form page just has a submit button, when they hit submit we could navigate them to sign in. That said we could always throw them on our current landing page, just up top say \"Sign in to complete event registration\"",
+      "I would actually want to store who signed up. So organizations could use our events page to organize without losing people to our onboarding flow. That would only be info for the event organizer and admins",
+      "Mock up the screens so I can see them.",
+      "Maybe say sign in or join to complete your registration and see who is coming to the event. Additionally a related feature, allow organizers to limit their event to specific groups or only followers of their organization.",
+      "build it. Maybe if there are a lot of groups to choose from move to a drop down list instead of buttons."
+    ]
+  },
+  "e79f79c896a7": {
+    "change": "The map names each organization under its logo, and a city's one member under their box",
+    "prompts": [
+      "Actually just testing the map feature. Can you put the users name under their logo. Similarly for the organization map, have the organizations name under their logo (maybe capped at a certain amount of characters)"
+    ]
+  },
+  "e88204cc135d": {
+    "change": "Onboarding: the terms are agreed on the name step, and Back there signs out",
+    "prompts": [
+      "Let's get rid of the terms of service screen and instead under the name field on the first screen say \"by continuing, you agree to our Terms of Service and confirm you read our Privacy Policy\", with Terms of service being a link as well as Privacy Policy. Also ad a back button so users can go back and select a different account to log in with."
+    ]
+  },
+  "e92689f1c3af": {
+    "change": "Paste a picture anywhere one can be attached",
+    "prompts": [
+      "I want to add the ability to paste in images in the text field. Might be easier than having to attach a file.",
+      "So anywhere where you can attach an image, allow the user to paste an image"
+    ]
+  },
+  "e96ced0cb6bb": {
+    "change": "Organizations survey screen, open or approved joining, Member of",
+    "prompts": [
+      "Let’s add a profile completion screen before “Do you own any adaptive sports equipment?” Asking the user if they are part of any organizations. Have  a few buttons for orgs in the users area, a dropdown list of all orgs in our system, but more importantly an “other box with a freeform answer” Please tell us about any organizations that are not in our list. It helps us populate our database.\n\nCan we move the “Member of section down above Adaptive Sports Equipment section. If a user is a member of more than 3 orgs, list the five orgs and then collapse the rest into a hidden list behind a link “3 more” or something that expands the full list when clicked on.",
+      "Can we also add a toggle to org pages for org admins to either make joins require approvals or open to all. Let's default orgs to open to all. That will help I htink.. Most orgs want more members.."
+    ]
+  },
+  "e979728b09ad": {
+    "change": "Register stands for Going when the host has a sign-up, and the host's page is the details' last line",
+    "prompts": [
+      "Can we add the referral links inside the grey box explaining that going does not register them. Maybe put a title in the grey box \"Register with [an organization] up top\". Let's try to fit the two buttons side by side on one row if possible.",
+      "Instead of a details on their site button can we make it inline text bolded and more prominent at the bottom of the details section.  Have it say, \"More details at [an organization's site]\". If there is a registration link, can we replace the going button with register? If they tap register, then it assumes the user is going and directs them to the page to register?",
+      "Let's make the register / interested buttons span the screen just like join the group chat button"
+    ]
+  },
+  "ea704bd167c3": {
+    "change": "Onboarding: @first.last suggested first and already chosen",
+    "prompts": [
+      "Ok let's work on onboarding now. Can you show me a picture of all screens in the flow",
+      "Ok so on the name screen let's just say \"What is your name\" in the tex put \"ex [a person]\".",
+      "\"What is your name?\"",
+      "On the username screen the default should be the name with \".\" instead of the space, and then the rest of the recommendations. The top option should already be pre-selected, so the user can just hit continue"
+    ]
+  },
+  "eb2812143011": {
+    "change": "Display settings on Me only",
+    "prompts": [
+      "Can we remove the display menu from all pages except the \"Me\" tab? It makes the page look too busy"
+    ]
+  },
+  "edab0a520f9a": {
+    "change": "Each room's new-topic form suggests a title and first post in its own terms",
+    "prompts": [
+      "Can we actually also come up with better default recommendations for all the rooms?"
+    ]
+  },
+  "ef0070fdb530": {
+    "change": "Order a member's profile as the owner asked and show equipment and grants",
+    "prompts": [
+      "Can we update the profile page with the new info we collected? Instead of saying Function and living situation say bio and put that up top, how it happened next, followed by happy to talk about, interests, uses day to day, adaptive sports equipment, and grants, then details.",
+      "Do we need a database update for me to see the adaptive equipment? I did not see it in my profile"
+    ]
+  },
+  "f03ba5db9c67": {
+    "change": "Show who asked with their picture on a Home topic card",
+    "prompts": [
+      "Seems we lost the profile icon next to the name of the person posting the question in the home feed. Can we add the profile  icon next to the poster name?"
+    ]
+  },
+  "f168d7424f5f": {
+    "change": "Show who started a topic with their picture and a link on its page",
+    "prompts": [
+      "When I go in the room the authors name is not clickable nor is there an icon/image of the profile picture"
+    ]
+  },
+  "f49ece9d4324": {
+    "change": "Org admins and club admins add members; the profile invite goes",
+    "prompts": [
+      "can we add states next to cities for members",
+      "Also org admins and club admins can add people to the membership of an org by adding members to the org group chat",
+      "Given that this is an easy way to add members, let's remove the invite button on individual peer pages for admins.",
+      "Can we also move member of above the adaptive sports equipment section."
+    ]
+  },
+  "f849af637fac": {
+    "change": "A profile shows the @username above Bio, with a button to copy it",
+    "prompts": [
+      "Can we also add the @ username on the users profile page in a way that it is easy to copy. Maybe above Bio"
+    ]
+  },
+  "f872c0d6e6fd": {
+    "change": "Every event has a link to share; \"Anyone with the link\" is no longer a choice",
+    "prompts": [
+      "Let's make it possible to share event links externally for all events. We can remove the first option (anyone with a link). We could have a separate selection for if the event could be viewed from an external link, but that may not be necessary. The whole point of the link is for people to share it with the people they want to invite to the event.."
+    ]
+  },
+  "f9da24cbbbe8": {
+    "change": "Make a link: the same code as a link, made and copied to the clipboard in one press",
+    "prompts": [
+      "Can you also have a button for create a link, which creates the link and copies it to their clipboard?"
+    ]
+  },
+  "fc44e31a259b": {
+    "change": "Signing up with an address that has an account says so, instead of waiting for an email",
+    "prompts": [
+      "So I tried to sign up using [an email address] less than an hour ago",
+      "I don't understand what is going on here? This was an account I used previously and deleted, maybe that is the issue?"
+    ]
+  }
+}

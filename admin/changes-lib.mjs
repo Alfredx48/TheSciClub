@@ -146,11 +146,21 @@ export function surfaceOf(paths, subject = '') {
  *   ![Before](shots/2026-11-25-chat-scroll-before.jpg)
  *   ![After](shots/2026-11-25-chat-scroll-after.jpg)
  *
+ *   ## Prompts
+ *
+ *   > When I chat with someone, every time I type a message I have to scroll to the bottom.
+ *
+ *   > Just auto scroll.
+ *
  * Null when it has no title: the change is then listed by its commit's first line.
  */
 export function parseEntry(text) {
   const match = /^---\n([\s\S]*?)\n---\n?([\s\S]*)$/.exec(text.replace(/\r\n/g, '\n'));
   if (!match) return null;
+  // What was typed is kept apart: none of it is the summary, and a picture in it is not a shot.
+  const heading = /^##\s+Prompts\s*$/im.exec(match[2]);
+  const above = heading ? match[2].slice(0, heading.index) : match[2];
+  const below = heading ? match[2].slice(heading.index + heading[0].length) : '';
   const field = (name) =>
     new RegExp(`^${name}:\\s*(.+)$`, 'm')
       .exec(match[1])?.[1]
@@ -159,7 +169,7 @@ export function parseEntry(text) {
   const title = field('title');
   if (!title) return null;
   const shots = [];
-  const body = match[2].replace(/!\[([^\]]*)\]\(shots\/([A-Za-z0-9._-]+)\)/g, (_, label, file) => {
+  const body = above.replace(/!\[([^\]]*)\]\(shots\/([A-Za-z0-9._-]+)\)/g, (_, label, file) => {
     shots.push({ label: label.trim(), file });
     return '';
   });
@@ -172,7 +182,56 @@ export function parseEntry(text) {
     surface: SURFACES.find((s) => s.toLowerCase() === named?.toLowerCase()) ?? null,
     summary: body.replace(/\s+/g, ' ').trim(),
     shots,
+    prompts: parsePrompts(below),
   };
+}
+
+/**
+ * What the person typed that led to a change (the owner, 2026-11-25: "add all the prompts used
+ * for each change"), as an entry lists it under "## Prompts": each prompt a quote, its lines
+ * starting ">", in the order typed. A line that is no quote ends a prompt, so a blank line
+ * stands between two, and ">" alone is a blank line inside one.
+ */
+export function parsePrompts(text) {
+  const prompts = [];
+  let lines = null;
+  const end = () => {
+    const prompt = lines?.join('\n').trim();
+    if (prompt) prompts.push(prompt);
+    lines = null;
+  };
+  for (const line of text.replace(/\r\n/g, '\n').split('\n')) {
+    const quoted = /^ {0,3}> ?(.*)$/.exec(line);
+    if (quoted) {
+      lines ??= [];
+      lines.push(quoted[1]);
+    } else end();
+  }
+  end();
+  return prompts;
+}
+
+/**
+ * The prompts of the changes made before entries carried them (admin/changes/prompts/*.json),
+ * by the change's key: { "<key>": { "change": "its first line", "prompts": ["…"] } }.
+ * Anything that is not that is left out, not guessed at.
+ */
+export function parsePastPrompts(text) {
+  const found = new Map();
+  let body;
+  try {
+    body = JSON.parse(text);
+  } catch {
+    return found;
+  }
+  if (!body || typeof body !== 'object' || Array.isArray(body)) return found;
+  for (const [key, value] of Object.entries(body)) {
+    const prompts = Array.isArray(value?.prompts)
+      ? value.prompts.filter((prompt) => typeof prompt === 'string' && prompt.trim())
+      : [];
+    if (/^[0-9a-f]{12}$/.test(key) && prompts.length > 0) found.set(key, prompts);
+  }
+  return found;
 }
 
 /** A week's summary (admin/changes/weeks/<its Monday>.md): its lines, seven at most. */

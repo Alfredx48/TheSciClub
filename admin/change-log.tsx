@@ -30,6 +30,8 @@ export interface Change {
   title: string;
   surface: string;
   entry?: { title: string; type?: 'new' | 'improved' | 'fix'; summary: string; shots: Shot[] };
+  /** What the person typed that led to it, in order. From its entry, or the past's list. */
+  prompts?: string[];
   /** The iPhone app version built at this change: it has this and everything before it. */
   ios?: string;
 }
@@ -343,7 +345,61 @@ function ChangeBody({
           code
         </a>
       </p>
+      {change.prompts && change.prompts.length > 0 ? (
+        <Prompts prompts={change.prompts} by={change.by} />
+      ) : null}
     </>
+  );
+}
+
+/**
+ * What was typed to get a change made (the owner, 2026-11-25: "add all the prompts used for
+ * each change ... in an expandable view"): closed, how many; open, each as it was typed, in
+ * order. Drawn only once opened: a week is hundreds of changes.
+ */
+function Prompts({ prompts, by }: { prompts: string[]; by: string }) {
+  const [open, setOpen] = useState(false);
+  const numbered = prompts.map((text, at) => ({ text, at }));
+  return (
+    <details
+      className="mt-0.5"
+      onToggle={(event) => {
+        setOpen(event.currentTarget.open);
+      }}
+    >
+      {/* The whole line is pressed, and on a phone it is as tall as a finger needs. */}
+      <summary className="min-h-11 cursor-pointer content-center font-semibold text-[0.8125rem] text-ink2 md:min-h-8">
+        {count(prompts.length, 'prompt')}
+      </summary>
+      {open ? (
+        <>
+          <p className="text-[0.75rem] text-ink2 leading-[1.45]">
+            What {by} typed in the conversation behind this change. Changes that came out of the
+            same conversation show the same prompts. Other people’s names and anything private are
+            left out.
+          </p>
+          <ol className="mt-1.5 mb-3 space-y-2">
+            {numbered.map((prompt) => (
+              <li key={prompt.at} className="flex gap-2">
+                {/* Which came first, where there is more than one. */}
+                {prompts.length > 1 ? (
+                  <span
+                    aria-hidden="true"
+                    className="w-4 flex-none pt-1.5 text-right font-semibold text-[0.75rem] text-grey"
+                  >
+                    {prompt.at + 1}
+                  </span>
+                ) : null}
+                {/* As typed, line breaks and all; a run of spaces shows as one. */}
+                <p className="max-h-72 min-w-0 flex-1 overflow-y-auto whitespace-pre-line break-words rounded-[8px] border-line border-l-[3px] bg-canvas px-2.5 py-1.5 text-[0.8125rem] text-ink2 leading-[1.45]">
+                  {prompt.text}
+                </p>
+              </li>
+            ))}
+          </ol>
+        </>
+      ) : null}
+    </details>
   );
 }
 

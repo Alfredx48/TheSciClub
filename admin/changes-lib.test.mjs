@@ -48,8 +48,26 @@ describe('the change log', () => {
         '![Before](shots/2026-11-25-chat-before.jpg)',
         '![After](shots/2026-11-25-chat-after.jpg)',
         '![Elsewhere](../../secret.png)',
+        '',
+        '## Prompts',
+        '',
+        '> Every time I type a message I have to scroll.',
+        '>',
+        '> Just auto scroll.',
+        '',
+        '> Yes, fix it',
+        'A note that is no quote.',
+        '> ![A picture](shots/typed.jpg) > and a quote mark inside',
       ].join('\n'),
     );
+    // What was typed: a quote each, a blank line between two, and none of it summary or shot.
+    expect(entry?.prompts).toEqual([
+      'Every time I type a message I have to scroll.\n\nJust auto scroll.',
+      'Yes, fix it',
+      '![A picture](shots/typed.jpg) > and a quote mark inside',
+    ]);
+    expect(entry?.summary).not.toContain('scroll.\n');
+    expect(entry?.summary).not.toContain('Yes, fix it');
     expect(entry).toMatchObject({
       title: 'Chat scrolls to the message you just sent',
       surface: 'Chat',

@@ -1,0 +1,2143 @@
+{
+  "012bc29575bb": {
+    "change": "Me says PST or PDT, as the date falls",
+    "prompts": [
+      "I thought PST is what we use here? It is currently 2:51pm",
+      "Oh so PST is not in the summer?"
+    ]
+  },
+  "015ceff00b2c": {
+    "change": "Check-ins after review: a walk-in stays ticked; a hand-added guest's tick survives their email being matched; a Going an organizer typed in does not join the member to the host, and the check-in push goes once per event; late check-ins get the follow-up",
+    "prompts": [
+      "Can you review this change with a fable 5.2 subagent?",
+      "fix the check-in bugs and push to main first"
+    ]
+  },
+  "015f3bfb8478": {
+    "change": "Page speed: how long the app takes for people, with charts for administrators",
+    "prompts": [
+      "It feels like the app is running very slowly right now. Can you investigate why?",
+      "Can we add logging that measures page load speeds for people?",
+      "For stats can we have charts?",
+      "Why do we not use analytics?",
+      "Can you show me the privacy policy updates"
+    ]
+  },
+  "03854bb67475": {
+    "change": "The passkey offer waits for a sign-in after joining: none on finishing, nor on signing in only to finish; a member signing in with a password still gets it",
+    "prompts": ["So let's not collect the passkey until after the second time the user signs in"]
+  },
+  "0518768d1e60": {
+    "change": "The event Details box: a brighter edge in dark mode, as deep below as above",
+    "prompts": [
+      "Can you make the details section on the event page pop out more? Maybe have a different color bubble around the details section. Maybe up the font one size"
+    ]
+  },
+  "05f547091785": {
+    "change": "The tab bar stays still on every screen, Home's feed included, while people get used to the app: no more sliding away on a scroll",
+    "prompts": [
+      "Can we get rid of the disappearing bottom bar. I think we should keep the bar stable until people get used to the app..I noticed it disappear in chats instead of just home. Let's keep it there on home and get rid of the disappearing aspect"
+    ]
+  },
+  "05f6581141d6": {
+    "change": "The QR page says a code with no organization joins them to the club only, and its note's hint no longer reads like the organization's (screenshot review)",
+    "prompts": [
+      "Yes go ahead\nYeah if an invite code is tied to a user, we do not need to associate that new member with an organization",
+      "Make sure these QR codes also work when we share questions",
+      "I want to let people in even if no organization is selected. As long as the invite is tied to an active admin we are OK. I would say any active admin of any organization.",
+      "I think sharing the question title publicly is OK, as long as we do not share who shared it"
+    ]
+  },
+  "060ed68ff2a3": {
+    "change": "Tabs: a tab tapped in the bar shows what it has and reads again behind it, every tap, not only after a minute (the owner, 2026-11-19)",
+    "prompts": [
+      "Yeah, let's have it go to the tab, load what is cached, but also refresh it as well."
+    ]
+  },
+  "067f996b4b8a": {
+    "change": "Admin site: a Change log, with what is on tests, every push to main, the changes by surface and each week in seven lines (the owner, 2026-11-25)",
+    "prompts": [
+      "I want to keep better track of all the changes we make. I am thinking  we start keeping a log of all changes shipped in a markdown file. Maybe a two line summary of the change with any screenshots of before and after. The top of the file should be a list of changes on tests that is not yet on main. Then a history of pushes to main with a timestamp of when it was pushed. Maybe we make this a rule for anybody making changes?",
+      "Actually maybe we add a tab to admin.thesciclub.com for Change Log. It should have four tabs. \"On tests\" (with a list of changes pushed to tests that is not currently on main, this is just the latest set of changes), \"On main\", which has the historical list of pushes with push dates,  \"by surface\", will be a page by surface/tab per week with a list of links to the changes to the \"on main\" with their short descriptions and finally \"summary\" which has a summarized 7 line summary for each week",
+      "Are there any best practices that we might be missing?"
+    ]
+  },
+  "084ca2a5ea54": {
+    "change": "Installed apps keep updating on any host: sw.js and version.json are asked for afresh every time, and CLAUDE.md says what to check before moving off Netlify",
+    "prompts": [
+      "Will it slow things down? Can you make a rule to warn Alfred or anyone as they make any migration off netlify?"
+    ]
+  },
+  "08990e569535": {
+    "change": "Reviews of events and organizations, and a follow-up after an event",
+    "prompts": [
+      "Can we also send users that checked in a follow up asking for feedback / reviews of the event and to upload any pictures? Maybe post them to the group chat..",
+      "Actually come to think of it, I think it would be nice to have reviews of events and orgs. It will be useful for people to reference when trying to figure out if to go to a similar event. Could we create a reviews/feedback system with pictures. You could ask to provide feedback anonymously or only to the organization.",
+      "What were the anonymity options btw?",
+      "Actually after further thought let's go with your recomenned option. This implementation seems complicated."
+    ]
+  },
+  "08cf569c8334": {
+    "change": "Bands: neighbours further apart, 50+ a deeper purple (screenshot review)",
+    "prompts": [
+      "Can we modify the pill color corresponding to the injury age? Can we start from green and go to red. Also have more bands. <6 months, 6-12 month, 1-2 years, 2-5 years, 5-10 years and then in 10 year increments?",
+      "show me screenshots of the full range. gren most junior to red most senior. Maybe actually make red the color for 10 years post and then progress to a dark purple"
+    ]
+  },
+  "09b96b65961d": {
+    "change": "A link to an organization shows its name, what it does and where, and its logo, in a text message and in the club's own Chat, not just The Sci Club",
+    "prompts": [
+      "In the meantime can you fix something small and push to main? We need a better preview when sharing organizations .\n[1 picture attached]"
+    ]
+  },
+  "0bbf90eca74a": {
+    "change": "Organizations in the profile survey are searched for and ticked, as many as you belong to, not picked from a long list",
+    "prompts": [
+      "The organization question in complete your profile could be done better. There is a drop down list of organizations that is very long. Can we make it a search box and allow a user to check multiple orgs?"
+    ]
+  },
+  "0d1eda0a812d": {
+    "change": "A shared link that lets people in says who invited them, before they tap Join",
+    "prompts": [
+      "I want to add an invite feature when sharing a question as an SCI club admin. Have a toggle that enables the link to work as an invite link for 24 hours. Meaning user can join the club if they come through the copied link for 24 hours. Might be a good way to bring people in.."
+    ]
+  },
+  "0e01e2c62769": {
+    "change": "Quieter notifications, as the Fable review backed: only the first like or reaction on something pushes; each conversation is All, Only mentions or Off; Pause for an hour, until morning or a week; iPhone stacks pushes per conversation",
+    "prompts": [
+      "What about the different levels of notifications and a summary of how notifications are grouped etc.?",
+      "let's implement what fable agreed on and push to test. Also create an update to Alfred about it"
+    ]
+  },
+  "0ed44dea6ea6": {
+    "change": "Open in the app: on an iPhone, Safari's App Store banner and an Open in the app button carry the page, and a signed-in browser's sign-in by a single-use code, into the club's app; the app takes its own thesciclub:// link and shares saved passwords with thesciclub.com",
+    "prompts": [
+      "Is there a way to send an invite link that first opens the iOS App Store if it is opened on an iPhone otherwise opens theSciclub.com? Also the link deep links into the appropriate content once the user onboards?",
+      "So we currently do not add an Apple Store promo ?",
+      "What would be the smoothest way to pass the account from the browser into the iOS app?",
+      "What happens if someone opens the app from chrome?",
+      "Ok let's build it and send to test"
+    ]
+  },
+  "11150db622b4": {
+    "change": "Peers' Include has no Unsure of level chip: those unsure of their level are members with SCI/D, and the level filter's Unknown finds them (the owner, 2026-11-24)",
+    "prompts": ["Actually why is that even a chip under include? Let's remove it"]
+  },
+  "11236ff5c6e6": {
+    "change": "On a short phone the first screen fits, and Members only is bold",
+    "prompts": [
+      "make the logo smaller on short screens",
+      "Can we make Members only bold on all screens",
+      "Yes all screen sizes is what I meant"
+    ]
+  },
+  "11b5ef17b71f": {
+    "change": "The iPhone app nudge says Install the app unless the club knows the member has it, from the app saying so when signed in or its notification token; only then Open in the app, as Safari answers the app's link with an error when it is not installed",
+    "prompts": [
+      "If a user is on iOS and the app is not installed it should say install and not open on the nudge",
+      "Also can we change the notification nudge to trigger after the first time a user makes a comment or sends a chat. Explain that notifications will let them get notified after a response."
+    ]
+  },
+  "12bec2d1db68": {
+    "change": "A sheet's bar drags it closed, and Filters always has its X",
+    "prompts": [
+      "We need to come up with a better categorization of organizations and maybe instead of having logos, which are hard to make out, use color coded pins. Can you come up with some categories, such as outdoor sports, team sports, hospitals, gyms etc. Maybe 7 or so? Maybe we could have them as selectors under layers as an expansion link called types. Someone taps on types and it shows the different colors for the different types of orgs",
+      "Couple more nits. When you expand the filter on desktop there is no x to make it go away and the dragging of the bar does not work on mobile.",
+      "Let's make Veteran Affairs an eighth pin. I like the rest of your choices other than the use of the blue color, which is reserved for events. The outline of events should also be a different color to help distinguish them. Also by default when toggling between events and orgs in map mode, swtich between them, when I toggled to org, it became orgs + events. let that option be set in layers..",
+      "Can we change the way imesseges picks up  events links when I text folks? It should say the name of the event and ideally have the main image pop up with a date a time below the title",
+      "Also what makes more sense on the map should it say layers or types? and maybe under org the link should be sub-types? Also should we have a different color for peer mentors?"
+    ]
+  },
+  "13f800a1402b": {
+    "change": "The replies card: Know when someone replies. Get the club's iPhone app, and it notifies you.",
+    "prompts": [
+      "[page context added by the app, not typed by the owner, not kept]\n\nWhat about when a user answers a question or asks a question? That is a great time to tell them to install the app and get notified if there is a response"
+    ]
+  },
+  "15ff71d9df30": {
+    "change": "An event in a message: its words run the card's full width under the date and title (screenshot review)",
+    "prompts": [
+      "If we are sharing events in the chat feed there is no space for a picture and a description. Drop the picture and just have the description. Cap it at a certain amount of characters so it is contained.\n[1 picture attached]"
+    ]
+  },
+  "16db9281681f": {
+    "change": "The administrators' activity counts say what they cover: all time, views since they were first counted, each post or event once, anonymous reviews left out (screenshot review, 2026-11-18)",
+    "prompts": [
+      "Can you also add a few more stats. How many posts they viewed. Hopw many questions asked and answered. Number of messages sent. How many events viewed. How many events RSVPd. How many reviews submitted."
+    ]
+  },
+  "177337b3c16d": {
+    "change": "Add an event: the Hosted by hint tells a member it is their name or whoever is putting it on (the owner, 2026-11-23)",
+    "prompts": ["Let's allow all users to create events."]
+  },
+  "18acc0f3903d": {
+    "change": "The invite log is on admin.thesciclub.com, as its Invites view, not a tab of the app's Admin; its names, events and posts open the app (the owner, 2026-11-25: \"By admin I mean on admin.thesciclub.com\")",
+    "prompts": ["By admin I mean on admin.thesciclub.com btw"]
+  },
+  "19db87aeb1a9": {
+    "change": "The reply box's tools stay on one line in a narrow box (Home's answer)",
+    "prompts": [
+      "When you tap answer you do not get a rich text box. Also, when I paste text with links it does not keep the links."
+    ]
+  },
+  "1ad9efbef318": {
+    "change": "Open the reply box right under the post being replied to",
+    "prompts": [
+      "When a user hits reply, the reply box should by right under the comment to which they said reply to."
+    ]
+  },
+  "1b5cf232ab5b": {
+    "change": "An administrator's QR code lets people in, as an organization's does",
+    "prompts": [
+      "When I invite people with my invite QR code and they put in their email it does not let them through",
+      "They have to. Request an invite from me"
+    ]
+  },
+  "1b7724e50070": {
+    "change": "Verified professionals are now staff, of an organization; Admin asks which organization when making staff or a mentor",
+    "prompts": [
+      "The admin panel you can mark somebody as professional, instead of that we should be marking them as staff get rid of professional throughout the app replace it with staff. Also, both mentorship and staff should have an associated organization so if we are marking somebody as either staff or mentor in the admin panel, we should have selection for which organization maybe through a pop-up or something."
+    ]
+  },
+  "1d468df344a9": {
+    "change": "Notifications are asked for after the first message, reply or topic a member sends, not on opening: Get notified when they reply? says they will know as soon as somebody responds",
+    "prompts": [
+      "If a user is on iOS and the app is not installed it should say install and not open on the nudge",
+      "Also can we change the notification nudge to trigger after the first time a user makes a comment or sends a chat. Explain that notifications will let them get notified after a response."
+    ]
+  },
+  "1d536f74d74d": {
+    "change": "My posts and Saved move from the Me tab to the member's journey; the Wheelie points page explains points for votes and reactions given (the owner, 2026-11-21)",
+    "prompts": ["Can we get rid of the my posts and saved posts tabs in me tab"]
+  },
+  "1e39b96a8254": {
+    "change": "Injury dates are hidden unless their member shows them; everybody else sees how long ago (the owner, 2026-11-17)",
+    "prompts": [
+      "By default can we hide people's injury date and categorize them as newly injured if less than six months, mark that in green, recently injured if less than two years marked in orange, injured 2-10 years ago, and OG 10+ years and OOG if 40+ years in a chair. Have a selector in details for showing the injury date"
+    ]
+  },
+  "1eb90cc9950c": {
+    "change": "Post on Home: the intro says the post goes in the room below and shows on Home",
+    "prompts": ["It should default to posting in the events room"]
+  },
+  "1ecdbcc7999d": {
+    "change": "The turned-away screen says any QR code lets people in while it is live, not only an organization's",
+    "prompts": [
+      "When I invite people with my invite QR code and they put in their email it does not let them through",
+      "They have to. Request an invite from me"
+    ]
+  },
+  "1f008c241aff": {
+    "change": "New topic and event descriptions: pasted words keep their links, as Markdown (the owner, 2026-11-23)",
+    "prompts": ["I assume pasted links carry over in all rich text boxes?"]
+  },
+  "1f27ef5426d2": {
+    "change": "Greet a sheet's people by first name, and show their full name in the table",
+    "prompts": ["I think keeping the first name is better."]
+  },
+  "1feed576fcb3": {
+    "change": "A post is not shared elsewhere: a member shares it inside the club, an administrator also copies its link for a private message",
+    "prompts": [
+      "We should get rid of the share elsewhere. These questions are not meant to be shared, only admins can share them and only in private discussions, not on any platforms"
+    ]
+  },
+  "201abbcb16d3": {
+    "change": "Home Screen app: with the keyboard up the page is exactly what shows above it, and a member dragging the page is no longer snapped back under the keyboard (the owner, 2026-11-23)",
+    "prompts": [
+      "It was the safari webpage saved on my homescreen\nIt is a bigger issue if I reply to the last reply in a post.  I cannot even scroll it to the point where the text box is above the keyboard. There seems to be some auto scroll action keeping it below the keyboard"
+    ]
+  },
+  "20c5e50c2208": {
+    "change": "Change log: On tests has a summary, who pushed each change and when, and a Ready for main tick; what is waiting is told by the lines main lacks; By surface has Other (the owner, 2026-11-25)",
+    "prompts": [
+      "Maybe have an other category as well. Also, can you have a summary section on top of \"On tests\", add a date pushed, so pushed by Wojtek at 8:55am on Nov 17th, also add a column for ready for push to main"
+    ]
+  },
+  "2135d3835415": {
+    "change": "The shared-question organization migration takes 20261119170000: 20261119160000 is the Home feed's",
+    "prompts": [
+      "So just to be clear. Any link an admin creates with an expiration date can be used to enter the club with any e-mail address. If it is from a question or from a QR code? Even if the link is not associated with an organization? Also, when admin's of only one org paste a question link, those links should be associated with that org."
+    ]
+  },
+  "2152aca51b8d": {
+    "change": "A phone somebody has signed in on before opens on Welcome back, not Welcome, unless an event was just registered for: the device notes any session, a browser's code too, and keeps it through signing out",
+    "prompts": [
+      "Did we move the password entry to the next screen?",
+      "What triggers the welcome back screen btw?",
+      "Yes, start on Welcome back if they signed in before"
+    ]
+  },
+  "21d7f3a79554": {
+    "change": "Wheelie points: members earn them for taking part, and a wheel beside each name shows the level",
+    "prompts": [
+      "Can you implement the wheelie points that we designed in the 2-pager in the subsection"
+    ]
+  },
+  "22a5c3a4138e": {
+    "change": "Post on Home: Post reads in dark mode, paper on gold as the composer's chosen buttons, not white",
+    "prompts": ["It should default to posting in the events room"]
+  },
+  "22b40ba22bda": {
+    "change": "Debug mode's switch is in Me's Settings, under For administrators, not among Club tools (the owner, 2026-11-18)",
+    "prompts": [
+      "So the debug data will be spit out on every screen>",
+      "Alfred wil get this too?",
+      "Can you move debug mode into settings tab"
+    ]
+  },
+  "22cfd81c1e3c": {
+    "change": "How the invites did: administrators see, for each event's invites and each day's from one sender, how many were sent, opened, viewed, going and joined, and each person's steps",
+    "prompts": [
+      "Can we also create a page for the admin showing who opened the e-mail, who clicked viewed the event page,  who RSVP, who also joined the club?"
+    ]
+  },
+  "233cfe33c87e": {
+    "change": "About us: a wrapped line no longer starts on a dot",
+    "prompts": ["fix the dangling dot when age and city wrap"]
+  },
+  "248518c68c69": {
+    "change": "A change to an invitation already on the calendar is just applied, and \"this and following events\" carries the same series on",
+    "prompts": [
+      "It seems that updates to invites in Google calendar are not propagating through to the events. It is also not clear that a repeating event in google calendar is repeating on the event in the club. When I update an event in google calendar an update email should be sent to [the club's address for invitations]",
+      "This is the event I changed  and what is in the club.\n[2 pictures attached]",
+      "Yes, read them",
+      "ok I actually see some updates. This is an event that I already mapped to thesciclub. It should not be gated on my approval. If it is an update, just update",
+      "Also, could you look at the people that are on the invite and add them in the club as RSVPd if they are in there",
+      "Can you also see if meetings have attached meeting notes and add a link on the event page to the notes?"
+    ]
+  },
+  "24aecbea9106": {
+    "change": "Android shows Apple and Google together, as an iPhone does",
+    "prompts": ["Show Apple and Google together on Android too", "can you show me screenshots"]
+  },
+  "257ec4f9d090": {
+    "change": "An event's emailed invites, and how far each got, are on its guest list for its organizers; the administrator's view keeps the club's own invites",
+    "prompts": [
+      "I meant to put the invite list on the event itself for the event based invites. We can incorporate status and what happened in the guestlist?"
+    ]
+  },
+  "25907d926b7c": {
+    "change": "The invite email after its review: tables and a filled-cell button so Outlook and Gmail keep the layout, sized for a phone, nothing under 18px, and 'as part of Able Bodied' said once",
+    "prompts": [
+      "Can you send invites to all the able bodied board members?\n[1 picture attached]",
+      "Invites to the club as members of Able Bodied",
+      "Can you code up something that allows for sending invites based on a spreadsheet of email addresses. Make a nice invite email from the admin who is requesting to invite based on a Google sheet.."
+    ]
+  },
+  "25988d21de71": {
+    "change": "The member's journey is their history too: My posts and Saved links off it, How Wheelie points work and the leaderboard under the table; the My posts page goes (the owner, 2026-11-21)",
+    "prompts": [
+      "There is no button to save posts. Why do we have that in there? People can just upvote or search. I would get rid of saved posts. My posts is redundant as you can see that below so also get rid of that. Move the how wheelie points work to under the table same with the leaderboard for admins.  At the end of of \"Members earn Wheelie points for taking part in the club. Tap a row to see where yours came from.\" Say this is also a good place to see your posts as well events you attended. Or something referring to using this page to review your history."
+    ]
+  },
+  "2646ed7d8b82": {
+    "change": "The vote pill is one size everywhere, each arrow a 34px target; the reader's vote colours its arrow and the score; a score below zero has a minus sign; the boost is easier to read (screenshot review, 2026-11-18)",
+    "prompts": [
+      "Can we also factor in if the user has seen the question? So promote content they have not seen before?"
+    ]
+  },
+  "26e04ed3495c": {
+    "change": "Peers' Sort by is a dropdown in Filter (the owner, 2026-11-16)",
+    "prompts": ["Instead of buttons, can we make it a dropdown list"]
+  },
+  "2909fdd059ff": {
+    "change": "The organization chooser is a plain choice, not a warning: a neutral panel that scrolls into view, a filled confirm, the town beside each result",
+    "prompts": [
+      "The admin panel you can mark somebody as professional, instead of that we should be marking them as staff get rid of professional throughout the app replace it with staff. Also, both mentorship and staff should have an associated organization so if we are marking somebody as either staff or mentor in the admin panel, we should have selection for which organization maybe through a pop-up or something."
+    ]
+  },
+  "2930eaf3689a": {
+    "change": "Wheelie points: just a member's journey in the club, on Me and their profile",
+    "prompts": [
+      "Where is the leader board",
+      "I think the wheelies are bit loud and everywhere right now. How about we just keep it on the profile page for now and in the Me tab. Maybe right below the Complete your profile card. Just the wheel with points next to it. Call it your journey in the club. They tap on it, and it describes what they get wheelie point from and they can see their history. So for the wheelie points from questions if tapped on will reveal all the questions. Events will show all the events and so on",
+      "I think we can get rid of the your details card. All that is already in your profile"
+    ]
+  },
+  "2b0058e64c44": {
+    "change": "Bands: light green, green-orange, near orange, then orange to red at 10–20 years (the owner, 2026-11-18)",
+    "prompts": [
+      "Can we actually make newly injured light green, 6-12 months greenish orange, 1-2 years almost orange, then range from orange to red to 10-20 years being red"
+    ]
+  },
+  "2b63c28c5bef": {
+    "change": "Checked in, a member is asked to take a picture and share it in the event's group chat, as it really helps the organization sponsoring the event, named: the front camera opens, and the picture waits in the chat's box with a first line for them to send",
+    "prompts": [
+      "When a user checks into and event can we prompt them to take a picture and send it to the group chat? Maybe open the camera in selfie mode?",
+      "Maybe say take a picture and share it. Also say this really helps the organization that is sponsoring the event. Insert the Primary host name."
+    ]
+  },
+  "2b83f4c16280": {
+    "change": "A vote counts twice as much in the order: 4 hours each, at most 48",
+    "prompts": [
+      "I think we should increase the impact of upvotes on ranking, can we double the impact?"
+    ]
+  },
+  "2cd3d51ef2fb": {
+    "change": "Admin → Members says whether each member has the iPhone app, and when it was last opened",
+    "prompts": ["Can we add if the user has iOS installed in admin/members"]
+  },
+  "2db09926a520": {
+    "change": "The change log's Ready for main ticks are kept in the database, for administrators only (the owner, 2026-11-25)",
+    "prompts": [
+      "Maybe have an other category as well. Also, can you have a summary section on top of \"On tests\", add a date pushed, so pushed by Wojtek at 8:55am on Nov 17th, also add a column for ready for push to main"
+    ]
+  },
+  "2e4fd76ced9a": {
+    "change": "An answered invite request clears its notifications for every org admin, so none leads to a request already taken (the owner, 2026-11-16)",
+    "prompts": [
+      "How about we instead just clear notifications for requested invites that have already been addressed?"
+    ]
+  },
+  "2e93840af957": {
+    "change": "A room's Top counts in days, as the club moves: a point of score is a day newer, an administrator's +10 ten days, a topic not yet opened a week (the test site, 2026-11-18)",
+    "prompts": [
+      "Can we also factor in if the user has seen the question? So promote content they have not seen before?"
+    ]
+  },
+  "2edb8ebbf500": {
+    "change": "Home keeps its cards while it reads the same choice again, and debug mode says when the posts' text was on screen, what that time was made of, and what was loading and what came later (the owner, 2026-11-18)",
+    "prompts": [
+      "Can we default to the app loading the cached script then and load the new script in the background?",
+      "Here is the output from loading home \n\n[pasted text, 3,662 characters, not kept]",
+      "Can you let me know in the debug data when the user sees the text of the posts?",
+      "It felt like over a second",
+      "yeah I want to see how long it takes for the posts to render and what are the constituant parts.",
+      "So we do not render posts on the home screen until chat_topics comes back?"
+    ]
+  },
+  "304a508e79ff": {
+    "change": "The guest list has check-in boxes once the event has started, with no end; organizers add guests by hand and remove them at any time",
+    "prompts": [
+      "Let's let admins specify who was at an event without a time limit. They should be able to open the event in the app and have checkin boxes next to the guests that said they were going. Maybe when they look at the guest list as some may be non-members. They should be able to manage the guest list as well. You should be able to check people in after an event starts. You should be able to delete or remove guests at any time."
+    ]
+  },
+  "308dcee107ec": {
+    "change": "Check-in stays open a day after the event; once it has closed, a member who missed it can message the organizer or an admin",
+    "prompts": [
+      "can we keep the checkin window for up to 24 hours after an event closes. If it is closed add an option to message an admin about it."
+    ]
+  },
+  "31f24fe1b3d2": {
+    "change": "Sign-in leads with Google or Apple, and a refused account has a way in",
+    "prompts": [
+      "what is the  passkey sign-in bug",
+      "yes let's fix it",
+      "Maybe we should hide the e-mail / password login method. If a user uses Google or Apple then they do not need a passkey right? Could we hide the password option behind use a different login method? If we pass cookies from chrome/safari to the homescreen bookmark, the login should be consistent across both?",
+      "If a user get's invited using one e-mail, but the apple passkey creates a new one, will they still get in?",
+      "Yes that works build it. I might even argue if the e-mail is on the list they should be let in.",
+      "I think we should have a text box for the user to enter the other e-mail/ Let's get rid of the sign out button and replace it with \"request an invite\" we can get rid of all the different options for now, just have the request sent to me for now.",
+      "Is the name pulled through from the rsvp form?"
+    ]
+  },
+  "31f5872e3da8": {
+    "change": "A shared question's link previews with the question as its title; other post links show nothing of the post",
+    "prompts": [
+      "Can we also be thoughtful about what image the website brings up in chat for the copied link? Would be nice to have the question or the first bit of it in the preview text",
+      "I think the sci club is fine. Just the title of the page could be the questiojn"
+    ]
+  },
+  "34d97ad45a52": {
+    "change": "Home reads its posts in one request: home_feed answers with the order and everything a card is drawn from, read as the member, where the posts were asked for only once the ranking had answered; a database without it is read in two as before (the owner, 2026-11-18)",
+    "prompts": [
+      "I would do all three. In fact, let's skip loading events and peers for now in the home feed. Just do posts. We can add those back in later and people can find them in the peers and events tabs."
+    ]
+  },
+  "358639221c2a": {
+    "change": "A shared event says when it is and has RSVP in the chat; a topic link says what it is",
+    "prompts": [
+      "When you share an event in the club, can we make it clear when it is and maybe add an RSVP button in the chat itself?",
+      "Also, now we have an iOS app which may not be updated. When we ship updates from now on we should make them in a way that does not break the iOS app. Specifically database changes..",
+      "Can you show me some screenshots?"
+    ]
+  },
+  "3730411728fd": {
+    "change": "The ask box has an X to close it without posting, its words thrown away",
+    "prompts": [
+      "Can we keep the disappearing footer only on the home feed? I don't think it adds much on the events feed and it gets confusing with it gone in weird places.",
+      "Can you also add a way to x out of the ask a question box if you don't want to ask anything. Maybe an x in the upper right.."
+    ]
+  },
+  "373799dd4d41": {
+    "change": "The version line in Me → Settings says what the club is running in: iPhone app, Home Screen app, or which browser",
+    "prompts": [
+      "Can you add to the version line what platform we are on as another background change"
+    ]
+  },
+  "375ffca7269c": {
+    "change": "In the iPhone app, Welcome back has Continue sign in using your browser (no password): the browser's sign-in, or one made there with autofill, is confirmed on /app-sign-in and collected by the app with the secret it kept, as the Home Screen app's Google sign-in is",
+    "prompts": [
+      "I meant to say signing in is better in a browser",
+      "Could we add an option in the app to open the browser and pass the cookie back? So on the password screen, tell them open your browser to connect to your account faster or something?",
+      "Instead of Continue in your browser say Continue sign in using your browser (no password)"
+    ]
+  },
+  "3848412af79d": {
+    "change": "Organizations have a type, and the map colours them by it",
+    "prompts": [
+      "We need to come up with a better categorization of organizations and maybe instead of having logos, which are hard to make out, use color coded pins. Can you come up with some categories, such as outdoor sports, team sports, hospitals, gyms etc. Maybe 7 or so? Maybe we could have them as selectors under layers as an expansion link called types. Someone taps on types and it shows the different colors for the different types of orgs",
+      "Couple more nits. When you expand the filter on desktop there is no x to make it go away and the dragging of the bar does not work on mobile.",
+      "Let's make Veteran Affairs an eighth pin. I like the rest of your choices other than the use of the blue color, which is reserved for events. The outline of events should also be a different color to help distinguish them. Also by default when toggling between events and orgs in map mode, swtich between them, when I toggled to org, it became orgs + events. let that option be set in layers..",
+      "Can we change the way imesseges picks up  events links when I text folks? It should say the name of the event and ideally have the main image pop up with a date a time below the title",
+      "Also what makes more sense on the map should it say layers or types? and maybe under org the link should be sub-types? Also should we have a different color for peer mentors?"
+    ]
+  },
+  "396ab50f7f16": {
+    "change": "The SCI Club is a private community where we help each other navigate life with a spinal cord injury, on a post's page before Join and its preview",
+    "prompts": [
+      "What if the user is signed in?",
+      "Can we say the SCI club is a private community where we help each other navigate life with a spinal cord injury?"
+    ]
+  },
+  "39a30e890d63": {
+    "change": "Peers' Include filter has SCI peers in place of Mentors and Non-mentors: unticking it no longer leaves out staff and family & friends too (the owner, 2026-11-18)",
+    "prompts": [
+      "There is also a bug in the peer filter. Deselecting non-mentor wilters out all the non SCI people. Can we replace non-mentors with SCI peers and get rid of mentors? We can already view mentors in the mentors tab"
+    ]
+  },
+  "3a78798336ab": {
+    "change": "Onboarding: the staff box is headed like the step's others, three lines tall, with a shorter hint and a general example (screenshot review)",
+    "prompts": [
+      "If someone selects staff member in onboarding, can you open up a text box, explain what you do and where you work (or wordsmith it)"
+    ]
+  },
+  "3da61de01407": {
+    "change": "Family / friend of someone with SCI and Staff, in place of Relative/Spouse and Professional: the wording only; the stored values stay family and professional, which the iPhone app already on phones sends",
+    "prompts": [
+      "Can we add friend to the family/spouse category? Maybe instead of relative/spouse say family / friend of someone with SCI? Also instead of professional let's change it to staff",
+      "I want the about page to look just like the peers tab. I also want it to be possible to tap on the people and be able to see their profile."
+    ]
+  },
+  "3e053bee3b42": {
+    "change": "An event invite email is the event as its page shows it, with Going, Maybe and Can't go: one tap opens the page with the answer saved; a member invited by name to an invite-only event is emailed it too, once",
+    "prompts": [
+      "Can we add an RSVP button in the e-mails sent to the users? Also maybe send a nice e-mail that looks like you are on the invite page for the event (as it would look on a public page)? That way the user does not have to exit their e-mail client to RSVP. This should be for all invites sent through e-mail, including a notification e-mail that you were invited. An explicit invite should trigger an invite email I think."
+    ]
+  },
+  "3ecdfd8a8122": {
+    "change": "Home is posts alone: no event or peer cards and none of their reads, no Events or People under Type and no Distance in its filter; search reads events, members and organizations itself once opened (the owner, 2026-11-18: \"let's skip loading events and peers for now in the home feed. Just do posts.\")",
+    "prompts": [
+      "I would do all three. In fact, let's skip loading events and peers for now in the home feed. Just do posts. We can add those back in later and people can find them in the peers and events tabs."
+    ]
+  },
+  "402e46538bae": {
+    "change": "Each Marketplace room keeps its own listing draft: List something in Giving away opens there, on a half-listed item of its own or a clean form, not on a post half written for General (the owner, 2026-11-21)",
+    "prompts": [
+      "When I have a partially written post I abandoned and go to post something in giving away it defaults to the general tab with my half written post. If someone clicks post to sell it should be in the giving away tab and should start over unless I had a half listed item already"
+    ]
+  },
+  "406202be87f2": {
+    "change": "Photographs while writing: a row ends where the words do; the +N tile dimmed less",
+    "prompts": [
+      "What is the side by side qustion?",
+      "Can you show me screenshots?",
+      "yes build it on tests"
+    ]
+  },
+  "409f3910e0aa": {
+    "change": "Three dots show who is typing in a conversation, as in Messages and WhatsApp: a private channel per conversation that only its members can join, nothing stored (the owner, 2026-11-18)",
+    "prompts": [
+      "Can we add a feature with the three dots indicating someone is typing. A common feature on the messages app on iOS and WhatsApp"
+    ]
+  },
+  "4141a90261f9": {
+    "change": "A boost counts as a new reply would: the post goes where one just replied to goes",
+    "prompts": ["Can you just make the admin boost be the equivalent of adding a comment to it?"]
+  },
+  "41978813eb49": {
+    "change": "Invites: show link clicked, started joining and joined apart",
+    "prompts": [
+      "Is there a way to invite a group of people from a spreadsheet?",
+      "Why not put this under invites?",
+      "Also, can we show if someone clicked on the link, but did not join? Maybe clicked on link, vs started onboarding, vs joined?"
+    ]
+  },
+  "42efb647fccc": {
+    "change": "Answer question is the home card's gold Answer button",
+    "prompts": ["Can you highlight the answer button. Similar to how it appears on the home card"]
+  },
+  "43076af5c9a4": {
+    "change": "An invitation's guests who are members are RSVPd, and its attached notes are linked from the event's page",
+    "prompts": [
+      "It seems that updates to invites in Google calendar are not propagating through to the events. It is also not clear that a repeating event in google calendar is repeating on the event in the club. When I update an event in google calendar an update email should be sent to [the club's address for invitations]",
+      "This is the event I changed  and what is in the club.\n[2 pictures attached]",
+      "Yes, read them",
+      "ok I actually see some updates. This is an event that I already mapped to thesciclub. It should not be gated on my approval. If it is an update, just update",
+      "Also, could you look at the people that are on the invite and add them in the club as RSVPd if they are in there",
+      "Can you also see if meetings have attached meeting notes and add a link on the event page to the notes?"
+    ]
+  },
+  "439872e04c70": {
+    "change": "A card's summary stands apart from its time and place",
+    "prompts": [
+      "Can we somehow distinguish the description from the remaining text? Maybe with a slightly more white color or something? It blends into the time and address a bit much",
+      "as you figure this out can you push the font change for the description on the event cards"
+    ]
+  },
+  "43f1d686e06d": {
+    "change": "Post an event on Home, with RSVP there: whoever can change an event open to the whole club posts it from its page, with a few words, in General or a room they pick; Home draws a post that links an event as the event's card, RSVP and all, as Chat does; the RSVP sheet opens in the app's frame, not inside the card (the owner, 2026-11-25)",
+    "prompts": [
+      "Can you create an option for an organizer to post an event to the Home Depot in such a way that people can RSVP from the home feed"
+    ]
+  },
+  "45dcd2209443": {
+    "change": "Every event has Going, even one whose host does not collect RSVPs",
+    "prompts": [
+      "Why does this event only have an interested option? [a link to an event]",
+      "I think there is a lot of events that don’t require RSVP. If the event does not have a registration link, then have a going button. We can notify the user that this does not notify that organization of an RSVP so they may need to follow up independently, but it lets other people in the club note that you’re going."
+    ]
+  },
+  "46e06893f605": {
+    "change": "The Wheelie wheel's push rim sits closer to the tyre (the owner, 2026-11-21)",
+    "prompts": ["Can you reduce the gap between the inner and outer ring?"]
+  },
+  "47f65b8c2210": {
+    "change": "The counts in an administrator's view of a member are in the page's own figures, not fixed-width ones (screenshot check, 2026-11-18)",
+    "prompts": [
+      "Can you also add a few more stats. How many posts they viewed. Hopw many questions asked and answered. Number of messages sent. How many events viewed. How many events RSVPd. How many reviews submitted."
+    ]
+  },
+  "4855b9ce6612": {
+    "change": "Peers has no Near me pill",
+    "prompts": [
+      "remove the near me pill",
+      "Can you add the sonoma location of Able Bodied. We offer handcycling lessons from there. Just put it at sonoma CA. It has a registration link you can find at www.ablebodied.org. When the user registers they get an e-mail with the locaiton..",
+      "It is in Sebastopol",
+      "Can you also update what image is pulled up when we point users to the org map in messages. If you need a static image, you can include this one, Call the title Map of SCI organizations on The SCI Club or something\n[1 picture attached]"
+    ]
+  },
+  "4aae27536ee1": {
+    "change": "Create email goes once a member's profile is complete",
+    "prompts": [
+      "If we sent the e-mail through the app, would it be possible to track it? See if they opened it and clicked on any of the links?",
+      "If a user has completed their profile, then remove that button."
+    ]
+  },
+  "4b1de93c323c": {
+    "change": "The Wheelie wheel's tyre and push rim are thinner (the owner, 2026-11-21)",
+    "prompts": ["Can you make the thickness of the wheel and push rim less"]
+  },
+  "4d04a795e924": {
+    "change": "Onboarding asks which describes you before the injury date",
+    "prompts": [
+      "And on boarding, can we move the disability selector above the injury date if it’s a relative or family member there’s no dates so let’s start have people start with that"
+    ]
+  },
+  "4d0d2b762284": {
+    "change": "An administrator can turn on debug mode in Me: each screen's requests, how long each took and which waited for which (the owner, 2026-11-18)",
+    "prompts": [
+      "Can I have a debug mode if I am admin? Giver me a toggle in the me tab. I want to see the time it takes for the different RPCs to happen. I want to understand why it takes as long to load the home feed."
+    ]
+  },
+  "4db0c84ba6b7": {
+    "change": "An event shared in a message has no picture, and its words are cut at 140 characters (the owner, 2026-11-18)",
+    "prompts": [
+      "If we are sharing events in the chat feed there is no space for a picture and a description. Drop the picture and just have the description. Cap it at a certain amount of characters so it is contained.\n[1 picture attached]"
+    ]
+  },
+  "4ddc67546210": {
+    "change": "Show only each person's name and email in the invite table",
+    "prompts": [
+      "What is the role column? It is either peer mentor or not check box.",
+      "I don't expect a role column. Just parse out the name. There could be a name column or a \"First Name\" and \"Last Name\" column"
+    ]
+  },
+  "4de16861d8c3": {
+    "change": "Invite a guest from the guest list, and their link starts from what they typed",
+    "prompts": [
+      "When non members rsvp through the  xternal page provide a button for the admin in the full guest list to send a special invite  that uses their email address and encodes the info they already submitted like name and phone number so when they click the link the info is already filled out in onboarding."
+    ]
+  },
+  "4f41b8350ee1": {
+    "change": "About us blurs last names; the first name alone is sent, with no username",
+    "prompts": ["Can you blur out the last names at the about page?"]
+  },
+  "509bb0f77a14": {
+    "change": "Classifieds after a screenshot review: photographs above the room, listing wording, the ZIP box marked optional and before the description, the safety line always shown, Make an offer on unpriced For sale tiles, and tiles in a row the same height",
+    "prompts": [
+      "Push to main\nCan we add a rule that you will check screenshots against an Op. 5.2 model maybe as a sub agent?\nI meant fable 5.2"
+    ]
+  },
+  "5151331e4e84": {
+    "change": "Ten bands of how long ago, green to red at ten years to dark purple",
+    "prompts": [
+      "Can we modify the pill color corresponding to the injury age? Can we start from green and go to red. Also have more bands. <6 months, 6-12 month, 1-2 years, 2-5 years, 5-10 years and then in 10 year increments?",
+      "show me screenshots of the full range. gren most junior to red most senior. Maybe actually make red the color for 10 years post and then progress to a dark purple"
+    ]
+  },
+  "53b703d1e055": {
+    "change": "Join form for an invite: says who it is from (Alfred invited you.), and puts the cursor in Password, not on the filled-in address the first key would wipe",
+    "prompts": [
+      "Let's just go back to \"Wojtek invited you to join The SCI Club\" The first line of the e-mail is too long. Also, can we have them land on our welcome screen with the text changed from \"No invite yet? [Request an invite](https://thesciclub.com/request-invite)\" to You have an invite Wojtek (assuming Wojtek is the given name)",
+      "Let's also remove the password confirmation box. Having them type it in once is good enough"
+    ]
+  },
+  "53cf39d937f9": {
+    "change": "A Classifieds form says New listing, has no question switch, and leaves the price to its own box",
+    "prompts": ["Send me some screenshots"]
+  },
+  "53f1ac50bb57": {
+    "change": "Copy link sits at the bottom of the share sheet, below Send",
+    "prompts": ["The copy link button should also be on the bottom"]
+  },
+  "53f2b3180788": {
+    "change": "Seeing an Important message, or opening its notification, acknowledges it: reading a group through it, as every copy of the app does, and marking its bell notification read; so the iPhone app already on phones, with no Acknowledge button, takes part",
+    "prompts": [
+      "Btw, if a user sees a high importance message that is the same as acknowledging it?",
+      "Yes seeing counts or clicking on the notification"
+    ]
+  },
+  "54eb8ee7e139": {
+    "change": "Peers starts from the reader's own kind even when their row is already loaded",
+    "prompts": [
+      "If someone is a friend or family, do not filter friends and family by default, same for staff."
+    ]
+  },
+  "55131bca95c3": {
+    "change": "Every strike names its rule and can be answered; a flag can be withdrawn",
+    "prompts": [
+      "Can there be a dialogue between the anonymous poster and the admin who flagged the post there should be an opportunity for them to respond.\nHow explicit are we in strikeable offenses? Can you show me the clear rules of what strikes are? I think things that we need to keep an eye on or harassment, information presented as medical facts, selling of online products, spamming, etc..",
+      "I don't think repeating outside a room should be an instant strike. I post screen shots of questions to get people to answer."
+    ]
+  },
+  "55cb59f6f0e0": {
+    "change": "Change log: By surface is by quarter, each surface opening on its weeks, and the log reaches back 26 weeks with a summary for every week (the owner, 2026-11-25)",
+    "prompts": [
+      "I think we can just push to admin then. I assume we will have screenshots in the first two tabs?",
+      "Can we make the by surface view have a timeline by week within each expansion? Instead of grouped by week each time. So flip the dates inside each expandable tab. Maybe do dates on the outside by quarter instead of by week."
+    ]
+  },
+  "565114ca1984": {
+    "change": "The tab bar steps aside on a scroll, and an organization shows five events",
+    "prompts": [
+      "Ok I see it. They look good. Let’s collapse the events list after five events and have an 27 more link to expand all. It is a lot of scrolling to get past events on the org page",
+      "Can we have the navigation bar disappear slowly down as you scroll the page down. If you scroll back up the. It reappears. Might add more pixels for content"
+    ]
+  },
+  "5727f12f9847": {
+    "change": "Every member can add an event, hosted in their own name, and change or delete the ones they added; an organization's events stay its organizers' (the owner, 2026-11-23)",
+    "prompts": ["Let's allow all users to create events."]
+  },
+  "57788f852b83": {
+    "change": "Photographs side by side while writing, and a run of them in a post is one grid of four tiles with +N (the owner, 2026-11-23)",
+    "prompts": [
+      "What is the side by side qustion?",
+      "Can you show me screenshots?",
+      "yes build it on tests"
+    ]
+  },
+  "57ffa52e1c91": {
+    "change": "Can't go in the club is an answer to a calendar invitation: no chat invite, and a change to the invitation does not make the guest Going again (the owner, 2026-11-17)",
+    "prompts": ["Yes, fix it"]
+  },
+  "58c4e14f469b": {
+    "change": "A clearer note when making someone staff",
+    "prompts": [
+      "The admin panel you can mark somebody as professional, instead of that we should be marking them as staff get rid of professional throughout the app replace it with staff. Also, both mentorship and staff should have an associated organization so if we are marking somebody as either staff or mentor in the admin panel, we should have selection for which organization maybe through a pop-up or something."
+    ]
+  },
+  "5b324fd963c3": {
+    "change": "A single invite can carry a message, quoted in its email, on Admin → Invites and the Invites page; the Note stays on the list only (the owner, 2026-11-17)",
+    "prompts": [
+      "Can we add an optional note field in the invite section. So if I want to add a note to the invite e-mail it can be added in."
+    ]
+  },
+  "5bc0a1501cc7": {
+    "change": "New events show, and an installed app cannot stay behind",
+    "prompts": [
+      "That works. Let’s try to increase the vertical space a little. Instead of the event/org pills let’s make a toggle up top where it says events. Can we put the list map toggle on the upper right next to it? On the second row add a mini search box that expands when clicked on and filters in real time, to the right should be the filter circle, and instead of a big add event pull make it a + sign in a circle. If someone hits the + there should be a toggle up top between adding an event or an organization",
+      "We should have an add org option for all users. Could be a different form for admins and regular users. Although might be best to keep it the same and just ask for admin approval if need be with a notification sent to the club admins",
+      "The map toggle should use the location icon from Google Maps. The filter looks very similar to list view, can you move it so it is close to the search box.",
+      "Could we force refresh the list after an event is added?",
+      "Let’s move the plus next to search as well. I don’t want people mid taping on it. Actually might it make more sense as a floating + on the bottom right of the list or map? Is tgat a common practice",
+      "Maybe we can skip the add button in map mode",
+      "My app on my homescreen does not refresh it seems. It doesn’t even have the summarize descriptions of the events, even though I close it and reopen it. Is there a way to push a force refresh to all users?",
+      "No I was using the homescreen version of the website",
+      "let's push the non-logging changes now. Is there something I need to do?",
+      "Ok so can I see the v ersion line in the me tab or something?"
+    ]
+  },
+  "5c173ff3ba1a": {
+    "change": "The ask box stays open when Anonymous or ? is tapped; their explanations are marked in yellow",
+    "prompts": [
+      "Tapping the anonymous or ? When asking a question closes the box if there is no content in the box this is a bug. Additionally, when I have, it is not super clear what part is for the question and what part is for anonymous. Can we highlight anonymous and question in yellow?\n[1 picture attached]"
+    ]
+  },
+  "5d907397d5e9": {
+    "change": "An event can have a short link, and a QR code of it",
+    "prompts": [
+      "Can we add custom short links to events. For example www.theSCIClub.com/e/[an event]",
+      "If we create a custom link give an option to make it into a QR code"
+    ]
+  },
+  "5eeef7fdc8c8": {
+    "change": "Ten interests, a profile card on Home, and admins invite for any organization",
+    "prompts": [
+      "Yeah allow them to choose more than three interests",
+      "Additionally, can we put in an unfinished profile completion question at say the sixth position on the home screen? Prioritized by Add a picture, select interests, and then remaining profile completion questions, but more sparingly.",
+      "As an app admin, can you allow me to create invite links for any of the organizations",
+      "A link or qr code for someone who's e-mail address I do not have",
+      "but know they are part of an org",
+      "Also, when a user selects me asking for an invite, give me an option to select from all the orgs I am a member of.",
+      "This is just for the sci club adins"
+    ]
+  },
+  "61742e263a1f": {
+    "change": "Peers says its order beside the count, the sheet is Filter and sort, and Name says A–Z",
+    "prompts": ["Can we hide the sort by inside filter"]
+  },
+  "62cc7f3e667f": {
+    "change": "OOG is magenta again (the owner, 2026-11-17: the previous colours were better)",
+    "prompts": ["Actually can we revert to the previous color scheme? I think it was better."]
+  },
+  "63a80bf18cd2": {
+    "change": "A link to the organizations' map has its own picture in a text",
+    "prompts": [
+      "remove the near me pill",
+      "Can you add the sonoma location of Able Bodied. We offer handcycling lessons from there. Just put it at sonoma CA. It has a registration link you can find at www.ablebodied.org. When the user registers they get an e-mail with the locaiton..",
+      "It is in Sebastopol",
+      "Can you also update what image is pulled up when we point users to the org map in messages. If you need a static image, you can include this one, Call the title Map of SCI organizations on The SCI Club or something\n[1 picture attached]"
+    ]
+  },
+  "640bbcc10a0e": {
+    "change": "Photographs in the reply box are small while writing; a clearer +N",
+    "prompts": ["If I am in the events tab and hit the + it is for adding an organization"]
+  },
+  "6491e5f6ecd3": {
+    "change": "Organizations choose to collect RSVPs; event chats gather who is coming",
+    "prompts": [
+      "Actually, can we use rsvp for events either created in the app or with an invite link sent to the special address? The important events more likely than not have separate registration forms. Maybe on those we say going?",
+      "Maybe we should let org admins decide if to collect rsvps and if that is not set or the prior two conditions I mentioned just get rid of the second button",
+      "Why is the group chat only people that clicked join the group chat. The group chat should be for all going and interested people as well as those that joined by clicking the button",
+      "We don’t actually have to create the chatroom u tip someone taps the open group chat button and says something"
+    ]
+  },
+  "64f92094af9d": {
+    "change": "OOG is gold (the owner, 2026-11-17)",
+    "prompts": ["Can we make OOG gold"]
+  },
+  "65d7495601f1": {
+    "change": "Bands: <6 mo. and 6–12 mo. (the owner, 2026-11-18)",
+    "prompts": ["Instead of spelling out under say <6 mo. and also Injured 6-12 mo."]
+  },
+  "6635a6871d19": {
+    "change": "A calendar invitation tells whoever sent it",
+    "prompts": [
+      "So the white actually looks too similar to the city names, could we do something a little more yellow? For events could we swap the circles to pins more similar to google maps",
+      "I only see the original event, which I created inside the app",
+      "I don't see any notifications to approve it",
+      "Seems links do not pass through the invites, only the text",
+      "Can you send notifications to the account of the organizer if an event is added, also if an event needs approval or org selection. Additionally, e-mail the event organizer the status of them adding the event as well as an approval link if necessary"
+    ]
+  },
+  "6858eac44585": {
+    "change": "A search for an organization that finds none points to the box for ones not in the list",
+    "prompts": [
+      "can you just show me a screenshot?",
+      "We still need an open ended text box for orgs we do not have in our list"
+    ]
+  },
+  "68e44a21b054": {
+    "change": "Group the interests, and keep the tab bar in the profile flow",
+    "prompts": [
+      "Can we modify the interests question in the profile completion flow? Can we categorize the interests under indoor sports (basketball, swimming, fitness/gym, other team sports), outdoor activities (handcycling, skiing, surfing, hiking), Other (traveling, gardening, cooking etc). Try to make some intelligent guesses. I am hoping to use this as signal for helping rank peers as well as orgs of interest",
+      "Also it seems there is no easy way to get out of the profile completion flow once you are in it on mobile. Can we keep the navigation bar while in it or some way to get back",
+      "Had to click through 8 screens to get back to app",
+      "ok I guess that makes sense. Maybe have it say finish? That may be more clear",
+      "ok push it when done. We need to update the layers on the org map. If there are too many org types the window exceeds the screen so we will need to add a potential scroller when expanded. Also we need and uncheck all option, otherwise you need to uncheck all but one if you just want to see one type. We should add the org type into filters as well. We should also have a filter for sports."
+    ]
+  },
+  "691a3a81f288": {
+    "change": "A member who came by a QR code or invite link: their page and Admin › Stats say who made it, when, and how (as a QR code, an invite link, both, or by sharing a post) (the owner, 2026-11-25)",
+    "prompts": [
+      "Can we keep track of who created a QR code. So when we see a user is from a QR code, it should specify who and when the code was generated and how",
+      "Same with invite link"
+    ]
+  },
+  "691fca7c9989": {
+    "change": "A card shows an event's summary, not its first lines",
+    "prompts": [
+      "The event details on the list view do not look good. A lot of event details have very random text. Can you create a detail summary column in the DB and summarize the details and title  in a couple sentences. Focusing what the event is about and ignoring links etc. Then use that column in list view",
+      "What triggers change notifications?",
+      "I don't want to use the anthropic API. Can you just populate the details column yourself now. If the column is empty do not show anything. This is just to see how it would look"
+    ]
+  },
+  "69258f66500f": {
+    "change": "Home Screen app: keep the page under the clock while typing; easier ✕ on the reply box",
+    "prompts": [
+      "When you have an expanding reply box there is no easy way to x it out. Additionally it pushes content above the clock n iPhone and it alone with the back link stays up there.\n[1 picture attached]"
+    ]
+  },
+  "692945a01be3": {
+    "change": "A short link's box starts empty, and its QR code wears the club's colours",
+    "prompts": [
+      "When I clicked into the QR link window it tried to append. I could not delete the text in grey",
+      "Can you also make the QR code a little nicer? Add a little The SCI logo around it or something?"
+    ]
+  },
+  "69544b3aaaa4": {
+    "change": "The mentor email in the owner's latest words, in two paragraphs, subject I need your help (the owner, 2026-11-21)",
+    "prompts": [
+      "or actually, I need your help",
+      "Let's change the text to \"\n\n[pasted text, 558 characters, not kept]",
+      "Feel free to make recommendations"
+    ]
+  },
+  "69c080edfc64": {
+    "change": "The injury level carries the stage's colour, in a bubble on photographs and a highlight in Chat (the owner, 2026-11-17)",
+    "prompts": [
+      "Maybe have the color coding on the injury LEVEL in the profile picture. Like a little bubble around their injury level\nSend some screenshots",
+      "Can you keep the color coding in the chats and messages? Just a highlight around the level"
+    ]
+  },
+  "6a0c639fe165": {
+    "change": "The invite switch comes before Copy link, and says 2:05 PM tomorrow",
+    "prompts": [
+      "I want to add an invite feature when sharing a question as an SCI club admin. Have a toggle that enables the link to work as an invite link for 24 hours. Meaning user can join the club if they come through the copied link for 24 hours. Might be a good way to bring people in.."
+    ]
+  },
+  "6aea2b3e1418": {
+    "change": "Inviting from a spreadsheet starts with a suggested message, naming the organization they join with, for the administrator to change or empty",
+    "prompts": [
+      "How can admins use a spreadsheet to send invites like this?",
+      "Ok great, can you insert a default message and let the admin customize if need be?"
+    ]
+  },
+  "6cd1bf12c552": {
+    "change": "Message pushes are titled with the sender, or the group first with the sender opening the words; a reaction reads Bo 👍 your message. iOS adds From The Sci Club under a Home Screen app's title, which cut the old titles off",
+    "prompts": [
+      "On notifications, can we get rid of the \"from the SCI Club\" text in every notification on the second line? You can see the app logo, so it should be clear. That is valuable real-estate",
+      "For the group message is that the group chat after the .",
+      "Ok I like it"
+    ]
+  },
+  "6d07ae2f0e9f": {
+    "change": "Invite people outside the club to an event from a list",
+    "prompts": [
+      "Also, I want the ability to  invite people to an invite only event that are not in the club. This should also have the same set of possible inputs. If a name and e-mail is provided, it should open the external event page with the info filled in and then a button saying accept invite and join the club, which takes them through onboarding again with their entered information saved.",
+      "Seems this will fix an actual bug. Invite only events have an option to create a custom URL, but when users go to it it says it is a private event..",
+      "why is there a lock icon next to invite only and members of an organization, but not chosen groups?",
+      "I agree. There should be no option for an external link. There should only be an option to invite. If we invite by list of e-mail addresses, then we send out custom links with their info already encoded in the incoming link so we know their e-mail address and name",
+      "I think public links should work if it is an event for an organization. They may want to invite people that are not in the club. This is a major growth vector for us.."
+    ]
+  },
+  "6d90b5bc8172": {
+    "change": "The iPhone app leaves out the Google Sheets address: reading a sheet to invite from is done on the website, and pasting works in the app",
+    "prompts": [
+      "Can we also create a page for the admin showing who opened the e-mail, who clicked viewed the event page,  who RSVP, who also joined the club?"
+    ]
+  },
+  "6f096c5db688": {
+    "change": "Admins: Create email asks a member to complete their profile, from the admin's own mail app",
+    "prompts": [
+      "Can we create a button for admins on the peer page asking them to fill in their mentor profile and install the app. I am thinking an e-mail such as this, \n\n[pasted text, 572 characters, not kept]",
+      "Maybe a button that says create e-mail. It uses that as the content and this as the title, \"Completing your profile and helping us grow\"",
+      "Not sent through the clubs existing e-mail service. I want it to come from me. Maybe a mailto link. Something I can do on my phone"
+    ]
+  },
+  "6f28a911c544": {
+    "change": "On Peers and profiles the colour is on how long ago, a pill, and the level is plain words (the owner, 2026-11-17)",
+    "prompts": [
+      "Can we actually make the pill around the age of the injury the color on the peer tab and profile views, not the level? This makes it more clear where the color is coming from. In the case of other places where injury age is not mentioned like the chat, there it is fine.."
+    ]
+  },
+  "6fa76292ac99": {
+    "change": "A map sheet drags down to its title",
+    "prompts": [
+      "When I click on an event on the map, the panel that pops up from the bottom cannot be adjusted as I would expect. There's a long line across the top. I would think if I touch that and drag down, it should minimize."
+    ]
+  },
+  "6fbe2686dba1": {
+    "change": "The events filter: how first, kind of host, no City",
+    "prompts": [
+      "On the events filter can you remove the city as we have distance. For Hosted By, have a drop down list if there is more than five. Add \"Host org type\"",
+      "This screenshot seems way off, it does not have Your RSVP or getting there. Speaking of which instead of saying getting there, have In-person, online, hybrid as the top three pills. Could we add little icons in them to help parse quickly?",
+      "Instead of yours can we say \"your organization\"",
+      "sorry should say Your organizations",
+      "under org type lets use the coloring and icons as well"
+    ]
+  },
+  "6fee158fbbea": {
+    "change": "Invites: an optional name, for the email's hello and filled in on joining; the organization chosen explicitly, with No organization last, or given when an admin has only one; the email calls the club an app built by people with SCI for people with SCI",
+    "prompts": [
+      "On our invite e-mail can we say \"Wojtek invited you to join The SCI Club, an app built by people with SCI for people with SCI\" instead of \"Wojtek invited you to join The SCI Club.\"",
+      "Also, can we encode the name in the invite if it is filled out",
+      "So it is filled in during onboarding",
+      "Make adding the name in the invite optional",
+      "Also make choosing an organization optional",
+      "If it is not selected, then the user is not auto-associated with an organization.",
+      "If an admin has only one org then just assign it to that org",
+      "Actually on second thought it is better to have an explicit no org selection. To prevent people from being lazy and not selecting an org",
+      "Make the no organization the last option"
+    ]
+  },
+  "71ac2b5f77d7": {
+    "change": "Onboarding: Staff say what they do and where, in a box under the answer, kept as the profile's field of work (the owner, 2026-11-18)",
+    "prompts": [
+      "If someone selects staff member in onboarding, can you open up a text box, explain what you do and where you work (or wordsmith it)"
+    ]
+  },
+  "726e56d7aaea": {
+    "change": "Home's Sort by is a menu above Type, with most views, most replies, most upvotes and most engaged users (the owner, 2026-11-18)",
+    "prompts": [
+      "For sort, make it a drop down list. Add most views, most replies, most upvotes, and most engaged users. Move sort by above type"
+    ]
+  },
+  "73327f3ccb98": {
+    "change": "A card's line never starts on a dot, and a card without flags uses its full width",
+    "prompts": [
+      "Maybe have the color coding on the injury LEVEL in the profile picture. Like a little bubble around their injury level\nSend some screenshots",
+      "Can you keep the color coding in the chats and messages? Just a highlight around the level"
+    ]
+  },
+  "74b0f39e2ef8": {
+    "change": "Any member can ask to add an organization",
+    "prompts": [
+      "That works. Let’s try to increase the vertical space a little. Instead of the event/org pills let’s make a toggle up top where it says events. Can we put the list map toggle on the upper right next to it? On the second row add a mini search box that expands when clicked on and filters in real time, to the right should be the filter circle, and instead of a big add event pull make it a + sign in a circle. If someone hits the + there should be a toggle up top between adding an event or an organization",
+      "We should have an add org option for all users. Could be a different form for admins and regular users. Although might be best to keep it the same and just ask for admin approval if need be with a notification sent to the club admins",
+      "The map toggle should use the location icon from Google Maps. The filter looks very similar to list view, can you move it so it is close to the search box.",
+      "Could we force refresh the list after an event is added?",
+      "Let’s move the plus next to search as well. I don’t want people mid taping on it. Actually might it make more sense as a floating + on the bottom right of the list or map? Is tgat a common practice",
+      "Maybe we can skip the add button in map mode",
+      "My app on my homescreen does not refresh it seems. It doesn’t even have the summarize descriptions of the events, even though I close it and reopen it. Is there a way to push a force refresh to all users?",
+      "No I was using the homescreen version of the website",
+      "let's push the non-logging changes now. Is there something I need to do?",
+      "Ok so can I see the v ersion line in the me tab or something?"
+    ]
+  },
+  "74bc9165182b": {
+    "change": "CLAUDE.md: screenshots are checked by a Fable 5.2 subagent before they are shown",
+    "prompts": [
+      "Push to main\nCan we add a rule that you will check screenshots against an Op. 5.2 model maybe as a sub agent?\nI meant fable 5.2"
+    ]
+  },
+  "74c86bec9cb4": {
+    "change": "A link to an event shows its name, date and picture in a text",
+    "prompts": [
+      "We need to come up with a better categorization of organizations and maybe instead of having logos, which are hard to make out, use color coded pins. Can you come up with some categories, such as outdoor sports, team sports, hospitals, gyms etc. Maybe 7 or so? Maybe we could have them as selectors under layers as an expansion link called types. Someone taps on types and it shows the different colors for the different types of orgs",
+      "Couple more nits. When you expand the filter on desktop there is no x to make it go away and the dragging of the bar does not work on mobile.",
+      "Let's make Veteran Affairs an eighth pin. I like the rest of your choices other than the use of the blue color, which is reserved for events. The outline of events should also be a different color to help distinguish them. Also by default when toggling between events and orgs in map mode, swtich between them, when I toggled to org, it became orgs + events. let that option be set in layers..",
+      "Can we change the way imesseges picks up  events links when I text folks? It should say the name of the event and ideally have the main image pop up with a date a time below the title",
+      "Also what makes more sense on the map should it say layers or types? and maybe under org the link should be sub-types? Also should we have a different color for peer mentors?"
+    ]
+  },
+  "75311a046f66": {
+    "change": "Navigate life after a spinal cord injury",
+    "prompts": ["let's make it life after a spinal cord injury"]
+  },
+  "75ab66dbe1f3": {
+    "change": "Important messages in group chats: whoever started the group, or an administrator, marks one; it is gold, pinned above the conversation and the bell until acknowledged, with who has; three pushes two hours apart, then whoever marked it is told who has not and can remind them",
+    "prompts": [
+      "Could we add a feature to group chats where I can mark a specific message as important for the whole group to read. Could we send time sensitive notifications manually in that case. Also highlight the message somehow and have a way for someone to see it even if a lot of discussion happened about it later. If they tap into a chat the message floats until they \"acknowledge it\". Maybe have a acknowledge button on it. Let people see who has acknowledged the message",
+      "Maybe only three notifications every two hours and then notify the author to either re-ping the non-acks or just let it be"
+    ]
+  },
+  "75e0644a4185": {
+    "change": "The mentor email: a profile not finished rather than empty, the question's name between commas, the link on its own line, and Best to sign off (the owner, 2026-11-21)",
+    "prompts": ["Use all of them"]
+  },
+  "76d5c0bb92ed": {
+    "change": "Invite for any organization you belong to; find organizations by search; time the cards",
+    "prompts": [
+      "What is first paint",
+      "What about time for the content to render?",
+      "I want to measure time until the cards on events loads. Same for peers",
+      "Can be delay until the data for the panels is ready",
+      "Can you modify the list of organizations that I can invite people from, or anybody, to the list of organizations that you are a member of? Also, when I create a QR code or link, there are too many orgs in the database. Can we create a search box or some way to filter? Period. Maybe have the organizations I'm a member of presented, and then a search box for the rest.",
+      "So technically mentors and org members can also send invites. So the list I should see should be of all the orgs i am a member of, not just the ones I am an admin of"
+    ]
+  },
+  "77605c37bcba": {
+    "change": "The mentor email's subject is We need your help (the owner, 2026-11-21)",
+    "prompts": ["Actually change the title to \"We need your help\""]
+  },
+  "77e903295362": {
+    "change": "An invitation's guests who have not answered are sent the event in a chat with its sender, and its organizers can read the emails it came from",
+    "prompts": [
+      "For the invitation change. I think users that have not responded should get an invite sent to them. So send an invite to the event that is being created in a chat between the organizer and the user. Also, it would be useful for the organizer to be able to see the e-mails that resulted in the current event. Could we have a link for e-mail threads or something for the admin of the org?"
+    ]
+  },
+  "77f2aeecda60": {
+    "change": "Me has the notifications bell, and its tab a red dot for anything unseen",
+    "prompts": [
+      "Can we replace the text size selector button with the notification button on the me page? We already have text size adjustment on that page under settings ha",
+      "We need easier access to notifications",
+      "So people don’t miss them",
+      "Also let’s have a notification red dot around the me tab button on the bottom if there is an unseen notification"
+    ]
+  },
+  "78102f52a0bf": {
+    "change": "In a room, only the way back stays put; the rest scrolls",
+    "prompts": [
+      "When a user goes into a discussion room, do not freeze the title and stuff, it should all scroll, only the reverse breadcrumb should stay"
+    ]
+  },
+  "78b58adcfb7f": {
+    "change": "Continue sign in using your browser takes one tap: a signed-in browser sends the app a two-minute code bound to the secret the app kept, with no confirmation, as a link somebody else made gets them nothing; codes alone no longer redeem a bound one",
+    "prompts": [
+      "Could we do it without even having the user tap? Open the browser and it immediately redirects to the app?\nShouldn't the browser normally be already signed in? As they just onboarded and created their account?",
+      "Yes please"
+    ]
+  },
+  "7989de257c4e": {
+    "change": "Mark Important is behind a message's ••• with Edit and Report; Acknowledged by stays under the message",
+    "prompts": ["Let's put the mark as important behind the three dots"]
+  },
+  "79b0b0293f75": {
+    "change": "Join form: no promise of a confirmation email under Password; invited people and anybody while joining is open are in at once",
+    "prompts": [
+      "Why are we sending an e-mail to confirm the address? If the link was a click from an e-mail there should be no confirmation. I think we removed e-mail confirmation anyways>?"
+    ]
+  },
+  "79c668247677": {
+    "change": "Before Join, a shared question shows the question up top, and the button says Join to answer",
+    "prompts": [
+      "Maybe we have the question text up top, and then the button says \"Join to answer\""
+    ]
+  },
+  "7aee9f494dec": {
+    "change": "The votes are in the letters Like had: the row's size, semibold, in the count's grey; padding keeps the arrows easy to press (the owner, 2026-11-18)",
+    "prompts": ["It feel a bit too loud. Can we use a similar font to what we used for likes?"]
+  },
+  "7c0c3121d33b": {
+    "change": "Chat lists direct chats and groups as two sections, each with its own More",
+    "prompts": [
+      "Can you split the direct and group chats into two sections instead of mixed and then expanding both below"
+    ]
+  },
+  "7f05a572e0db": {
+    "change": "Admins see how often an event was viewed, and its RSVP tapped",
+    "prompts": [
+      "Can you add view count stats on event pages for admins",
+      "Maybe also view count of external page seperately",
+      "Also l wets add rsvp clicks on public page."
+    ]
+  },
+  "806b537ef2c3": {
+    "change": "Admins can invite people as mentors, one at a time or from a spreadsheet: whoever joins on such an invite becomes a mentor for the organization chosen",
+    "prompts": [
+      "Let's have an org selector when the user says to let people join through a link. Default to the org of the user when they only have one, for multi org admins, default to no org. For thesciclub admins, let them select other org, which opens up a search box to select from the full list of orgs.",
+      "Also. When admins are sending out invites individually or from a spreadsheet let them specify that these users will be mentors. If they join, they should automatically be mentors for the org the admin selected."
+    ]
+  },
+  "810609fdd796": {
+    "change": "Chat lists three of each, with a search past ten; events find their host by search",
+    "prompts": [
+      "No let's keep that to orgs.",
+      "Can you help chat management in the chat tab. I have too many chats open. Maybe hide DM and group chats that have not been active in a few days behind a more direct chats and more group chats tab. Also, if a user has more than 10 chat windows, hide the ask a question feature up top and replace with a search bar so they can search through their chats",
+      "I think we can cap the lists at 3 each, even if they were quiet",
+      "Also, when creating an event, can you prioritize orgs I am a member of and then have a search for remaining orgs",
+      "will make it faster/easier"
+    ]
+  },
+  "81247532cd38": {
+    "change": "Wheelie points: the monthly leaderboard and the Hall of Top Wheelies",
+    "prompts": ["go ahead with the leaderboard, I assume it is monthly"]
+  },
+  "8132523fcdb8": {
+    "change": "Classifieds rooms show listings as a grid of pictures, with photos first in the form; For sale listings have a price the seller can change, and Giving away tiles say Free",
+    "prompts": [
+      "How hard would it be to prioritize pictures in the classified rooms. That feels more important for classifieds\nMaybe have a Gride pictures with titles below and then a description if you click on the title or picture with the standard comment threads below",
+      "Sounds good can we also add a price in the selling room?",
+      "How about the other two rooms?"
+    ]
+  },
+  "81f75a5a3754": {
+    "change": "The tab bar no longer bounces at the end of a page",
+    "prompts": [
+      "[a screen recording attached] There is a weird behavior with the disappearing bottom bar. On some screens with not a lot of contents or if you hold down the wrong spot on the screen, there’s like a vibration of the whole app. See attached video."
+    ]
+  },
+  "824b9b8faa03": {
+    "change": "An event's Details sit in a warm box of their own, a size up (the owner, 2026-11-17)",
+    "prompts": [
+      "Can you make the details section on the event page pop out more? Maybe have a different color bubble around the details section. Maybe up the font one size"
+    ]
+  },
+  "834b04ef9d1a": {
+    "change": "The club on an iPhone's Home Screen tells of the iPhone app once, with Open in the app, and not again after Not now or Open",
+    "prompts": [
+      "How many people are using the homescreen nudge to install on the homescreen?\nOn iOS we should replace it with an install the app nudge maybe?",
+      "Yes to both"
+    ]
+  },
+  "83b2d29001a7": {
+    "change": "A card's summary line breaks between its parts, never inside a city beside the bubble; Chat's highlight says its stage on hover",
+    "prompts": [
+      "Maybe have the color coding on the injury LEVEL in the profile picture. Like a little bubble around their injury level\nSend some screenshots",
+      "Can you keep the color coding in the chats and messages? Just a highlight around the level"
+    ]
+  },
+  "83d1b518e490": {
+    "change": "CLAUDE.md: Cloudflare's zone Browser Cache TTL overrides no-cache on proxied names; it must be Respect Existing Headers",
+    "prompts": [
+      "Will it slow things down? Can you make a rule to warn Alfred or anyone as they make any migration off netlify?"
+    ]
+  },
+  "843b1f19305b": {
+    "change": "Anonymous sits under Replying to, over the formatting",
+    "prompts": ["Can we put anonymous above the formatting and below replying to..."]
+  },
+  "849643e49e41": {
+    "change": "The organization chooser lists The SCI Club and searches the rest",
+    "prompts": [
+      "The admin panel you can mark somebody as professional, instead of that we should be marking them as staff get rid of professional throughout the app replace it with staff. Also, both mentorship and staff should have an associated organization so if we are marking somebody as either staff or mentor in the admin panel, we should have selection for which organization maybe through a pop-up or something."
+    ]
+  },
+  "84a7b27901f6": {
+    "change": "Peers can be sorted by name, newest members, age, distance or time since injury (the owner, 2026-11-16)",
+    "prompts": [
+      "Also can we add a sort feature to the peers list and allow to sort by date created, age , distance, and time since injury"
+    ]
+  },
+  "854dd5f26d44": {
+    "change": "SCI in the QR card's heading takes the logo border's gold",
+    "prompts": [
+      "Could we actually put SCI in The SCI Club in the gold color of the border of the logo"
+    ]
+  },
+  "859f3618087b": {
+    "change": "The Wheelie wheel has thirteen spokes, and its tyre and push rim are half as thick (the owner, 2026-11-21)",
+    "prompts": ["Thin it even more . About half\nLet's make it have 13 spokes"]
+  },
+  "86044f64202a": {
+    "change": "The level's pill on Home and in chats is fainter, its stage's colour at 30%; the cards' stay at half (the owner, 2026-11-17)",
+    "prompts": ["Can you make the pill more transparent on home and in chat?"]
+  },
+  "86e369758ff8": {
+    "change": "A sorted Peers card says what it is sorted by; the Sort menu matches Filter",
+    "prompts": [
+      "Also can we add a sort feature to the peers list and allow to sort by date created, age , distance, and time since injury"
+    ]
+  },
+  "873894a4dbba": {
+    "change": "Invites: no grey Joined after Stopped at",
+    "prompts": [
+      "Is there a way to invite a group of people from a spreadsheet?",
+      "Why not put this under invites?",
+      "Also, can we show if someone clicked on the link, but did not join? Maybe clicked on link, vs started onboarding, vs joined?"
+    ]
+  },
+  "88764d831da0": {
+    "change": "The level's bubble moves to the next line whole rather than breaking inside it",
+    "prompts": [
+      "Maybe have the color coding on the injury LEVEL in the profile picture. Like a little bubble around their injury level\nSend some screenshots",
+      "Can you keep the color coding in the chats and messages? Just a highlight around the level"
+    ]
+  },
+  "88838a774d45": {
+    "change": "Invites shows requests answered lately, and who answered: an org admin told of one another took first no longer finds nothing (the owner, 2026-11-16)",
+    "prompts": [
+      "I saw an invite request from [a person] in my notifications that I tapped on and it did not take me to an instance of it. Usually I have an opportunity to let them in.\n[1 picture attached]"
+    ]
+  },
+  "8b40be31f835": {
+    "change": "A chosen answer is solid gold, the one filled button of the three; RSVP's navy steps back to an outline once another answer is chosen",
+    "prompts": [
+      "I am not seeing the can't go button on my end\n[1 picture attached]",
+      "make the chosen buttons stand out more"
+    ]
+  },
+  "8c65cbea834d": {
+    "change": "Invite a list from a CSV file, and choose each mentor in a table",
+    "prompts": [
+      "Can you also create an option to import csv in addition to a google sheets link. Upon import, we should open a table with all the data and check boxes next to each user with the pre-sepcified mentor selection, but an option for the admin to select who is a mentor and who is not."
+    ]
+  },
+  "8d60fde9436b": {
+    "change": "Events: + on the list is for adding an event, and only for who can",
+    "prompts": ["If I am in the events tab and hit the + it is for adding an organization"]
+  },
+  "8ddd86c38c75": {
+    "change": "One ranking for Home and a room's Top: unseen, new replies, votes and a boost capped at +10 for 14 days; Home quotes the top reply and the latest; administrators are told when a post falls to -3 (the owner, 2026-11-18)",
+    "prompts": [
+      "Ok, so what is the current home ranking algorithm?",
+      "What is top ranking?",
+      "What do you think reddit uses for ranking? Are there any recommended ranking algorithms out there? Maybe ones specifically for younger less active user bases. I think freshness or posts you have not seen should be boosted more. That said, if there is a new reply to a post, we should promote that reply on the home preview and count that reply as the latest update date. What would you recommend? Run your idea against the fable 5.2 sub-agent",
+      "We can cap boost stacking. Do we pull the highest ranked response to the post preview on home?",
+      "negative scores are fine. notification seems fine if a score is -3",
+      "Will this change make it so the preview answer will be the most recent?"
+    ]
+  },
+  "8de07e323c43": {
+    "change": "Administrators can see how each member came to the club",
+    "prompts": [
+      "can we also keep track of how the person signed up and signed in? What they used for password and how they came to the app."
+    ]
+  },
+  "8e58fc29620b": {
+    "change": "Post on Home: an event goes to the Events room by default, found by its name as App Feedback is; General while there is none (the owner, 2026-11-25: \"It should default to posting in the events room\")",
+    "prompts": ["It should default to posting in the events room"]
+  },
+  "8e63daf5536e": {
+    "change": "Whoever speaks for an event's organization is not asked how it went, and the review page tells a member their own reason; a Home card shows a post's first reply whatever it sits under, and when it came (the owner, 2026-11-18)",
+    "prompts": [
+      "There is also a bug in the peer filter. Deselecting non-mentor wilters out all the non SCI people. Can we replace non-mentors with SCI peers and get rid of mentors? We can already view mentors in the mentors tab"
+    ]
+  },
+  "8f6179c7b45a": {
+    "change": "Invites: shorter started step, so the steps fit one line",
+    "prompts": [
+      "Is there a way to invite a group of people from a spreadsheet?",
+      "Why not put this under invites?",
+      "Also, can we show if someone clicked on the link, but did not join? Maybe clicked on link, vs started onboarding, vs joined?"
+    ]
+  },
+  "8fea6cc5351b": {
+    "change": "Invite log: an email shows the name it was sent to, and a shared post's link does not say twice that it was shared",
+    "prompts": [
+      "On the admin page, can we add a tab for invites and keep a chronological list of all e-mail invites sent and by whom, if the invites were opened and if they were used to create an account (if so what account with a link to the users profile page), and QR codes generated. For all QR codes and links have the author, show a list of users that created profiles from them."
+    ]
+  },
+  "920d7f5a1edc": {
+    "change": "A shared question asks people to help answer inside The SCI Club and contribute to our knowledge base, in its preview and before Join",
+    "prompts": [
+      "I see the update now. In the question link sharing, instead of saying \"Wojtek invited you to The SCI Club...\" can we say, \"Help answer inside theSCIClub and contribute to our knowledge base\""
+    ]
+  },
+  "931743568eec": {
+    "change": "Inviting from a list takes bare addresses too, separated by commas, semicolons, spaces or lines, or copied from Gmail's To line with names; the box says so",
+    "prompts": [
+      "Can we also have an option to just paste in a list of e-mail addresses as one would get from gmail, or just a comma separated list of e-mail addresses with no name"
+    ]
+  },
+  "95194b342f53": {
+    "change": "The list of levels ends with Relative / friend and I work with people with SCI, and choosing one chooses that answer above",
+    "prompts": [
+      "In the onboarding screen what describes you best, in the drop down for level of injury, have an option for relative / friend and I work with people with SCI as options at the end. If a user selects on of those, select those option above in the selector. People might not read all the options. I had relatives select I don't know"
+    ]
+  },
+  "98411e615180": {
+    "change": "Keep a sheet's phone numbers for joining, and list only names in the table",
+    "prompts": [
+      "I assume you can accept email and e-mail as column headers for the email?",
+      "oh and also pull the phone column if it exists.",
+      "You don't need to display the phone in the list, nor the email. Just name and checkbox if a mentor"
+    ]
+  },
+  "99b8c7075aec": {
+    "change": "A calendar invitation keeps the links in its description",
+    "prompts": [
+      "So the white actually looks too similar to the city names, could we do something a little more yellow? For events could we swap the circles to pins more similar to google maps",
+      "I only see the original event, which I created inside the app",
+      "I don't see any notifications to approve it",
+      "Seems links do not pass through the invites, only the text",
+      "Can you send notifications to the account of the organizer if an event is added, also if an event needs approval or org selection. Additionally, e-mail the event organizer the status of them adding the event as well as an approval link if necessary"
+    ]
+  },
+  "9b5c49b25201": {
+    "change": "A question's replies are written as they will look, with photographs in place",
+    "prompts": [
+      "Few changed to questions/posts. When you tap into a question the title and details take up a a lot of real estate and are fixed on the screen. They should be scrollable along with the rest of the content. Make the reply box for the question itself also scrollable and at the very bottom. Let's make it a rich text reply box with a preview button, similar to what happens when you try to add details to a question. Also, you should be able to paste pictures into the reply box instead of attaching them. They stay where you pasted them in. Make this the case for all reply boxes. Whenever someone taps reply anywhere it should be a rich text box. I assume this could be handled as markdown text on the back end? If that is the case, allow for people to enter raw markdown by having a button similar to this.\n[1 picture attached]",
+      "Will there be a meaningful amount of extra overhead and DB usage with option 1 vs 2?",
+      "Will it be a richer text editor?",
+      "Option 1 with quotes, posts in rooms only",
+      "Also, can you make it possible to delete images when someone edits a post..",
+      "or reply"
+    ]
+  },
+  "9c34becb24a4": {
+    "change": "Invite log: only the steps an email reached, with what is not yet; an account with no profile says so; button names in quotes; old codes say the button was not kept; unused shared post links only under Codes & links; shorter filters and intro; no year on this year's dates; change log entries for who-made-the-code and the invite log",
+    "prompts": ["By admin I mean on admin.thesciclub.com btw"]
+  },
+  "9ee6c009924b": {
+    "change": "The boost sheet says a boost was just made, that it can be made again, and that members aren't told (screenshot review)",
+    "prompts": ["Can you just make the admin boost be the equivalent of adding a comment to it?"]
+  },
+  "a1a609ce3c08": {
+    "change": "A question's page says Answer question, and Reply to this question",
+    "prompts": [
+      "If the post is a question instead of saying reply to post in the bottom it should say reply to this question. Also let's change the reply to an answer question button at the very top"
+    ]
+  },
+  "a328b9521904": {
+    "change": "Home's filter shows everything, my posts, my replies or my organizations', sorted by the default ranking, most recent replies or most recent posts; the kinds are under Type (the owner, 2026-11-18)",
+    "prompts": [
+      "On home filters under show, I think we should have everything, my posts, my replies, from my orgs. Also lets add a sort feature, sort by default ranking, most recent replies, most recent post"
+    ]
+  },
+  "a3e3380ed423": {
+    "change": "Invite from a spreadsheet is on the invites page, a button above People you have invited; Your invites is Invite new members (the owner, 2026-11-18)",
+    "prompts": [
+      "yes bring the pills on test back in line with prod, Invite from spreadsheet should be a litle section with a button above the People you have invited section under your invites. Also let's rename \"Your Invites\" to \"Invite new members\""
+    ]
+  },
+  "a6079343d453": {
+    "change": "Classifieds shows where each poster is, from the directory, instead of asking them to say; posting there with no city on your profile asks for a ZIP code",
+    "prompts": [
+      "We know where everybody is so why are you asking them to put down where they are?",
+      "Yes, let's add this city to the posting automatically, drop the wording, and if a user post who does not have their location specified, use that opportunity to ask them to fill it in"
+    ]
+  },
+  "a67d106958ff": {
+    "change": "2–10 years is teal rather than the buttons' blue, and a level's bubble has a light edge to show on a card of its own colour",
+    "prompts": ["Maybe because I am in dark mode?"]
+  },
+  "a702c3dbfdab": {
+    "change": "The button says RSVP, and Going once it is pressed",
+    "prompts": [
+      "Can we actually change the going text to RSVP. I feel like that would be more fitting.",
+      "what do you think?",
+      "sounds great",
+      "also tracks with register I think"
+    ]
+  },
+  "a82b2ad961a3": {
+    "change": "The post link's section says it is for administrators, and to send it only in a private message",
+    "prompts": ["The copy link button should also be on the bottom"]
+  },
+  "a893a2e844b8": {
+    "change": "Events on the map are pins, and names in dark are gold",
+    "prompts": [
+      "So the white actually looks too similar to the city names, could we do something a little more yellow? For events could we swap the circles to pins more similar to google maps",
+      "I only see the original event, which I created inside the app",
+      "I don't see any notifications to approve it",
+      "Seems links do not pass through the invites, only the text",
+      "Can you send notifications to the account of the organizer if an event is added, also if an event needs approval or org selection. Additionally, e-mail the event organizer the status of them adding the event as well as an approval link if necessary"
+    ]
+  },
+  "a951c91b18a9": {
+    "change": "On a post's page, only the way back stays at the top",
+    "prompts": ["Only the top back link should be pinned to the top"]
+  },
+  "a9bf710685a5": {
+    "change": "The Events header is two rows, and + floats over the lists",
+    "prompts": [
+      "That works. Let’s try to increase the vertical space a little. Instead of the event/org pills let’s make a toggle up top where it says events. Can we put the list map toggle on the upper right next to it? On the second row add a mini search box that expands when clicked on and filters in real time, to the right should be the filter circle, and instead of a big add event pull make it a + sign in a circle. If someone hits the + there should be a toggle up top between adding an event or an organization",
+      "We should have an add org option for all users. Could be a different form for admins and regular users. Although might be best to keep it the same and just ask for admin approval if need be with a notification sent to the club admins",
+      "The map toggle should use the location icon from Google Maps. The filter looks very similar to list view, can you move it so it is close to the search box.",
+      "Could we force refresh the list after an event is added?",
+      "Let’s move the plus next to search as well. I don’t want people mid taping on it. Actually might it make more sense as a floating + on the bottom right of the list or map? Is tgat a common practice",
+      "Maybe we can skip the add button in map mode",
+      "My app on my homescreen does not refresh it seems. It doesn’t even have the summarize descriptions of the events, even though I close it and reopen it. Is there a way to push a force refresh to all users?",
+      "No I was using the homescreen version of the website",
+      "let's push the non-logging changes now. Is there something I need to do?",
+      "Ok so can I see the v ersion line in the me tab or something?"
+    ]
+  },
+  "a9c60044edbc": {
+    "change": "Tabs: Chat opens on the chat list too, not the conversation it was left in",
+    "prompts": [
+      "When you hit the chat tab it should take you to the chat tab, not the last chat you were in."
+    ]
+  },
+  "ab47983c49c9": {
+    "change": "Create email: the owner's apostrophe, and the card says what the email asks",
+    "prompts": [
+      "Can we create a button for admins on the peer page asking them to fill in their mentor profile and install the app. I am thinking an e-mail such as this, \n\n[pasted text, 572 characters, not kept]",
+      "Maybe a button that says create e-mail. It uses that as the content and this as the title, \"Completing your profile and helping us grow\"",
+      "Not sent through the clubs existing e-mail service. I want it to come from me. Maybe a mailto link. Something I can do on my phone"
+    ]
+  },
+  "abb8fa9fc67f": {
+    "change": "Admins flag anonymous posts without seeing who; three strikes pause by themselves",
+    "prompts": [
+      "Can you pull out a link to the sub session that I had you start to work on my PRD?\nMaybe if somebody taps on an anonymous response, avatar, etc., as if it would've been a person, it takes them to a profile that explains what anonymous is?\nActually, I don't think administrators should be able to see who is anonymous. Administrator should be able to flag anonymous post. Which will notify the anonymous poster that their post was flagged. If a user is flagged three times they lose the ability to post anonymously for six months if after their probation period is over and they get flagged three more times they lose their ability to post anonymously forever.\nHold on. Did you see my comment? I want to see screenshots",
+      "I don't think we need to explain what post anonymously means. Nor do we need to explain what this is a question means. That takes up too much space. Maybe have a checkbox next to question and a checkbox next to anonymous all on the same line then. Then when a user unchecked the question box or checks the anonymous box we have a pop-up telling them the details.. But only show the pop-up once per Account. Or do you think we should have a check box to don't show again and show it until somebody checks it? What is the better design style or more common?\nActually, what is our current policy for strikes? Maybe we should be more aggressive with anonymous abuse. Maybe after the first strike you get paused for a month from anonymous posting, a second strike three months, third strike you can no longer post anonymously. These strikes had to strikes against individuals so I asked what is the current policy?\nSeems we will need to update our terms of service. I do think that a three strike rule makes sense. If you get three strikes your account will get paused, if you get three strikes again after it's unpause, you will be permanently banned. So maybe after the first anonymous posting strike you lose the ability to post anonymously for a month, second anonymous strike you lose the ability to post for three months, third strike your account is paused. We need to update our terms of service. Can you tighten this up and explain to me our policy."
+    ]
+  },
+  "abc43539b13f": {
+    "change": "A line at the top of every screen below a tab's first names the screen the member came from and goes back to it, a step a press (the owner, 2026-11-18)",
+    "prompts": [
+      "Can we add a back button that takes you back to the previous page you were on. It disappears when someone clicks the navigation tabl on the bottom, peers etc. But as they navigate down the app, there should be an easy way to ghet back where they came from. On iphone there is a small line on top with a name of the previous page or app. Maybe use something similar. Or just have a back arrow in the upper left. Send me some screenshots and options",
+      "Can we do option 1"
+    ]
+  },
+  "af54fd0b47b6": {
+    "change": "Peers filter by distance, mentors and what they are a member of",
+    "prompts": [
+      "Can we still make the map points pins, just with the icons you selected in the head of the pin. I love the little icons inside the circles BTW, nice call!",
+      "I think the [an organization] events are all in gyms, I would reclassify them as gyms btw",
+      "We need to be able to filter peers based on mentor or not as well as affiliation. Can you add a drop down menu of the orgs that the peers in the current list are part of for filtering. Instead of a city filter it should be a distance toggle. If someone changes the distance toggle in map mode it should zoom to that distance",
+      "When you click on the copy link button on the event page, Have a brief popup say link copied",
+      "Instead of organization say \"member of\" and put it below age. Put the distance filter at the top"
+    ]
+  },
+  "af6bbcd37b83": {
+    "change": "A change to one date of a repeating invitation is copied: that date is changed in place and held apart from the series, and a cancelled date stays off (the owner, 2026-11-18)",
+    "prompts": [
+      "I just got an e-mail for A change to one date of The SCI Club Weekly was not copied, because the club cannot hold one date of a repeating event apart from the rest.\n\nChange that date in the club, or change the whole series in your calendar.",
+      "We should try to support this. Maybe we can delete the one repeating event that was changed and create a one off event at the new time?",
+      "Or anyway you see fit",
+      "Can you create a share link for rooms. So we can share rooms with people?"
+    ]
+  },
+  "af89dcbcdc61": {
+    "change": "Peers' sort is in Filter, at the top, and counts there once chosen (the owner, 2026-11-16)",
+    "prompts": ["Can we hide the sort by inside filter"]
+  },
+  "b013c40f6ed3": {
+    "change": "HANDOFF: the review, Home reply and Peers filter fixes of 2026-11-18",
+    "prompts": [
+      "Can we add a date/time/minutes ago of the first response in the preview of a question/post in the home feed?"
+    ]
+  },
+  "b041b3d987b1": {
+    "change": "A kept tab's count of requests on a show is 17: Home's posts are one request now",
+    "prompts": [
+      "I would do all three. In fact, let's skip loading events and peers for now in the home feed. Just do posts. We can add those back in later and people can find them in the peers and events tabs."
+    ]
+  },
+  "b19a511a2742": {
+    "change": "One order for every member: latest activity, two hours newer a vote (at most a day) and a day for a boost; Home quotes the top reply and the latest (the owner, 2026-11-18)",
+    "prompts": [
+      "[artifact viewer context, not kept]\n\nFor the ranking, let's go back to what we had before. Was it most recent comment? Can we just downgrade a post if it has been seen by the user? maybe move it down three spots.",
+      "What is the simplest algorithm that really promotes freshness, similar to what we had before, but stil factors in votes?",
+      "Yeah I think we want people to see what was the latest comment etc. Adding in ranking really complicates things as every user sees something different."
+    ]
+  },
+  "b301712293a7": {
+    "change": "Me says the version in Pacific time",
+    "prompts": ["In the version I see under setting can you use PST"]
+  },
+  "b539a765e0fb": {
+    "change": "The first screen says The SCI Club at the top, SCI in gold",
+    "prompts": [
+      "can you adjust the landing page for the app. It should say The SCI Club up top with SCI in gold"
+    ]
+  },
+  "b9238f4517d1": {
+    "change": "View on the map only on a wide screen, and not on the event page",
+    "prompts": [
+      "Let's get rid of the view on map button in the event. There is already a link to google maps.",
+      "The map view button in the list of events also does not work well as the list on the map is hard to navigate on a phone. The map is just a strip and it usually contains multiple events. So let's get rid of it as well.",
+      "Can we maybe fix the map link from the list of events. Make the event details only take up the bottom third of the screen and also allow the user to adjust the info panel up and down so you can see more of the map.",
+      "Also filter out the other events and keep the map zoomed out to maybe a 50 mile diameter",
+      "Actually let's just disable the map links on mobile.  On desktop it is ok."
+    ]
+  },
+  "b9ed9aff10df": {
+    "change": "The invite's email note: 'Note in the email', shown as a note from you, leave out anything private",
+    "prompts": [
+      "Can we add an optional note field in the invite section. So if I want to add a note to the invite e-mail it can be added in."
+    ]
+  },
+  "bb3da0c59986": {
+    "change": "Tests only: the iPhone app's first launch may ask again, as on main, so asking after the first message is not held back",
+    "prompts": [
+      "So notification nudge for fresh users",
+      "What are the questions left to answer for the notification change?",
+      "Yes to both"
+    ]
+  },
+  "bb471014c01d": {
+    "change": "Invite-only events have no link to share, only invites from a list or spreadsheet; an organization's event opens from its link again, to bring people in",
+    "prompts": [
+      "Yes instead of a shareable link it should have an option to invite from list or spreadsheet. Build the notification volume setting for test. I will want to push the new invite code to main"
+    ]
+  },
+  "bdb9f6f2f365": {
+    "change": "A recently answered request's time sits beside the name",
+    "prompts": ["When I tap the notification I see this\n[1 picture attached]"]
+  },
+  "be08565b1c25": {
+    "change": "In rooms a topic is a post and what is under it a reply; a room counts its posts, questions, replies and views and says when it was last active; every time on content says how long ago for a week, then a date (the owner, 2026-11-18)",
+    "prompts": [
+      "Can you change the wording in the rooms. Each question is a post, the comments in them are replies. We should also have. At the top level can we count the number of questions, number of posts,  number of replies,  number of views, and how long ago or date was the last activity. When looking at questions, can we specify how long ago the question was if within a week. Start with how many minutes ago, then how many hours ago followed by number of days and anything beyond a week has a date (use this concept for all content)."
+    ]
+  },
+  "beaf704ee7e1": {
+    "change": "Able Bodied teaches in Sebastopol too",
+    "prompts": [
+      "remove the near me pill",
+      "Can you add the sonoma location of Able Bodied. We offer handcycling lessons from there. Just put it at sonoma CA. It has a registration link you can find at www.ablebodied.org. When the user registers they get an e-mail with the locaiton..",
+      "It is in Sebastopol",
+      "Can you also update what image is pulled up when we point users to the org map in messages. If you need a static image, you can include this one, Call the title Map of SCI organizations on The SCI Club or something\n[1 picture attached]"
+    ]
+  },
+  "bf6921311494": {
+    "change": "Organizations have a line on their cards, and a search looks through everything",
+    "prompts": [
+      "Can we also make a short description of all the orgs and add the descriptions to their cards?",
+      "Could you go the website of all without a description and create one",
+      "Yes let’s add an edit button for org admins",
+      "What one line card description",
+      "One note on the search box, if someone hits the search button you should search all without all filters including distance filters"
+    ]
+  },
+  "bfbc0a16a81c": {
+    "change": "Format the list of who can be left out of Peers",
+    "prompts": [
+      "Can we add a date/time/minutes ago of the first response in the preview of a question/post in the home feed?"
+    ]
+  },
+  "c0cb41fb4bcf": {
+    "change": "Administrators can see what each member uses to reach the club",
+    "prompts": [
+      "How are we doing in terms of tracking the device usage? I want to know what fraction of users are in a browser and have the home app installed. iOS vs android. What resolution. Also if they hg Ave notifications enabled. Could i see this in a user dashboard?",
+      "I was hoping to see this per user actually. So we can help prompt users to install on home etc."
+    ]
+  },
+  "c117ad926f5c": {
+    "change": "Letting people join through a question's link asks which organization they join: an admin's one organization by default, none for an admin of several, and a club administrator can search the whole directory",
+    "prompts": [
+      "Let's have an org selector when the user says to let people join through a link. Default to the org of the user when they only have one, for multi org admins, default to no org. For thesciclub admins, let them select other org, which opens up a search box to select from the full list of orgs.",
+      "Also. When admins are sending out invites individually or from a spreadsheet let them specify that these users will be mentors. If they join, they should automatically be mentors for the org the admin selected."
+    ]
+  },
+  "c23db2ea6fdb": {
+    "change": "Invites: Stopped at is outlined and plain, not a step reached (screenshot review)",
+    "prompts": [
+      "Can we modify the pill color corresponding to the injury age? Can we start from green and go to red. Also have more bands. <6 months, 6-12 month, 1-2 years, 2-5 years, 5-10 years and then in 10 year increments?",
+      "show me screenshots of the full range. gren most junior to red most senior. Maybe actually make red the color for 10 years post and then progress to a dark purple"
+    ]
+  },
+  "c4194efcc3b3": {
+    "change": "The SCI Club is an organization like any other",
+    "prompts": [
+      "When I go to the sci club I see 0 members. I feel like we are not counting admins and mentors as members. They should be members",
+      "Why does everyone belong to it automatically? It should be a separate org. I am using it for scheduling our group meetings.."
+    ]
+  },
+  "c4cd8161b661": {
+    "change": "Posts in rooms are voted up and down, with the score between the arrows; an administrator's long press or right click on the up arrow adds 10; rooms open on Top: score, recent activity, and what the reader has not seen yet (the owner, 2026-11-18)",
+    "prompts": [
+      "Can we also factor in if the user has seen the question? So promote content they have not seen before?"
+    ]
+  },
+  "c5bd83fd3177": {
+    "change": "Family & friends and staff see their own kind on Peers from the start (the owner, 2026-11-16)",
+    "prompts": [
+      "If someone is a friend or family, do not filter friends and family by default, same for staff."
+    ]
+  },
+  "c7dfb93088ed": {
+    "change": "Wheelie points: the leaderboard is for admins to see for now",
+    "prompts": ["We can have the leaderboard on for admins to see for now"]
+  },
+  "c889ded5fa7c": {
+    "change": "The invite email after its review: the answer comes before the picture so it is on a phone's first screen, the three answers look alike, the event is named up top, and an outsider is asked not to forward it",
+    "prompts": [
+      "Can we add an RSVP button in the e-mails sent to the users? Also maybe send a nice e-mail that looks like you are on the invite page for the event (as it would look on a public page)? That way the user does not have to exit their e-mail client to RSVP. This should be for all invites sent through e-mail, including a notification e-mail that you were invited. An explicit invite should trigger an invite email I think."
+    ]
+  },
+  "c8bb1dfa71a8": {
+    "change": "In dark, a name on the map is white with no bright glow",
+    "prompts": [
+      "Another issues in dark mode is the text on the map. It has a white outline that makes it too prominent, Can you just make it a white font that is less thick, similar to normal mode",
+      "push the map text change too"
+    ]
+  },
+  "c8e8d820fa99": {
+    "change": "Members can share an event",
+    "prompts": [
+      "Drop the sentence in this image\n[1 picture attached]",
+      "Maybe instead of that sentence say sign in to join the group chat",
+      "Can you add a Shar link to event pages. So we can send members can share to each other",
+      "Can y9ur show a screenshot. Might be too many buttons i was thinking a subtle share icon like on topics",
+      "That works push it"
+    ]
+  },
+  "c97efb1ddab4": {
+    "change": "An organization's mark is a pin, with its type's icon in the head",
+    "prompts": [
+      "Can we still make the map points pins, just with the icons you selected in the head of the pin. I love the little icons inside the circles BTW, nice call!",
+      "I think the [an organization] events are all in gyms, I would reclassify them as gyms btw",
+      "We need to be able to filter peers based on mentor or not as well as affiliation. Can you add a drop down menu of the orgs that the peers in the current list are part of for filtering. Instead of a city filter it should be a distance toggle. If someone changes the distance toggle in map mode it should zoom to that distance",
+      "When you click on the copy link button on the event page, Have a brief popup say link copied",
+      "Instead of organization say \"member of\" and put it below age. Put the distance filter at the top"
+    ]
+  },
+  "cbf03d5718b0": {
+    "change": "Peers starts with members unsure of their level in; their chip still leaves them out (the owner, 2026-11-24)",
+    "prompts": ["We should not filter unsure of level on peers tab by default"]
+  },
+  "cbffcbd34173": {
+    "change": "An administrator's second button says what it does: Remove boost (the owner, 2026-11-18)",
+    "prompts": ["Yes, change it to Remove boost"]
+  },
+  "cc05df215437": {
+    "change": "Recently answered requests say which organization they were asked through, and the invite form has its own heading",
+    "prompts": ["When I tap the notification I see this\n[1 picture attached]"]
+  },
+  "ccc6230f5e63": {
+    "change": "A chosen Going, Interested or Can't go is gold-filled with a gold edge, the boldest of the three, not grey (the owner, 2026-11-17)",
+    "prompts": [
+      "I am not seeing the can't go button on my end\n[1 picture attached]",
+      "make the chosen buttons stand out more"
+    ]
+  },
+  "cd2357ada178": {
+    "change": "Invite a list from a spreadsheet: an administrator pastes a Google Sheet link or rows, picks the organization they join with and adds a message; each person gets an email from the administrator by name, greeted by their name, with the message quoted",
+    "prompts": [
+      "Can you send invites to all the able bodied board members?\n[1 picture attached]",
+      "Invites to the club as members of Able Bodied",
+      "Can you code up something that allows for sending invites based on a spreadsheet of email addresses. Make a nice invite email from the admin who is requesting to invite based on a Google sheet.."
+    ]
+  },
+  "cd5bc3c74463": {
+    "change": "An event registration says what comes next",
+    "prompts": [
+      "Let's fix how the public invite page event RSVP flow works. If they enter an e-mail address that is already in the club, just add them as going in the club and ask them to sign in. If the e-mail is on the invite list, then just ask them to create an account and make sure to save the info that was already entered. Have a screen that explains if they create an account for the SCI club they will be able to see who else is coming and join the chat room. If the account is not on the invite list, prompt them to request an invite. Again keep the name and e-mail address saved so sending that request is one click."
+    ]
+  },
+  "ce8fae009009": {
+    "change": "The app card: from the second visit, when somebody writes or on Going, and Not now for a week, a month, then for good",
+    "prompts": [
+      "yes build 1 to 3, I don't think asking to install the app after onboarding is good, it takes too long to get into the app."
+    ]
+  },
+  "d02acf9012a5": {
+    "change": "Before Join: see the question, and the heading wraps evenly",
+    "prompts": ["Yeah, let me see the landing page for the question"]
+  },
+  "d06e5d373b8b": {
+    "change": "About us: a blurred part sits on a faint pill of its own colour, so it reads as hidden on a photograph too",
+    "prompts": [
+      "Can we add friend to the family/spouse category? Maybe instead of relative/spouse say family / friend of someone with SCI? Also instead of professional let's change it to staff",
+      "I want the about page to look just like the peers tab. I also want it to be possible to tap on the people and be able to see their profile."
+    ]
+  },
+  "d0859549b4fc": {
+    "change": "Home, Peers and Events share a header, and each tab starts somewhere useful",
+    "prompts": [
+      "Let’s replace the notification button with a search button that open up covering home when tapped on. Keep the notification button not on the me tab",
+      "Actually we already we know we are on home  as the home button is illuminated. Get rid of the word home up top. Replace with a search bar with a filter button to the right. Remove the row of pills and move that into the filter. Let’s maximize the pixels for the content",
+      "Let’s clean up the peers tab as well. Let’s mimic events. Have the tip toggle between peers and mentors. Peers should include both peers and mentors though.  The next row should have the search bar, next to which is the filter button, but I wonder if it should have the word filter next to it. Could you mock it up",
+      "Let’s update the events tab. I like the list map toggle on peers how it spells them out. Do we have space to add those words. Actually let’s improve it on both. If list is selected it is an is on and the word map appears next to the icon. When map is selected the word list appears next to the list icon making it a pill",
+      "I like B",
+      "Replicate this for events tab",
+      "Can I see a mock for home",
+      "Looking good",
+      "Instead of where in the filter on home we can ad a distance filter. Below the distance filter we should have pills selecting what to filter by distance, should be set to anywhere as we want o encourage engagement of questions",
+      "Maybe for questions they have no location. So distance filter should only impact events and and peers, so set the distance filter to 50 by default as with the rest",
+      "Although if in a remote area with less than 5 orgs within 50 miles we should expand to 200 miles or something",
+      "Good point about peers worth meeting Maybe on home we should indeed keep the distance filter to anywhere. On peers and org, default to a value where we get at least 20 matches"
+    ]
+  },
+  "d127e3491ccc": {
+    "change": "Chat has a Classifieds heading with three rooms: For sale, Giving away (surplus supplies and equipment, free) and Looking for. Members cannot start rooms in it",
+    "prompts": [
+      "can we add a classifieds section to the chat rooms",
+      "I want to have three rooms. For sale - things people post for sale, surplus medical equipment / donations - Room for posting anything you might want to give away for free. Sometimes you have extra catheters or medical supplies you ended up not using. This is the place to post, Looking for - things people are looking for . You can wordsmith as need be",
+      "I am thinking of two other rooms that would be nice. One is \"SCI owned businesses\" another is \"hot deals\" . these do not really fit under classifieds, but maybe it should be a marketplace category?",
+      "Actually skip the last two, we don;'t need a million rooms",
+      "Classifieds feels more appropriate",
+      "I like the three names you mentioned. They are easy to read and understand"
+    ]
+  },
+  "d264574ae9c1": {
+    "change": "A street address in a message or post opens Google Maps",
+    "prompts": ["Can you make addresses in messages clickable to Google Maps"]
+  },
+  "d2ed71a708bc": {
+    "change": "Join form: Choose a password, so it does not read as asking for one they already have",
+    "prompts": [
+      "Btw what is a best practice for when to ask the user to download the iOS app? When do we ask to do it?",
+      "If we wait for them to post, I might be concerned with losing that opportunity to turn notifications on?",
+      "On the join the club page should we say Choose a password instead of password? Also, should we not say up top you were invited to the club as XXX@XXX? I can;t remember, do they have an option to sign in with a different e-mail address?",
+      "What happens if they forward the invite e-mail. Will other's be able to use it to log in? Or do we keep track of the invited e-mail address and allow only one account to be created?"
+    ]
+  },
+  "d2f2d95a4c7d": {
+    "change": "About us: the blur scales with the text, and the tab title is the first name alone",
+    "prompts": ["Also, I assume the full name is not readable in html?"]
+  },
+  "d5e33b2f5d65": {
+    "change": "Wheelie points on each profile, and a page on how they work",
+    "prompts": [
+      "Can I see the point explanation page? We should also see updates to the peer pages with their stats and corresponding point contributions"
+    ]
+  },
+  "d5f05734f35b": {
+    "change": "The organization chooser's placeholder says to choose, not that The SCI Club is chosen",
+    "prompts": [
+      "The admin panel you can mark somebody as professional, instead of that we should be marking them as staff get rid of professional throughout the app replace it with staff. Also, both mentorship and staff should have an associated organization so if we are marking somebody as either staff or mentor in the admin panel, we should have selection for which organization maybe through a pop-up or something."
+    ]
+  },
+  "d6abbfb1caed": {
+    "change": "Invite links and live codes go straight in, with no email code",
+    "prompts": [
+      "Can we remove the email verification screen. I think as we are invite only we can always verify emails later. It slows down onboarding",
+      "How about if people sign up with Google or apple or an invite link then we skip",
+      "If we are keeping the code for the QR code the only danger I see is people mid typing their email address. I feel a possible solution for that is letting people update their email address",
+      "If they were emailed a link and put on a different address we can prompt them if it is close to what they typed in",
+      "We need to minimize friction of getting in from an org link or QR code. These are people at events and don’t have time to switch between multiple apps",
+      "If the link was emailed the person should be considered trusted. No code still",
+      "So basically never ask for a code",
+      "We should have ample room for stopping abuse. Blocking accounts etc.",
+      "We could also pause all accounts created by the bad code"
+    ]
+  },
+  "d6c757729293": {
+    "change": "Chat: a conversation goes down to the message just sent, and stays at the bottom when the keyboard makes the list shorter (the owner, 2026-11-20)",
+    "prompts": [
+      "When I chat with someone, every time a type a message I have to scroll to the bottom. There is a little down arrow saying new message. Just auto scroll as you type in messages.."
+    ]
+  },
+  "d71bafc7a1f8": {
+    "change": "The injury stage is a pill again, its colour at half strength with regular white words, on its own line on Peers' cards and profiles and around the level in chats and on Home; 10+ and 40+ years say Injured, not OG and OOG (the owner, 2026-11-17)",
+    "prompts": [
+      "Can you make the pills for the injury level as little more muted? Maybe add 50% transperency to them or something? Send me some screenshot options. They are a little too distracting",
+      "I am not a big fan, I feel they blend in to the background too much. Can we go back to pills, but increase the transperency maybe?",
+      "Can we get rid of OG and OOG and just say injured 10+ years and injured 40+ years. Can we try 50% with white text, but not bolded?"
+    ]
+  },
+  "d802e9f98f27": {
+    "change": "The change log's rule: every change gets an entry; and the test site lists what is on tests for the admin site (the owner, 2026-11-25)",
+    "prompts": [
+      "I want to keep better track of all the changes we make. I am thinking  we start keeping a log of all changes shipped in a markdown file. Maybe a two line summary of the change with any screenshots of before and after. The top of the file should be a list of changes on tests that is not yet on main. Then a history of pushes to main with a timestamp of when it was pushed. Maybe we make this a rule for anybody making changes?",
+      "Actually maybe we add a tab to admin.thesciclub.com for Change Log. It should have four tabs. \"On tests\" (with a list of changes pushed to tests that is not currently on main, this is just the latest set of changes), \"On main\", which has the historical list of pushes with push dates,  \"by surface\", will be a page by surface/tab per week with a list of links to the changes to the \"on main\" with their short descriptions and finally \"summary\" which has a summarized 7 line summary for each week",
+      "Are there any best practices that we might be missing?"
+    ]
+  },
+  "d9bef19c3d2a": {
+    "change": "Wheelie points for votes and reactions given: a point each, listed in the member's own history (the owner, 2026-11-21)",
+    "prompts": [
+      "Can we also add point for reactions and up/down votes? That way you can see your full history"
+    ]
+  },
+  "da6cd2c37e37": {
+    "change": "Messages: pasted words keep their links, as words and address, which every copy of the app shows (the owner, 2026-11-23)",
+    "prompts": ["yes, do it for messages too"]
+  },
+  "db642e7355b8": {
+    "change": "An administrator can make a shared question's link let people join, for 24 hours",
+    "prompts": [
+      "I want to add an invite feature when sharing a question as an SCI club admin. Have a toggle that enables the link to work as an invite link for 24 hours. Meaning user can join the club if they come through the copied link for 24 hours. Might be a good way to bring people in.."
+    ]
+  },
+  "dcbf3ccaeee5": {
+    "change": "A boost lifts a post but is in no score, so members never see it; the feedback card once a day; the first event two cards lower; Worth meeting suggests mentors only (the owner, 2026-11-18)",
+    "prompts": [
+      "Can we remove the app feedback card if a user has already seen it that day. Also I think we should push the event card down a couple more spots. I think we should only have worth meeting card for mentors as they have filled out profiles. Also, can we make the boost invisible to users? Might seem broken if a post has 3 views and +10 score"
+    ]
+  },
+  "df3be1c9e89a": {
+    "change": "Calendar: a moved date's invitation goes to the next date of its series, not an earlier one a split series shares (the SCI Weekly, 2026-11-19)",
+    "prompts": [
+      "After you look into that. Can you figure out if we can update the SCI Weekly meeting in the app after the update to move it to 2pm?",
+      "approve the SCI Weekly invite and move Nov 20 to 2pm",
+      "Did the guests of the invite create a notification for each member to join the meeting?"
+    ]
+  },
+  "df8d76e71c1d": {
+    "change": "Home Screen app: the keyboard is counted from the page's height before it came up, as on iOS 26 it can shorten the page too and leave the reply box under it (the owner, 2026-11-23)",
+    "prompts": [
+      "The reply keyboard is broken on iPhone. The keyboard covers the input text box\n[1 picture attached]"
+    ]
+  },
+  "dfb6ff7eb67a": {
+    "change": "Can't go on the club's own event page, beside Going and Interested: it takes back an RSVP, the event's organizers see it on the guest list, and Can't go in an invite email saves it",
+    "prompts": ["I like the can't go button. Maybe we should add that to our own event?"]
+  },
+  "e00dd0c86190": {
+    "change": "Tabs: Home, Peers, Events and Me open on their first screen, not the page last looked at; only Chat goes back to its conversation (the owner, 2026-11-19)",
+    "prompts": [
+      "When I tap on home it should take me to home, not the last page I was on in home, same with peers etc. Why does the app take me to the last peer I was looking at when I hit the peers tab? Is this a change I made?"
+    ]
+  },
+  "e05c9086cecc": {
+    "change": "About us looks like Peers: the Peers card for each team member, with the age and city blurred, opening their profile at /about/:id as members see it, the injury's month and day blurred; the Privacy Policy says so. about_us_team returns browse_members' shape without city, state, age or injury date",
+    "prompts": [
+      "Can we add friend to the family/spouse category? Maybe instead of relative/spouse say family / friend of someone with SCI? Also instead of professional let's change it to staff",
+      "I want the about page to look just like the peers tab. I also want it to be possible to tap on the people and be able to see their profile."
+    ]
+  },
+  "e1840860ae0c": {
+    "change": "A room can be shared: Share beside Mute sends it to a contact or group, copies its link, or shares it elsewhere (the owner, 2026-11-18)",
+    "prompts": [
+      "I just got an e-mail for A change to one date of The SCI Club Weekly was not copied, because the club cannot hold one date of a repeating event apart from the rest.\n\nChange that date in the club, or change the whole series in your calendar.",
+      "We should try to support this. Maybe we can delete the one repeating event that was changed and create a one off event at the new time?",
+      "Or anyway you see fit",
+      "Can you create a share link for rooms. So we can share rooms with people?"
+    ]
+  },
+  "e1a7614a17d4": {
+    "change": "On an iPhone, Google sits under Apple, and the email button says so",
+    "prompts": [
+      "Can we mimic this signup screen? I like how clean it is. I think we should ask for both ape or Google on iphone so people can meet re easily access on their laptop.letme see what you come up with\n[1 picture attached]",
+      "for now let's just bring the Google sign in above the fold on iphone",
+      "Instead of other ways can we say join with email?",
+      "Can you show me the screenshot as it ould be on iphone and on android. How can you sign in with apple on an android phone?"
+    ]
+  },
+  "e1cac5c306a7": {
+    "change": "Going on an event asks for notifications too, as Get a reminder before it starts?: a member who only reads would otherwise never be asked",
+    "prompts": [
+      "So notification nudge for fresh users",
+      "What are the questions left to answer for the notification change?",
+      "Yes to both"
+    ]
+  },
+  "e208a014faa3": {
+    "change": "Bands: each pill says its band, Injured 2–5 years and so on; 50+ a little more purple (the owner, 2026-11-18)",
+    "prompts": ["Update the text in all Injured 2-5 years etc"]
+  },
+  "e6b0b416e3ea": {
+    "change": "A member an organizer checks in joins the hosting organization and is told; the guest list ticks check-ins as they happen",
+    "prompts": [
+      "If an admin check in a member at an event, they can become a member.. Can we also make sure the checked in status is live? So if a member checked in, there is a checkbox next to their name at the event.",
+      "Have the member get a notification if an admin check them in.."
+    ]
+  },
+  "e6b3360a6851": {
+    "change": "A question shared by an admin of only one organization is that organization's link: who joins through it joins it",
+    "prompts": [
+      "So just to be clear. Any link an admin creates with an expiration date can be used to enter the club with any e-mail address. If it is from a question or from a QR code? Even if the link is not associated with an organization? Also, when admin's of only one org paste a question link, those links should be associated with that org."
+    ]
+  },
+  "e6dea06efeb8": {
+    "change": "Any active admin's invite lets people in, an organization's admin's too, and a shared question never says who shared it",
+    "prompts": [
+      "Yes go ahead\nYeah if an invite code is tied to a user, we do not need to associate that new member with an organization",
+      "Make sure these QR codes also work when we share questions",
+      "I want to let people in even if no organization is selected. As long as the invite is tied to an active admin we are OK. I would say any active admin of any organization.",
+      "I think sharing the question title publicly is OK, as long as we do not share who shared it"
+    ]
+  },
+  "e70f279d84c7": {
+    "change": "Wheelie points: outline wheels the height of the injury pill; points on Peers cards",
+    "prompts": [
+      "On the profile cards we can put the wheel below the injury level and specify how many points the user has",
+      "that looks better. Can you make the wheel the same height as the pill?",
+      "the injury level pill"
+    ]
+  },
+  "e7cc487d1c2b": {
+    "change": "Wheelie points only on the Me tab for now: off members' profiles (the owner, 2026-11-21)",
+    "prompts": [
+      "Actually hold off. I forgot it was on the profile page. Can you only have it in the me tab for now.."
+    ]
+  },
+  "e8317d8c70f6": {
+    "change": "Change is beside the distance at any distance too",
+    "prompts": ["Show the change city on the peers page too"]
+  },
+  "e8a526d7d29e": {
+    "change": "The iPhone app is suggested only after signing in, in the browser where autofill helps: no App Store banner and no Open in the app before then; the nudge says Get the app first, then Open in the app, which carries the sign-in over",
+    "prompts": [
+      "Will it say this if the app is not installed? If not installed should say install no?",
+      "Actually, can we move the pop-up to just replace the home screen a nudge signing in is better than a browser because you can auto fill your name phone number, etc. so I think the right solution is to always have user sign in and a browser and then ask them to install the app",
+      "To be clear once they sign in, we could pass in the credentials to the app so that they don't have to use their password again?"
+    ]
+  },
+  "e96b8fcdebc1": {
+    "change": "Six organizations' towns get their place back",
+    "prompts": [
+      "Why do I see all the events from [an organization]? I feel they crowd out the events feed",
+      "I thought we default to the org location if the event does not have one?"
+    ]
+  },
+  "ebf5d9084318": {
+    "change": "Anonymous sits inside the reply box, over its Post button",
+    "prompts": ["Can we bring anonymous into the yellow reply box?\n[1 picture attached]"]
+  },
+  "ecd494dbc7f4": {
+    "change": "Invited by email: plainer words, and steps not reached yet easier to read",
+    "prompts": [
+      "I meant to put the invite list on the event itself for the event based invites. We can incorporate status and what happened in the guestlist?"
+    ]
+  },
+  "ed4e784b37fa": {
+    "change": "Invites open on Welcome, saying who they are from; one password box",
+    "prompts": [
+      "Let's just go back to \"Wojtek invited you to join The SCI Club\" The first line of the e-mail is too long. Also, can we have them land on our welcome screen with the text changed from \"No invite yet? [Request an invite](https://thesciclub.com/request-invite)\" to You have an invite Wojtek (assuming Wojtek is the given name)",
+      "Let's also remove the password confirmation box. Having them type it in once is good enough"
+    ]
+  },
+  "edc6cf5124c2": {
+    "change": "Share an event or organization into a chat, copy its link, or share elsewhere",
+    "prompts": [
+      "Can we add a share icon to organizations as well. Also for events and this new icon, we should have an option to share within the app. So should have an option to send it to a contact or group, copy a link, or share elsewhere"
+    ]
+  },
+  "ee43eb77e760": {
+    "change": "Distance from another place, and + Event or + Organization on a computer",
+    "prompts": [
+      "Can we move the + button on events and org on desktop back up to the top bar. If there is enough space add a  \"+ Event\" and \"+ Organization\" buttin in the middle of the top bar ?",
+      "make the button appear when the right type is selected. When on events + event and visa versa",
+      "Also, when in list mode, I want the user to be able to specify a new city to filter the list on. Maybe add a \"change\" linked text next to [a city]. If user clicks it, they can enter a new city, state, or zip code"
+    ]
+  },
+  "ee61dfc40706": {
+    "change": "A room's Share and Mute sit beside its name, so its description and counts keep the width (screenshot review)",
+    "prompts": [
+      "I just got an e-mail for A change to one date of The SCI Club Weekly was not copied, because the club cannot hold one date of a repeating event apart from the rest.\n\nChange that date in the club, or change the whole series in your calendar.",
+      "We should try to support this. Maybe we can delete the one repeating event that was changed and create a one off event at the new time?",
+      "Or anyway you see fit",
+      "Can you create a share link for rooms. So we can share rooms with people?"
+    ]
+  },
+  "eede21ae367f": {
+    "change": "No distance on a map, and what you are going to tops Events",
+    "prompts": [
+      "If a user switches to map mode, remove the distance filter, it does not make sense on a map",
+      "Can we also let users specify a location for the distance filter (with the current location filled in)",
+      "When you hit the events tab, can you list events I am going to up top, followed by the rest?",
+      "Home city, and push the two finished ones"
+    ]
+  },
+  "f05d1db6e560": {
+    "change": "The tab bar only hides on a touch screen",
+    "prompts": [
+      "Can we only do the disappearing bottom bar on mobile. On desktop it creates a weird effect",
+      "It hides when I scroll in chrome"
+    ]
+  },
+  "f0c932ef0716": {
+    "change": "Photographs: as many as a member wants, not four",
+    "prompts": [
+      "Why do we tell people they can post four pictures. It takes up a lot of space and makes post reply wrap. Why do we even have the limit. Let people post as many pictures as they want.\n[1 picture attached]"
+    ]
+  },
+  "f1104b3ef201": {
+    "change": "The private-message warning stays when the link lets people join",
+    "prompts": ["The copy link button should also be on the bottom"]
+  },
+  "f15513294338": {
+    "change": "The administrators' activity count for RSVPs says it counts only \"going\", and its note reads in one pass (screenshot review, 2026-11-18)",
+    "prompts": [
+      "Can you also add a few more stats. How many posts they viewed. Hopw many questions asked and answered. Number of messages sent. How many events viewed. How many events RSVPd. How many reviews submitted."
+    ]
+  },
+  "f2e536ca59b5": {
+    "change": "Admin › Invite log: every invite email (sent by, opened, link clicked, account made, the member it became) and every QR code and invite link (made by, when, how, who joined from it), newest first (the owner, 2026-11-25)",
+    "prompts": [
+      "On the admin page, can we add a tab for invites and keep a chronological list of all e-mail invites sent and by whom, if the invites were opened and if they were used to create an account (if so what account with a link to the users profile page), and QR codes generated. For all QR codes and links have the author, show a list of users that created profiles from them."
+    ]
+  },
+  "f34e0f76ac5f": {
+    "change": "Events: You're going has every coming date the member is going to, not only those in the next 30 days within 50 miles (the owner, 2026-11-18)",
+    "prompts": [
+      "i am not seeing events I am going to be default in the events tab. It disappeared. I have to search for [an event topic], the event I am going to pops up as going. Something broke"
+    ]
+  },
+  "f3a18fca6bf4": {
+    "change": "The app card also comes when a member asks, answers or sends something: Get notified when someone replies",
+    "prompts": [
+      "[page context added by the app, not typed by the owner, not kept]\n\nWhat about when a user answers a question or asks a question? That is a great time to tell them to install the app and get notified if there is a response"
+    ]
+  },
+  "f45cdf0ffd2c": {
+    "change": "Interested is nudged to RSVP, not told what it shares",
+    "prompts": [
+      "They can always say interested and add to their calendar so that is fine",
+      "yeah lets get rid of the saying interested shares nothing. There is too much of this explainer text in the app",
+      "Maybe say, Make sure to RSVP in order to let the organizers know you are coming if you decide to go.",
+      "or something along those lines"
+    ]
+  },
+  "f562cee32c1d": {
+    "change": "The invite-code probe gives its invite an inviter",
+    "prompts": [
+      "what is the  passkey sign-in bug",
+      "yes let's fix it",
+      "Maybe we should hide the e-mail / password login method. If a user uses Google or Apple then they do not need a passkey right? Could we hide the password option behind use a different login method? If we pass cookies from chrome/safari to the homescreen bookmark, the login should be consistent across both?",
+      "If a user get's invited using one e-mail, but the apple passkey creates a new one, will they still get in?",
+      "Yes that works build it. I might even argue if the e-mail is on the list they should be let in.",
+      "I think we should have a text box for the user to enter the other e-mail/ Let's get rid of the sign out button and replace it with \"request an invite\" we can get rid of all the different options for now, just have the request sent to me for now.",
+      "Is the name pulled through from the rsvp form?"
+    ]
+  },
+  "f5d3918985c6": {
+    "change": "The mentor email in the owner's new words: help build the team of mentors before launch by completing the profile, the Topics question above all; subject Help theSCIclub and complete your profile (the owner, 2026-11-21)",
+    "prompts": [
+      "Can you modify the auto-generated e-mail to the following \"\n\n[pasted text, 558 characters, not kept]",
+      "Change the subject to \"Help theSCIclub and complete your profile\""
+    ]
+  },
+  "f6613e575521": {
+    "change": "The strike conversation does not load the administrators' module",
+    "prompts": [
+      "Can there be a dialogue between the anonymous poster and the admin who flagged the post there should be an opportunity for them to respond.\nHow explicit are we in strikeable offenses? Can you show me the clear rules of what strikes are? I think things that we need to keep an eye on or harassment, information presented as medical facts, selling of online products, spamming, etc..",
+      "I don't think repeating outside a room should be an instant strike. I post screen shots of questions to get people to answer."
+    ]
+  },
+  "f765657decb5": {
+    "change": "About us, at /about: the members building the club, for anybody, linked from the welcome screen's \"by people with SCI\", with Join the club to meet them; city, age and the injury's month and day are blurred stand-ins, never sent",
+    "prompts": [
+      "Can we create an about us page for public display for the members of theSCIClub explaining these are the people working on building this app. Blur out the city, age, injury month/date. Link to this page from the welcome where it says \"by people with SCI\"",
+      "Have a join the club button to meet them and other people with SCI",
+      "Add [a member], [a member] and [a member]. I just made them admins as well"
+    ]
+  },
+  "f77bffba6424": {
+    "change": "The tab bar comes back at the end of a page, and stays there",
+    "prompts": [
+      "When we hide chats, let’s make sure we don’t hide any that have been unread..",
+      "When a user scrolls to the end of a feed or event or screen, stop trying to hide the bottom bar. There is an issue when you try to delete an event, which expands the screen below the navigation bar and then when I try to scroll to see the new button it disappears. Can you fix this corner case?",
+      "So maybe if a user hits the end of a page the bottom bar just stays? Even if a button is hit to show more?"
+    ]
+  },
+  "f7ba661f7562": {
+    "change": "Create email: a blank line between the steps, each link on its own line",
+    "prompts": [
+      "Could you put spaces between the 1, 2, 3 in the e-mail and format it nicer? Is it good to spell out the URL or have links?"
+    ]
+  },
+  "f91199d0806c": {
+    "change": "The administrators' section on a member's page reads plainly: devices by name, one join date, notifications as yes or no and why, days active as days (screenshot review, 2026-11-18)",
+    "prompts": [
+      "As an admin go to users page can I have a section at the bottom explaining how they came into the app? What are they using for the app? What devices have been detected? Do they have notifications on the last time they were active and how many days they have logged in. Make this a special feature for Sci club admin."
+    ]
+  },
+  "fb377f00457c": {
+    "change": "Members can ask and reply anonymously",
+    "prompts": ["Can we add an option to ask questions and reply anonymously?"]
+  },
+  "fbc4b99bce66": {
+    "change": "Save goes: no Save on topics or replies and no Saved page; hardly used, and the saves stay stored for any app still offering it (the owner, 2026-11-21)",
+    "prompts": [
+      "Has anyone clicked save?",
+      "Who saved six",
+      "Does apple require saving?",
+      "Yes please."
+    ]
+  },
+  "fc1c1dc51c56": {
+    "change": "Every injury stage has its colour, and Home's cards highlight the level too (the owner, 2026-11-17)",
+    "prompts": [
+      "I am not seeing the color coding on the age or in the questions\n[2 pictures attached]"
+    ]
+  },
+  "fc26c09f4f6d": {
+    "change": "Answer on Home opens the reply box, rich text and all; words pasted into a plain box keep their links, as Markdown (the owner, 2026-11-23)",
+    "prompts": [
+      "When you tap answer you do not get a rich text box. Also, when I paste text with links it does not keep the links."
+    ]
+  },
+  "fccbcd938aba": {
+    "change": "Tabs: the tab tapped turns a ring round its icon while it reads again, until its reads are in (the owner, 2026-11-19)",
+    "prompts": [
+      "As the tab reloads can we have a loading spinner wheel maybe overlapping the tab that was pressed. Indicating we are reloading?"
+    ]
+  },
+  "fcd4ea14cfe2": {
+    "change": "The Wheelie wheel is a wheelchair's: thinner spokes and a push rim inside the tyre (the owner, 2026-11-21)",
+    "prompts": [
+      "Can we change the image of the wheel on tests for wheelies points. Can you make the spokes thinner and add a push rim?",
+      "Also get rid of my posts and saved as that is in your journey. Maybe instead of calling it your journey we can just call it history? wdyt"
+    ]
+  },
+  "fd3d79082245": {
+    "change": "No passkey offer after Google or Apple; the not-invited screen reads plainer",
+    "prompts": [
+      "I just tried to sign in with Google and it asked me to add a passkey",
+      "Why is that?",
+      "It was after I finished onboarding. Is that for everyone?",
+      "If they use Google or Apple I don't think we should ask them to create a passkey",
+      "Also for people without an invite instead of \"Invited at a different email?\" say \"Did you receive an invite under a different e-mail address?\"",
+      "Pull the request an invite button up. Say in bold \"If not\" then request an invite button below",
+      "Let's make the note required and instead of Note say, How did you hear about the club?"
+    ]
+  },
+  "fdfb1751630c": {
+    "change": "The administrators' section on a member's page counts what they have done: posts viewed, questions asked and answered, messages sent, events viewed and RSVP'd, and reviews under their name (the owner, 2026-11-18)",
+    "prompts": [
+      "Can you also add a few more stats. How many posts they viewed. Hopw many questions asked and answered. Number of messages sent. How many events viewed. How many events RSVPd. How many reviews submitted."
+    ]
+  },
+  "ff28702d7304": {
+    "change": "A member's page ends, for the club's administrators only, with how they came, how they sign in, what they use, whether they can be notified, and when and how often they are active (the owner, 2026-11-18)",
+    "prompts": [
+      "As an admin go to users page can I have a section at the bottom explaining how they came into the app? What are they using for the app? What devices have been detected? Do they have notifications on the last time they were active and how many days they have logged in. Make this a special feature for Sci club admin."
+    ]
+  },
+  "ffa44cce6dbb": {
+    "change": "A post in a room can be 100,000 characters, not 4,000, and a report on one keeps every word",
+    "prompts": [
+      "Why is there a limit to posts? I just hit the limit when posting a new topic in a new room I am starting for people to share their life story. Can you remove that limit?"
+    ]
+  }
+}

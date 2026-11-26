@@ -26,6 +26,7 @@ import path from 'node:path';
 import {
   pacificDay,
   parseEntry,
+  parsePastPrompts,
   parseWeek,
   person,
   plainTitle,
@@ -87,6 +88,9 @@ function change(commit, branch) {
       // Taken out again since: the commit's first line stands in.
     }
   }
+  // What was typed for it: its entry says, or for a change from before entries did, the past's
+  // list under its key.
+  const prompts = entry?.prompts.length ? entry.prompts : (past.get(key(commit.subject)) ?? []);
   return {
     sha: commit.hash.slice(0, 8),
     key: key(commit.subject),
@@ -104,8 +108,24 @@ function change(commit, branch) {
           },
         }
       : {}),
+    ...(prompts.length > 0 ? { prompts } : {}),
     ...(iosBuilt.has(commit.hash) ? { ios: iosBuilt.get(commit.hash) } : {}),
   };
+}
+
+/** The past changes' prompts, by key: every file of admin/changes/prompts/. */
+function pastPrompts() {
+  const folder = path.join(here, 'admin/changes/prompts');
+  const found = new Map();
+  if (!existsSync(folder)) return found;
+  for (const file of readdirSync(folder).filter((name) => name.endsWith('.json'))) {
+    for (const [change, prompts] of parsePastPrompts(
+      readFileSync(path.join(folder, file), 'utf8'),
+    )) {
+      found.set(change, prompts);
+    }
+  }
+  return found;
 }
 
 /**
@@ -244,6 +264,7 @@ function weeks() {
 const main = ref('main');
 const tests = ref('tests');
 const iosBuilt = main ? iosBuilds(main) : new Map();
+const past = pastPrompts();
 let body;
 if (!main) {
   body = { built: new Date().toISOString(), error: 'This build has no main branch to read.' };
