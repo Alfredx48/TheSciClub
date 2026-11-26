@@ -334,3 +334,16 @@ begin
   return false;
 end;
 $function$;
+
+-- Me hears its own member made staff, moved or removed while it is open
+-- (the owner, 2026-11-25). Members already read who is staff.
+do $$
+begin
+  if not exists (
+    select 1 from pg_publication_tables
+     where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'club_partners'
+  ) then
+    alter publication supabase_realtime add table public.club_partners;
+  end if;
+end;
+$$;

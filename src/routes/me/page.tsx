@@ -8,7 +8,7 @@ import { signOut, useAccount } from '@/lib/account';
 import { EMAIL_RETURN_PARAM, useSignInDetails } from '@/lib/account-email';
 import { APPLE_RETURN_PARAM } from '@/lib/apple-sign-in';
 import { useChatRooms } from '@/lib/chat/rooms';
-import { useIAmPartner, useICanConnect } from '@/lib/club-partners';
+import { useIAmPartner, useICanConnect, useMyStaffLive } from '@/lib/club-partners';
 import { describeThrown } from '@/lib/describe-error';
 import { platformWords, surface } from '@/lib/device-check';
 import { isEventOver } from '@/lib/event-over';
@@ -284,6 +284,7 @@ export default function MePage() {
   const feedbackRoom = appFeedbackRoom(useChatRooms().rooms);
   // An org admin makes QR codes for their organization (20261028960000).
   const orgAdmin = useMyOrganizations(userId).ids.size > 0;
+  useMyStaffLive(userId);
   const partner = useIAmPartner(userId) === true;
   const canConnect = useICanConnect(userId) === true;
   const hasClubTools =

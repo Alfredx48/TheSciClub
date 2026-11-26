@@ -57,6 +57,7 @@ vi.mock('@/lib/club-partners', async (importOriginal) => ({
   ...(await importOriginal<object>()),
   useIAmPartner: () => privileges.partner,
   useICanConnect: () => privileges.connects,
+  useMyStaffLive: () => undefined,
 }));
 vi.mock('@/lib/invite-permissions', () => ({
   useInvitePermissions: () => ({

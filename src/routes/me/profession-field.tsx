@@ -28,18 +28,20 @@ export function ProfessionField() {
   const memberId = account.status === 'member' ? account.userId : null;
   const staffOf = useStaffOrganizations();
   const organization = memberId ? staffOf?.get(memberId)?.name : undefined;
-  const { hash } = useLocation();
+  // The key too: the notification pressed again, with Me already there.
+  const { hash, key } = useLocation();
   const form = useRef<HTMLFormElement>(null);
   const input = useRef<HTMLInputElement>(null);
   const loaded = saved !== null;
 
-  // From the notification: once, when the box is there.
+  // From the notification: each time, once the box is there.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: a new key is a new press.
   useEffect(() => {
     if (hash !== '#profession' || !loaded) return;
     const at = form.current;
     if (at && 'scrollIntoView' in at) at.scrollIntoView({ block: 'center' });
     input.current?.focus({ preventScroll: true });
-  }, [hash, loaded]);
+  }, [hash, key, loaded]);
 
   useEffect(() => {
     let live = true;

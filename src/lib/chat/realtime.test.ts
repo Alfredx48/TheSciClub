@@ -21,7 +21,7 @@ import { useRealtimeRows } from '@/lib/chat/realtime';
 interface Handler {
   event: string;
   filter: string | undefined;
-  fire: (payload?: { new?: Record<string, unknown> }) => void;
+  fire: (payload?: { new?: Record<string, unknown>; old?: Record<string, unknown> }) => void;
 }
 
 interface FakeChannel {
@@ -89,6 +89,20 @@ describe('useRealtimeRows', () => {
     // and keeps the row, so it arrives as an UPDATE.
     expect(only().handlers.map((h) => h.event)).toEqual(['INSERT', 'UPDATE']);
     expect(only().handlers.every((h) => h.filter === 'thread_id=eq.t1')).toBe(true);
+  });
+
+  it('hears deletes when asked, unfiltered, passing the old row on', () => {
+    // Me's own staff row (20261125160000): Realtime cannot filter a delete.
+    const onChange = vi.fn();
+    const onDelete = vi.fn();
+    renderHook(() => {
+      useRealtimeRows({ table: 'club_partners', filter: 'member_id=eq.m1', onChange, onDelete });
+    });
+    const deletes = only().handlers.filter((h) => h.event === 'DELETE');
+    expect(deletes.map((h) => h.filter)).toEqual([undefined]);
+    deletes[0]?.fire({ old: { member_id: 'm2' } });
+    expect(onDelete).toHaveBeenCalledWith({ member_id: 'm2' });
+    expect(onChange).not.toHaveBeenCalled();
   });
 
   it('carries no filter at all when it was not given one', () => {

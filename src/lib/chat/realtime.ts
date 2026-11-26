@@ -48,6 +48,11 @@ export interface RealtimeRowsOptions {
    * `onChange`: those cover a gap of any length.
    */
   onFirstSubscribe?: () => void;
+  /**
+   * Given, deletes are heard too, with the old row's key only. Realtime cannot
+   * filter a delete, so this hears every one on the table and must check it.
+   */
+  onDelete?: (old: Record<string, unknown>) => void;
 }
 
 /**
@@ -64,6 +69,7 @@ export function useRealtimeRows({
   onRow,
   onReturn,
   onFirstSubscribe,
+  onDelete,
 }: RealtimeRowsOptions) {
   // Callbacks held in refs so the socket is not rebuilt on every caller render.
   const latest = useRef(onChange);
@@ -74,6 +80,9 @@ export function useRealtimeRows({
   latestReturn.current = onReturn;
   const latestFirst = useRef(onFirstSubscribe);
   latestFirst.current = onFirstSubscribe;
+  const latestDelete = useRef(onDelete);
+  latestDelete.current = onDelete;
+  const hearDeletes = Boolean(onDelete);
 
   useEffect(() => {
     if (!enabled) return;
@@ -95,8 +104,8 @@ export function useRealtimeRows({
       };
 
     channel
-      // No DELETE: removal is a soft UPDATE. The one real delete, a whole topic
-      // (20260927040000), is not heard: Realtime cannot filter deletes; rooms catch up on focus.
+      // No DELETE unless asked (onDelete): removal is a soft UPDATE. A whole topic's
+      // delete (20260927040000) is not heard: Realtime cannot filter deletes; rooms catch up on focus.
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table, ...(filter ? { filter } : {}) },
@@ -106,16 +115,25 @@ export function useRealtimeRows({
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table, ...(filter ? { filter } : {}) },
         changed('UPDATE'),
-      )
-      .subscribe((status) => {
-        // First subscribe and every reconnection (see the header).
-        if (status !== REALTIME_SUBSCRIBE_STATES.SUBSCRIBED) return;
-        const first = !subscribed;
-        subscribed = true;
-        if (first && latestFirst.current) {
-          if (!pageHidden()) latestFirst.current();
-        } else fire();
-      });
+      );
+    if (hearDeletes)
+      channel.on(
+        'postgres_changes',
+        { event: 'DELETE', schema: 'public', table },
+        (payload?: { old?: Record<string, unknown> }) => {
+          const old = payload?.old;
+          if (!pageHidden() && old && typeof old === 'object') latestDelete.current?.(old);
+        },
+      );
+    channel.subscribe((status) => {
+      // First subscribe and every reconnection (see the header).
+      if (status !== REALTIME_SUBSCRIBE_STATES.SUBSCRIBED) return;
+      const first = !subscribed;
+      subscribed = true;
+      if (first && latestFirst.current) {
+        if (!pageHidden()) latestFirst.current();
+      } else fire();
+    });
 
     // Focus or shown again, heard once (src/lib/page-return.ts).
     const stopReturn = onPageReturn(() => {
@@ -127,5 +145,5 @@ export function useRealtimeRows({
       stopReturn();
       void supabase.removeChannel(channel);
     };
-  }, [table, filter, enabled]);
+  }, [table, filter, enabled, hearDeletes]);
 }

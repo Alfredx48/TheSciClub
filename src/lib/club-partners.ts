@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useSyncExternalStore } from 'react';
+import { useRealtimeRows } from '@/lib/chat/realtime';
 import type { Failure } from '@/lib/describe-error';
 import { useKeptRead } from '@/lib/kept-reads';
 import { getSupabase } from '@/lib/supabase';
@@ -87,8 +88,43 @@ export async function fetchStaffOrganizations(): Promise<StaffOrganizations> {
   return (await fetchStaffRows()).organizations;
 }
 
+// Each forget is a new version, so what is on screen reads again.
+let version = 0;
+const listeners = new Set<() => void>();
+
 export function forgetPartnerTitles(): void {
   rows = null;
+  version += 1;
+  for (const listener of listeners) listener();
+}
+
+function subscribe(listener: () => void): () => void {
+  listeners.add(listener);
+  return () => {
+    listeners.delete(listener);
+  };
+}
+
+function useStaffVersion(): number {
+  return useSyncExternalStore(subscribe, () => version);
+}
+
+/**
+ * Me hears its own member made staff, moved or removed while it is open (the
+ * owner, 2026-11-25), and reads who is staff again.
+ */
+export function useMyStaffLive(memberId: string | null): void {
+  useRealtimeRows({
+    table: 'club_partners',
+    filter: memberId ? `member_id=eq.${memberId}` : undefined,
+    onChange: forgetPartnerTitles,
+    // Me's own reads were a moment ago.
+    onFirstSubscribe: () => undefined,
+    onDelete: (old) => {
+      if (old.member_id === memberId) forgetPartnerTitles();
+    },
+    enabled: Boolean(memberId),
+  });
 }
 
 /** Null until read. A failure draws no label, which is the safe way to fail. */
@@ -103,6 +139,8 @@ export function useStaffOrganizations(): StaffOrganizations | null {
 
 function useStaffRows(): StaffRows | null {
   const [state, setState] = useState<StaffRows | null>(null);
+  const staffVersion = useStaffVersion();
+  // biome-ignore lint/correctness/useExhaustiveDependencies: a new version is a read again.
   useEffect(() => {
     let live = true;
     void fetchStaffRows().then((found) => {
@@ -111,7 +149,7 @@ function useStaffRows(): StaffRows | null {
     return () => {
       live = false;
     };
-  }, []);
+  }, [staffVersion]);
   return state;
 }
 
@@ -121,14 +159,17 @@ function useYesOrNo(question: string, memberId: string | null): boolean | null {
     yes: null,
   });
   const kept = useKeptRead();
+  // Being made staff or removed changes both answers.
+  const staffVersion = useStaffVersion();
   useEffect(() => {
     if (!memberId) {
       setState({ memberId, yes: false });
       return;
     }
     // A kept tab shown again within the minute (lib/kept-reads.ts).
-    if (kept.fresh(memberId)) return;
-    const landed = kept.start(memberId);
+    const key = `${memberId}:${staffVersion}`;
+    if (kept.fresh(key)) return;
+    const landed = kept.start(key);
     const controller = new AbortController();
     void (async () => {
       try {
@@ -145,7 +186,7 @@ function useYesOrNo(question: string, memberId: string | null): boolean | null {
     return () => {
       controller.abort();
     };
-  }, [question, memberId, kept]);
+  }, [question, memberId, kept, staffVersion]);
   return state.memberId === memberId ? state.yes : null;
 }
 
