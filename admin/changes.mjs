@@ -31,7 +31,9 @@ import {
   person,
   plainTitle,
   SURFACES,
+  sizeOf,
   surfaceOf,
+  testsAdded,
   weekOf,
 } from './changes-lib.mjs';
 
@@ -57,23 +59,68 @@ const ref = (branch) =>
 
 const key = (subject) => createHash('sha1').update(subject).digest('hex').slice(0, 12);
 
-/** The commits of a range, newest first, each with the files it changed. */
+/** The test files' paths, for the patch the tests are counted in (changes-lib.mjs, testsAdded). */
+const TEST_PATHS = [
+  ':(glob)**/*.test.*',
+  ':(glob)**/*.spec.*',
+  ':(glob)**/__tests__/**',
+  'supabase/tests',
+];
+
+/**
+ * The commits of a range, newest first, each with the files it changed, how many lines of each
+ * it added and took out, and how many tests it added.
+ */
 function commits(range, ...more) {
   const text = git(
     'log',
     '--no-merges',
-    '--name-only',
+    '--no-renames',
+    '--numstat',
     '--format=%x01%H%x09%an%x09%cI%x09%s',
     ...more,
     range,
   );
+  // Only the test files' lines: a range's whole patch would be far bigger than needed.
+  const tests = new Map();
+  for (const block of git(
+    'log',
+    '--no-merges',
+    '--no-renames',
+    '-p',
+    '-U0',
+    '--format=%x01%H',
+    ...more,
+    range,
+    '--',
+    ...TEST_PATHS,
+  ).split('\x01')) {
+    const hash = block.slice(0, 40);
+    if (/^[0-9a-f]{40}$/.test(hash)) tests.set(hash, testsAdded(block.slice(40)));
+  }
   return text
     .split('\x01')
     .filter(Boolean)
     .map((block) => {
-      const [head, ...files] = block.split('\n').filter(Boolean);
+      const [head, ...lines] = block.split('\n').filter(Boolean);
       const [hash, author, at, ...subject] = head.split('\t');
-      return { hash, author, at: new Date(at).toISOString(), subject: subject.join('\t'), files };
+      const numstat = lines.map((line) => {
+        const [plus, minus, ...name] = line.split('\t');
+        return {
+          path: name.join('\t'),
+          plus: plus === '-' ? null : Number(plus),
+          minus: minus === '-' ? null : Number(minus),
+        };
+      });
+      return {
+        hash,
+        author,
+        at: new Date(at).toISOString(),
+        subject: subject.join('\t'),
+        files: numstat.map((file) => file.path),
+        numstat,
+        tests: tests.get(hash) ?? 0,
+      };
     });
 }
 
@@ -91,13 +138,16 @@ function change(commit, branch) {
   // What was typed for it: its entry says, or for a change from before entries did, the past's
   // list under its key.
   const prompts = entry?.prompts.length ? entry.prompts : (past.get(key(commit.subject)) ?? []);
+  const surface = entry?.surface ?? surfaceOf(commit.files, commit.subject);
   return {
     sha: commit.hash.slice(0, 8),
     key: key(commit.subject),
     by: person(commit.author),
     at: commit.at,
     title: plainTitle(commit.subject),
-    surface: entry?.surface ?? surfaceOf(commit.files, commit.subject),
+    surface,
+    size: sizeOf(commit.numstat, surface),
+    tests: commit.tests,
     ...(entry
       ? {
           entry: {

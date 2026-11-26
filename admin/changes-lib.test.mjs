@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
-import { pacificDay, parseEntry, surfaceOf, weekOf } from './changes-lib.mjs';
+import { pacificDay, parseEntry, sizeOf, surfaceOf, testsAdded, weekOf } from './changes-lib.mjs';
 
 // The change log sorts releases into Pacific days and Monday-to-Sunday weeks; the release
 // tags are in UTC, where an evening release is already the next day.
@@ -78,5 +78,46 @@ describe('the change log', () => {
     });
     expect(entry?.summary).toContain('Sending a message scrolls down to it. Before, you had');
     expect(parseEntry('No front matter.')).toBeNull();
+  });
+
+  it('sizes a change by its code, not its tests or notes, and counts the tests it added', () => {
+    const size = sizeOf(
+      [
+        { path: 'src/routes/events/post-to-home.tsx', plus: 200, minus: 10 },
+        { path: 'src/routes/home/topic-card.tsx', plus: 12, minus: 4 },
+        { path: 'src/routes/events/post-to-home.test.tsx', plus: 75, minus: 0 },
+        { path: 'admin/changes/entries/2026-11-25-event-on-home.md', plus: 9, minus: 0 },
+        { path: 'admin/changes/shots/a.jpg', plus: null, minus: null },
+        { path: 'pnpm-lock.yaml', plus: 400, minus: 300 },
+      ],
+      'Events',
+    );
+    expect(size).toEqual({ lines: 226, surfaces: ['Home', 'Events'] });
+
+    const patch = [
+      'diff --git a/src/a.test.ts b/src/a.test.ts',
+      '--- a/src/a.test.ts',
+      '+++ b/src/a.test.ts',
+      '@@ -3 +3,2 @@',
+      "-  it('was called this', () => {",
+      "+  it('is called this', () => {",
+      "+  it.each([1, 2])('and this %i', () => {",
+      // A removed line that reads like a file's name, and is not one.
+      '--- not a header',
+      'diff --git a/src/b.test.tsx b/src/b.test.tsx',
+      'deleted file mode 100644',
+      '--- a/src/b.test.tsx',
+      '+++ /dev/null',
+      '@@ -1,2 +0,0 @@',
+      "-test('gone', () => {",
+      'diff --git a/supabase/tests/new-probe.sql b/supabase/tests/new-probe.sql',
+      '--- /dev/null',
+      '+++ b/supabase/tests/new-probe.sql',
+      '@@ -0,0 +1,2 @@',
+      '+begin;',
+      "+select it('is not a Vitest case');",
+    ].join('\n');
+    // Renamed: neither. it.each: one. The deleted file's: one less. The new probe: one.
+    expect(testsAdded(patch)).toBe(1);
   });
 });

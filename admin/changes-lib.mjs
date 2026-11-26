@@ -133,6 +133,71 @@ export function surfaceOf(paths, subject = '') {
   );
 }
 
+/** A test: a Vitest file, or one of the database's probes (supabase/tests/*.sql). */
+const TEST_FILE =
+  /(\.(test|spec)\.[cm]?[jt]sx?$|(^|\/)__tests__\/|^src\/test\/|^supabase\/tests\/)/;
+const PROBE = /^supabase\/tests\/[^/]+\.sql$/;
+/** Not code: notes, pictures, the lockfile, the change log's own entries. */
+const NOT_CODE =
+  /(^admin\/changes\/|\.(md|txt|jpe?g|png|gif|webp|svg|ico|pdf|snap)$|(^|\/)(pnpm-lock\.yaml|package-lock\.json)$)/;
+
+/**
+ * How big a change is (the owner, 2026-11-25: "change size (lines of code and number of
+ * surfaces/tabs impacted)"): the lines of code it added and took out, tests, notes and pictures
+ * left out; and the parts of the club members or administrators see that its files belong to,
+ * with the one it is listed under.
+ *
+ * files: [{ path, plus, minus }] from `git log --numstat`, plus and minus null for a picture.
+ */
+export function sizeOf(files, surface) {
+  let lines = 0;
+  const parts = new Set(SEEN_BY_MEMBERS.has(surface) ? [surface] : []);
+  for (const { path, plus, minus } of files) {
+    if (path.startsWith('admin/changes/')) continue;
+    const part = RULES.find(([pattern]) => pattern.test(path))?.[1];
+    if (part && SEEN_BY_MEMBERS.has(part)) parts.add(part);
+    if (TEST_FILE.test(path) || NOT_CODE.test(path) || plus === null) continue;
+    lines += plus + (minus ?? 0);
+  }
+  return { lines, surfaces: SURFACES.filter((s) => parts.has(s)) };
+}
+
+/** A test case's first line: it(, test(, it.each(…)(, Deno.test(. */
+const CASE = /^([+-])\s*(?:it|test|Deno\.test)\b(?:\.\w+)*\s*[(`]/;
+
+/**
+ * How many tests a change added (the owner, 2026-11-25), less any it took out: from its patch
+ * of test files (`git log -p -U0`), the test cases begun on lines it added or removed, and a
+ * database probe for each file of them it added or removed. A test renamed counts as neither.
+ */
+export function testsAdded(patch) {
+  let count = 0;
+  let from = null;
+  let file = null;
+  // Between a file's "diff --git" and its first hunk: where its names are.
+  let header = false;
+  for (const line of patch.split('\n')) {
+    if (line.startsWith('diff --git ')) {
+      header = true;
+      from = null;
+      file = null;
+    } else if (header && line.startsWith('--- ')) {
+      from = line === '--- /dev/null' ? null : line.slice(6);
+    } else if (header && line.startsWith('+++ ')) {
+      file = line === '+++ /dev/null' ? null : line.slice(6);
+      // A probe is one test, its whole file.
+      if (file && PROBE.test(file) && from === null) count += 1;
+      if (file === null && from && PROBE.test(from)) count -= 1;
+    } else if (line.startsWith('@@')) {
+      header = false;
+    } else if (!header && !PROBE.test(file ?? from ?? '')) {
+      const m = CASE.exec(line);
+      if (m) count += m[1] === '+' ? 1 : -1;
+    }
+  }
+  return count;
+}
+
 /**
  * A change's entry (admin/changes/entries/*.md):
  *
