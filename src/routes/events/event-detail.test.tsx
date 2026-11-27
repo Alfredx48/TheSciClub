@@ -88,6 +88,11 @@ vi.mock('@/lib/event-audience', async (importOriginal) => ({
     }),
 }));
 vi.mock('@/routes/reviews/reviews-section', () => ({ ReviewsSection: () => null }));
+const askToJoinEvent = vi.fn(() => Promise.resolve({ ok: true as const, value: 'asked' as const }));
+vi.mock('@/lib/event-join-requests', () => ({
+  askToJoinEvent: () => askToJoinEvent(),
+  fetchMyJoinRequest: () => Promise.resolve(false),
+}));
 vi.mock('@/lib/organization-follows', () => ({
   useOrganizationFollows: () => ({
     following: new Set<string>(),
@@ -296,11 +301,18 @@ describe('EventDetailPage', () => {
     audience.changedBy = [];
   });
 
-  it('tells a member outside an invite-only event only that it is invite only', async () => {
+  it('tells a member outside an invite-only event only that it is invite only, and lets them ask', async () => {
+    const user = userEvent.setup();
     audience.hint = { audience: 'people', organization: null };
     renderDetail('private-dinner');
     expect(await screen.findByRole('heading', { name: 'Invite only' })).toBeInTheDocument();
-    expect(screen.getByText(/Ask whoever shared it to invite you/)).toBeInTheDocument();
+    // Asking is not an invite (20261127120000): it says only that it was asked.
+    await user.click(await screen.findByRole('button', { name: 'Ask to join' }));
+    expect(askToJoinEvent).toHaveBeenCalledOnce();
+    expect(
+      await screen.findByText(/If its organizer says yes, you’ll be invited/),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Ask to join' })).toBeNull();
     // No way into its chat either.
     expect(screen.queryByRole('button', { name: /group chat/i })).toBeNull();
     audience.hint = null;

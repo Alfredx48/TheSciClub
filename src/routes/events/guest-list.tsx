@@ -21,6 +21,7 @@ import { cn } from '@/lib/utils';
 import { EventDeclinesList } from '@/routes/events/event-declines-list';
 import { EventInviteList } from '@/routes/events/event-invite-list';
 import { EventInviteTracking } from '@/routes/events/event-invite-tracking';
+import { EventJoinRequests } from '@/routes/events/event-join-requests';
 
 /**
  * An event's guest list, for its organizers and the club's administrators
@@ -214,6 +215,13 @@ export default function GuestListPage() {
                 </div>
               ))}
             </dl>
+
+            <EventJoinRequests
+              eventId={id}
+              onApproved={() => {
+                setVersion((v) => v + 1);
+              }}
+            />
 
             {actionError ? (
               <p role="alert" className="mt-3 text-[0.8125rem] text-destructive leading-[1.45]">

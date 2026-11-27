@@ -459,6 +459,17 @@ export function compose(owed: Owed): PushMessage | null {
         ...where,
       };
     }
+    // Asking to join an invite-only event (20261127120000): subject the
+    // event, actor_name who asked, photo_count how many are asking.
+    case 'event_join_request': {
+      if (subject === '') return null;
+      const asking = owed.photo_count > 1 ? ` and ${String(owed.photo_count - 1)} more` : '';
+      return {
+        title: `Asking to join: ${subject}`,
+        body: `${name}${asking} asked to join. Approve or decline on its guest list.`,
+        ...where,
+      };
+    }
     // An administrator made them staff (20261125160000); subject the organization.
     case 'staff_verified':
       return {

@@ -36,4 +36,6 @@ export const EVENTS: ReadonlySet<string> = new Set([
   'waiting',
   // An administrator made them staff (20261125160000).
   'staff_verified',
+  // A member asked to join an invite-only event (20261127120000).
+  'event_join_request',
 ]);

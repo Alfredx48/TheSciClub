@@ -12,6 +12,7 @@ import {
   linkIsClosed,
   publicEventUrl,
 } from '@/lib/event-audience';
+import { askToJoinEvent, fetchMyJoinRequest } from '@/lib/event-join-requests';
 import { useOrganizationFollows } from '@/lib/organization-follows';
 import type { AudienceOrganization } from '@/routes/events/audience-field';
 import { EventGroupCard } from '@/routes/events/event-group-card';
@@ -312,9 +313,9 @@ export function OutsideTheAudience({
           <Lock aria-hidden="true" className="mx-auto h-7 w-7 text-grey" />
           <h1 className="mt-3 font-extrabold font-head text-[1.25rem] text-ink">Invite only</h1>
           <p className="mt-2 text-[0.875rem] text-ink2 leading-[1.5]">
-            This event is private, for the people its organizer invited. Ask whoever shared it to
-            invite you.
+            This event is private, for the people its organizer invited.
           </p>
+          <AskToJoin eventId={eventId} onInvited={onFollowed} />
         </>
       ) : hint.audience === 'organizations' && !organization ? (
         <>
@@ -356,6 +357,80 @@ export function OutsideTheAudience({
         </>
       )}
       {isPrivateAudience(hint.audience) ? null : <EventGroupCard eventId={eventId} />}
+    </div>
+  );
+}
+
+/**
+ * Ask to join, on an invite-only event's page for a member outside it
+ * (20261127120000; the owner, 2026-11-27). Its organizers decide; a no is
+ * never said, so once asked it reads Asked either way.
+ */
+function AskToJoin({ eventId, onInvited }: { eventId: string; onInvited: () => void }) {
+  const announce = useAnnounce();
+  const [asked, setAsked] = useState<boolean | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let live = true;
+    void fetchMyJoinRequest(eventId).then((value) => {
+      if (live) setAsked(value);
+    });
+    return () => {
+      live = false;
+    };
+  }, [eventId]);
+
+  function ask() {
+    setBusy(true);
+    setError(null);
+    void askToJoinEvent(eventId).then((result) => {
+      setBusy(false);
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
+      if (result.value === 'invited') {
+        onInvited();
+        return;
+      }
+      setAsked(true);
+      announce('Asked. Its organizer will decide.');
+    });
+  }
+
+  if (asked === null) return null;
+  return (
+    <div className="mt-4">
+      {asked ? (
+        <p
+          role="status"
+          className="rounded-[13px] border border-line bg-paper px-3.5 py-3 text-[0.875rem] text-ink2 leading-[1.5]"
+        >
+          <span className="font-bold text-ink">Asked.</span> If its organizer says yes, you’ll be
+          invited and told.
+        </p>
+      ) : (
+        <>
+          <p className="text-[0.875rem] text-ink2 leading-[1.5]">
+            You can ask to join. Its organizer sees your name and decides.
+          </p>
+          <button
+            type="button"
+            onClick={ask}
+            disabled={busy}
+            className="mx-auto mt-3 flex min-h-[48px] w-full max-w-[280px] items-center justify-center rounded-[13px] bg-action px-4 font-bold font-head text-[0.9375rem] text-white hover:bg-action-hi disabled:opacity-50"
+          >
+            {busy ? 'Asking…' : 'Ask to join'}
+          </button>
+        </>
+      )}
+      {error ? (
+        <p role="alert" className="mt-2 text-[0.8125rem] text-destructive leading-[1.45]">
+          {error}
+        </p>
+      ) : null}
     </div>
   );
 }

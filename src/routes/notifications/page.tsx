@@ -92,6 +92,7 @@ const KIND_ICON: Record<NotificationKind, LucideIcon> = {
   strike_message: MessageCircle,
   strike_withdrawn: Flag,
   staff_verified: BadgeCheck,
+  event_join_request: UserPlus,
   grant_open: HandCoins,
   profile_reminder: UserPen,
   blocks_weekly: Ban,

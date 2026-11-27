@@ -69,7 +69,8 @@ export type NotificationKind =
   | 'strike_given'
   | 'strike_message'
   | 'strike_withdrawn'
-  | 'staff_verified';
+  | 'staff_verified'
+  | 'event_join_request';
 
 interface Row {
   id: string;
@@ -414,6 +415,13 @@ export function notificationSentence(n: AppNotification): string {
       return blocked === 1
         ? '1 member was blocked this week'
         : `${blocked} members were blocked this week`;
+    }
+    // Asking to join an invite-only event (20261127120000): actor who asked,
+    // place the event, count how many are asking.
+    case 'event_join_request': {
+      const who = n.actorName ?? 'A member';
+      const others = n.count > 1 ? ` and ${String(n.count - 1)} more` : '';
+      return `${who}${others} asked to join ${n.place ?? 'your invite-only event'}`;
     }
     // An administrator made them staff (20261125160000); place the organization.
     case 'staff_verified':

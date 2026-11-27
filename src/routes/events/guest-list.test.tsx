@@ -48,6 +48,7 @@ vi.mock('@/lib/send-invite', async (importOriginal) => ({
 vi.mock('@/lib/chat/realtime', () => ({ useRealtimeRows: () => undefined }));
 vi.mock('@/routes/events/event-invite-tracking', () => ({ EventInviteTracking: () => null }));
 vi.mock('@/routes/events/event-declines-list', () => ({ EventDeclinesList: () => null }));
+vi.mock('@/routes/events/event-join-requests', () => ({ EventJoinRequests: () => null }));
 vi.mock('@/lib/events', () => ({
   useEvents: () => ({
     events: state.startTime ? [{ id: 'e1', title: 'Picnic', startTime: state.startTime }] : [],
