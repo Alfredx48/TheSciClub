@@ -863,10 +863,31 @@ function ChangeEvent({
           <p className="text-[0.875rem] text-ink leading-[1.45]">
             {repeats ? 'This event repeats. Delete which dates? ' : 'Delete this event? '}
             {going > 0
-              ? `${going} member${going === 1 ? ' has' : 's have'} said they are going to this date, and will find it gone.`
+              ? `${going} member${going === 1 ? ' has' : 's have'} said they are going to this date, and will be told.`
               : 'Nobody has said they are going to this date yet.'}{' '}
             Its group chat, if it has one, stays.
           </p>
+          {/* Answered: Cancel keeps it on the calendar, marked, so they
+              see it is off (the owner, 2026-11-27). */}
+          {cancellable && answered > 0 ? (
+            <div className="mt-3 rounded-[12px] border border-line bg-paper p-3">
+              <p className="text-[0.875rem] text-ink leading-[1.45]">
+                {answered === 1 ? '1 person' : `${String(answered)} people`} said Going or
+                Interested. Cancel it instead, so they see it’s off?
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  setAsking('cancel');
+                  setError(null);
+                }}
+                disabled={busy !== null}
+                className="mt-2.5 flex min-h-[44px] w-full items-center justify-center rounded-[13px] border-[1.6px] border-emphasis px-3 font-bold font-head text-[0.9375rem] text-emphasis hover:bg-tint disabled:opacity-40"
+              >
+                {repeats ? 'Cancel this date instead' : 'Cancel it instead'}
+              </button>
+            </div>
+          ) : null}
           {error ? (
             <p role="alert" className="mt-2 text-[0.8125rem] text-destructive leading-[1.45]">
               {error}
