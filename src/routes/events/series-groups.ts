@@ -69,7 +69,15 @@ export function groupBySeries(events: ClubEvent[]): SeriesGroup[] {
     groups.push(group);
   }
 
-  return groups;
+  // A cancelled next date does not stand for the series, or the whole of it
+  // reads as cancelled (20261127100000): the next date still on does, and
+  // the cancelled one stays among its dates.
+  return groups.map((group) => {
+    if (!group.lead.cancelled) return group;
+    const all = [group.lead, ...group.rest];
+    const on = all.find((event) => !event.cancelled);
+    return on ? { ...group, lead: on, rest: all.filter((event) => event !== on) } : group;
+  });
 }
 
 /**

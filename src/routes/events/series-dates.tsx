@@ -298,7 +298,7 @@ function StopRepeating({
       {asking ? (
         <div className="rounded-[14px] border border-destructive/30 bg-destructive/5 p-3.5">
           <p className="text-[0.875rem] text-ink leading-[1.45]">
-            Stop it repeating? All {dates} dates above are deleted.{' '}
+            Stop it repeating? All {dates} dates above will be deleted, and no more are added.{' '}
             {told > 0
               ? `${people(told)} who said Going or Interested will be told.`
               : 'Nobody has answered them yet.'}{' '}

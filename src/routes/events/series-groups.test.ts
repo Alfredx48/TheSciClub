@@ -21,6 +21,19 @@ describe('groupBySeries', () => {
     expect(groups[0]?.rest.map((e) => e.id)).toEqual(['happy-2', 'happy-3']);
   });
 
+  it('leads a series with its next date still on, not a cancelled one', () => {
+    const list = [
+      on(0, { id: 'w1', seriesId: 'w', cancelled: true }),
+      on(7, { id: 'w2', seriesId: 'w' }),
+      on(14, { id: 'w3', seriesId: 'w', cancelled: true }),
+    ];
+    const [group] = groupBySeries(list);
+    expect(group?.lead.id).toBe('w2');
+    expect(group?.rest.map((e) => e.id)).toEqual(['w1', 'w3']);
+    // Every date cancelled: the first still stands for it.
+    expect(groupBySeries([list[0], list[2]].flatMap((e) => (e ? [e] : [])))[0]?.lead.id).toBe('w1');
+  });
+
   it('keeps the list in date order by each event’s next occurrence', () => {
     // Occurrences of one series are not adjacent in the input, and the group
     // must not jump to where the last one sat.
