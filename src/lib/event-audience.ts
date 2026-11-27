@@ -243,6 +243,8 @@ export interface PublicEvent {
   description: string;
   descriptionHtml: string;
   accessDetails?: string | null;
+  /** Cancelled by its organizer (20261127100000). */
+  cancelled?: boolean;
   startTime: string;
   endTime: string | null;
   allDay: boolean;
@@ -266,6 +268,7 @@ export interface PublicEventRow {
   description: string | null;
   description_html: string | null;
   access_details?: string | null;
+  cancelled_at?: string | null;
   start_time: string;
   end_time: string | null;
   all_day: boolean | null;
@@ -306,6 +309,7 @@ export function publicEventFrom(row: PublicEventRow): PublicEvent {
     description: row.description ?? '',
     descriptionHtml: row.description_html ?? '',
     accessDetails: row.access_details ?? null,
+    cancelled: Boolean(row.cancelled_at),
     startTime: row.start_time,
     endTime: row.end_time,
     allDay: Boolean(row.all_day),

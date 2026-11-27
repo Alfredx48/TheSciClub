@@ -801,6 +801,8 @@ export interface ClubEvent {
    * one implementation of what counts as "the same event".
    */
   seriesId: string | null;
+  /** Cancelled by its organizer (20261127100000): still listed, marked, and takes no answers. */
+  cancelled?: boolean;
   /** Null means the ingest job could not tell, which is not the same as in person. */
   format: EventFormat | null;
   /** Set only when the host is an organization the club already has. */

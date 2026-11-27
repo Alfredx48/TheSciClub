@@ -347,6 +347,21 @@ function EventRow({
         organizations={organizations}
         onSaved={onSent}
       />
+      {/* Every date to come, to cancel one or stop it (the owner, 2026-11-27). */}
+      {event.seriesId && !over ? (
+        <div className="mt-2 flex items-center justify-between gap-3 border-line border-t pt-2">
+          <p className="min-w-0 text-[0.8125rem] text-ink2 leading-[1.4]">
+            Cancel a date, or stop it repeating
+          </p>
+          <Link
+            to={`/events/${event.eventId}/dates`}
+            aria-label={`Manage the dates of ${event.title}`}
+            className="-my-1.5 flex min-h-[44px] flex-none items-center rounded-[10px] px-3 font-bold text-[0.8125rem] text-emphasis hover:bg-tint"
+          >
+            Dates
+          </Link>
+        </div>
+      ) : null}
       {open ? <Answers key={round} eventId={event.eventId} /> : null}
       {buttons.length > 0 ? (
         <div className="mt-2 flex flex-wrap gap-2">

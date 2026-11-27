@@ -953,7 +953,14 @@ function OwnEvents({ onRead }: { onRead: (events: ClubEvent[]) => void }) {
   const [range] = useState(() => dateWindowRange('next30') ?? {});
   const { events } = useEvents(range);
   useEffect(() => {
-    onRead(filterEvents(events, { ...EMPTY_EVENT_FILTERS, withinMiles: null }, 'upcoming'));
+    // A cancelled date is not somewhere to go (20261127100000).
+    onRead(
+      filterEvents(
+        events.filter((event) => !event.cancelled),
+        { ...EMPTY_EVENT_FILTERS, withinMiles: null },
+        'upcoming',
+      ),
+    );
   }, [events, onRead]);
   return null;
 }

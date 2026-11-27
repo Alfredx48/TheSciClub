@@ -51,7 +51,7 @@ import { memberType } from '@/types/domain';
 export const HAND_ADDED_TIMEZONE = 'America/Los_Angeles';
 
 const EVENT_COLUMNS =
-  'id, short_link, title, description, description_html, detail_summary, start_time, end_time, location, city, url, registration_url, event_format, organization_id, host_name, feed_id, series_id, photo_path, photo_alt, more_photos, timezone, all_day, state, audience, admin_override, feed_values, meeting_url, postal_code';
+  'id, short_link, title, description, description_html, detail_summary, start_time, end_time, location, city, url, registration_url, event_format, organization_id, host_name, feed_id, series_id, photo_path, photo_alt, more_photos, timezone, all_day, state, audience, admin_override, feed_values, meeting_url, postal_code, cancelled_at';
 
 /**
  * A list's columns: what a card, a filter and Home draw, without the
@@ -61,7 +61,7 @@ const EVENT_COLUMNS =
  * came back for the first lines on a card (the owner, 2026-10-31).
  */
 const LIST_COLUMNS =
-  'id, title, description, detail_summary, start_time, end_time, location, city, url, registration_url, event_format, organization_id, host_name, feed_id, series_id, photo_path, photo_alt, timezone, all_day, state, audience';
+  'id, title, description, detail_summary, start_time, end_time, location, city, url, registration_url, event_format, organization_id, host_name, feed_id, series_id, photo_path, photo_alt, timezone, all_day, state, audience, cancelled_at';
 
 /**
  * Each event's tags and tallies, embedded in the same read. They were two
@@ -122,6 +122,8 @@ interface EventRow {
   /** Null for an event added by hand (20261005020000). */
   feed_id: string | null;
   series_id: string | null;
+  /** When it was cancelled (20261127100000). */
+  cancelled_at?: string | null;
   photo_path: string | null;
   photo_alt: string | null;
   more_photos?: EventPhoto[] | null;
@@ -237,6 +239,7 @@ export function toEvents(inputs: EventJoinInputs): ClubEvent[] {
       cohostIds: (row.event_cohosts ?? []).map((c) => c.organization_id),
       handAdded: row.feed_id === null,
       seriesId: row.series_id,
+      cancelled: Boolean(row.cancelled_at),
       photoPath: row.photo_path,
       photoAlt: row.photo_alt,
       morePhotos: row.more_photos ?? [],
@@ -1159,6 +1162,95 @@ export async function deleteEvent(eventId: string): Promise<WriteResult> {
     return error ? { ok: false, error: describeError(error, refusal) } : { ok: true };
   } catch (e) {
     return { ok: false, error: describeThrown(e, refusal) };
+  }
+}
+
+/**
+ * Cancels an event, or one date of a repeating one (`cancel_event`,
+ * 20261127100000): it stays listed as Cancelled, who said Going or Interested
+ * is told, and their answers go. `told` is how many were told.
+ */
+export async function cancelEvent(eventId: string): Promise<WriteResult & { told?: number }> {
+  const refusal = {
+    attempt: 'The date was not cancelled.',
+    refused: 'You cannot cancel this event.',
+    missing: 'That event is not on the calendar any more.',
+  };
+  try {
+    const { data, error } = (await getSupabase().rpc('cancel_event', { event: eventId })) as {
+      data: number | null;
+      error: Failure | null;
+    };
+    if (error) return { ok: false, error: describeError(error, refusal) };
+    calendarChanged();
+    return { ok: true, told: data ?? 0 };
+  } catch (e) {
+    return { ok: false, error: describeThrown(e, refusal) };
+  }
+}
+
+/** One date of a repeating event, for its Manage dates page. */
+export interface SeriesDate {
+  id: string;
+  title: string;
+  startTime: string;
+  endTime: string | null;
+  timezone: string | null;
+  allDay: boolean;
+  cancelled: boolean;
+  handAdded: boolean;
+  goingCount: number;
+  interestedCount: number;
+}
+
+interface SeriesDateRow {
+  id: string;
+  title: string;
+  start_time: string;
+  end_time: string | null;
+  timezone: string | null;
+  all_day: boolean;
+  cancelled_at: string | null;
+  feed_id: string | null;
+  event_rsvp_counts?: Omit<CountRow, 'event_id'>[] | null;
+}
+
+/**
+ * The dates of a repeating event still to come, in order, cancelled ones too:
+ * the ones the viewer can see. The series makes them three months ahead.
+ */
+export async function fetchSeriesDates(
+  seriesId: string,
+): Promise<{ ok: true; value: SeriesDate[] } | { ok: false; error: string }> {
+  try {
+    const { data, error } = (await getSupabase()
+      .from('events')
+      .select(
+        'id, title, start_time, end_time, timezone, all_day, cancelled_at, feed_id, event_rsvp_counts(going_count, interested_count)',
+      )
+      .eq('series_id', seriesId)
+      .gt('start_time', new Date().toISOString())
+      .order('start_time')
+      .limit(120)) as { data: SeriesDateRow[] | null; error: Failure | null };
+    if (error)
+      return { ok: false, error: describeError(error, { attempt: 'Could not load the dates.' }) };
+    return {
+      ok: true,
+      value: (data ?? []).map((row) => ({
+        id: row.id,
+        title: row.title,
+        startTime: row.start_time,
+        endTime: row.end_time,
+        timezone: row.timezone,
+        allDay: row.all_day,
+        cancelled: Boolean(row.cancelled_at),
+        handAdded: row.feed_id === null,
+        goingCount: row.event_rsvp_counts?.[0]?.going_count ?? 0,
+        interestedCount: row.event_rsvp_counts?.[0]?.interested_count ?? 0,
+      })),
+    };
+  } catch (e) {
+    return { ok: false, error: describeThrown(e, { attempt: 'Could not load the dates.' }) };
   }
 }
 

@@ -11,6 +11,7 @@ import { isPrivateAudience, linkIsClosed } from '@/lib/event-audience';
 import { fetchMyEventDeclined, setEventDeclined } from '@/lib/event-declines';
 import { useRecordEventView } from '@/lib/event-views';
 import {
+  cancelEvent,
   deleteEvent,
   deleteEventAndLater,
   revertImportedEvent,
@@ -27,6 +28,7 @@ import { cn } from '@/lib/utils';
 import { PostBody } from '@/routes/chat/post-body';
 import { AttendeeList } from '@/routes/events/attendee-list';
 import { backLabel, backState, backToEvents } from '@/routes/events/back';
+import { CancelledChip } from '@/routes/events/cancelled-chip';
 import { CheckInCard, CheckInClosed, CheckInNotYet } from '@/routes/events/check-in-card';
 import { EventAccessDetails } from '@/routes/events/event-access-details';
 import { EventAudienceSection, OutsideTheAudience } from '@/routes/events/event-audience-parts';
@@ -307,6 +309,7 @@ export default function EventDetailPage() {
               <span>{longWhen(event.startTime, event.timezone, event.allDay)}</span>
             </div>
 
+            {event.cancelled ? <CancelledChip className="mt-2 inline-block" /> : null}
             <h1 className="mt-2 font-extrabold font-display text-[1.4375rem] leading-[1.28] tracking-[-0.01em]">
               {event.title}
             </h1>
@@ -409,7 +412,7 @@ export default function EventDetailPage() {
             past events became lines rather than cards; this screen kept
             offering it, so the same finished evening answered two different
             ways depending on how you arrived at it. */}
-          {checkInPhase === 'open' && account.status === 'member' ? (
+          {checkInPhase === 'open' && account.status === 'member' && !event.cancelled ? (
             <CheckInCard
               eventId={event.id}
               eventTitle={event.title}
@@ -418,7 +421,9 @@ export default function EventDetailPage() {
               hostName={organization?.name ?? null}
             />
           ) : null}
-          {checkInPhase === 'soon' && account.status === 'member' ? <CheckInNotYet /> : null}
+          {checkInPhase === 'soon' && account.status === 'member' && !event.cancelled ? (
+            <CheckInNotYet />
+          ) : null}
           {/* Here only in the week after it closed, when a message can still be
             sent; the printed code's page says it has closed for ever after. */}
           {checkInPhase === 'over' &&
@@ -431,7 +436,14 @@ export default function EventDetailPage() {
               offerHelp
             />
           ) : null}
-          {isPastEvent(event) ? (
+          {event.cancelled ? (
+            <p
+              role="status"
+              className="mt-5 rounded-[14px] border border-destructive/30 bg-destructive/5 px-3.5 py-3 font-bold text-[0.9375rem] text-ink leading-[1.45]"
+            >
+              This date was cancelled by its organizer.
+            </p>
+          ) : isPastEvent(event) ? (
             <p className="mt-5 text-[0.8125rem] text-ink2 leading-[1.45]">
               {going
                 ? 'You said you were going to this.'
@@ -657,7 +669,7 @@ export default function EventDetailPage() {
           />
 
           {/* An event open to the whole club, still to come (post-to-home.tsx). */}
-          {canChange && event.audience === 'club' && !isPastEvent(event) ? (
+          {canChange && event.audience === 'club' && !isPastEvent(event) && !event.cancelled ? (
             <PostToHome event={event} />
           ) : null}
 
@@ -676,6 +688,14 @@ export default function EventDetailPage() {
             <ChangeEvent
               eventId={event.id}
               going={event.goingCount}
+              answered={event.goingCount + event.interestedCount}
+              cancellable={
+                !event.cancelled && !isPastEvent(event) && Date.parse(event.startTime) > Date.now()
+              }
+              onCancelled={(told) => {
+                announce(told > 0 ? `Cancelled. ${String(told)} told.` : 'Cancelled.');
+                reload?.();
+              }}
               repeats={event.seriesId !== null}
               onDeleted={(later) => {
                 announce(
@@ -755,17 +775,37 @@ function AttendeeSection({
 function ChangeEvent({
   eventId,
   going,
+  answered,
+  cancellable,
+  onCancelled,
   repeats,
   onDeleted,
 }: {
   eventId: string;
   going: number;
+  /** Going and Interested, who a cancellation tells. */
+  answered: number;
+  /** Still to come and not cancelled already (20261127100000). */
+  cancellable: boolean;
+  onCancelled: (told: number) => void;
   repeats: boolean;
   onDeleted: (later: boolean) => void;
 }) {
-  const [asking, setAsking] = useState(false);
-  const [busy, setBusy] = useState<'one' | 'later' | null>(null);
+  const [asking, setAsking] = useState<'delete' | 'cancel' | null>(null);
+  const [busy, setBusy] = useState<'one' | 'later' | 'cancel' | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  function cancel() {
+    setBusy('cancel');
+    setError(null);
+    void cancelEvent(eventId).then((result) => {
+      setBusy(null);
+      if (result.ok) {
+        setAsking(null);
+        onCancelled(result.told ?? 0);
+      } else setError(result.error ?? 'The date was not cancelled.');
+    });
+  }
 
   function confirm(later: boolean) {
     setBusy(later ? 'later' : 'one');
@@ -782,7 +822,43 @@ function ChangeEvent({
       <h2 className="mt-5 mb-2.5 font-extrabold font-head text-[0.75rem] text-grey uppercase tracking-[0.13em]">
         Added in the club
       </h2>
-      {asking ? (
+      {asking === 'cancel' ? (
+        <div className="rounded-[14px] border border-destructive/30 bg-destructive/5 p-3.5">
+          <p className="text-[0.875rem] text-ink leading-[1.45]">
+            {repeats ? 'Cancel this date? ' : 'Cancel this event? '}
+            {answered > 0
+              ? `${answered === 1 ? '1 person' : `${String(answered)} people`} who said Going or Interested will be told.`
+              : 'Nobody has answered it yet.'}{' '}
+            It stays on the calendar, marked Cancelled. It can’t be undone.
+          </p>
+          {error ? (
+            <p role="alert" className="mt-2 text-[0.8125rem] text-destructive leading-[1.45]">
+              {error}
+            </p>
+          ) : null}
+          <div className="mt-3 grid grid-cols-2 gap-[9px]">
+            <button
+              type="button"
+              onClick={cancel}
+              disabled={busy !== null}
+              className="flex min-h-[44px] items-center justify-center rounded-[13px] bg-destructive-fill px-3 font-bold font-head text-[0.9375rem] text-white disabled:opacity-40"
+            >
+              {busy === 'cancel' ? 'Cancelling…' : repeats ? 'Cancel this date' : 'Cancel it'}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setAsking(null);
+                setError(null);
+              }}
+              disabled={busy !== null}
+              className="flex min-h-[44px] items-center justify-center rounded-[13px] border-[1.6px] border-line px-3 font-bold font-head text-[0.9375rem] text-ink"
+            >
+              Keep it
+            </button>
+          </div>
+        </div>
+      ) : asking === 'delete' ? (
         <div className="rounded-[14px] border border-destructive/30 bg-destructive/5 p-3.5">
           <p className="text-[0.875rem] text-ink leading-[1.45]">
             {repeats ? 'This event repeats. Delete which dates? ' : 'Delete this event? '}
@@ -822,7 +898,7 @@ function ChangeEvent({
             <button
               type="button"
               onClick={() => {
-                setAsking(false);
+                setAsking(null);
                 setError(null);
               }}
               disabled={busy !== null}
@@ -833,23 +909,46 @@ function ChangeEvent({
           </div>
         </div>
       ) : (
-        <div className="grid grid-cols-2 gap-[9px]">
-          <Link
-            to={`/events/${eventId}/edit`}
-            className="flex min-h-[44px] items-center justify-center rounded-[13px] border-[1.6px] border-emphasis font-bold font-head text-[0.9375rem] text-emphasis transition-colors hover:bg-tint"
-          >
-            Change
-          </Link>
-          <button
-            type="button"
-            onClick={() => {
-              setAsking(true);
-            }}
-            className="flex min-h-[44px] items-center justify-center rounded-[13px] border-[1.6px] border-destructive/60 font-bold font-head text-[0.9375rem] text-destructive transition-colors hover:bg-destructive/5"
-          >
-            Delete
-          </button>
-        </div>
+        <>
+          {/* Every date to come, to cancel one or stop it (the owner, 2026-11-27). */}
+          {repeats ? (
+            <Link
+              to={`/events/${eventId}/dates`}
+              className="mb-[9px] flex min-h-[44px] items-center justify-center rounded-[13px] border-[1.6px] border-emphasis font-bold font-head text-[0.9375rem] text-emphasis transition-colors hover:bg-tint"
+            >
+              Manage dates
+            </Link>
+          ) : null}
+          <div className={cn('grid gap-[9px]', cancellable ? 'grid-cols-3' : 'grid-cols-2')}>
+            <Link
+              to={`/events/${eventId}/edit`}
+              className="flex min-h-[44px] items-center justify-center rounded-[13px] border-[1.6px] border-emphasis font-bold font-head text-[0.9375rem] text-emphasis transition-colors hover:bg-tint"
+            >
+              Change
+            </Link>
+            {cancellable ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setAsking('cancel');
+                }}
+                aria-label={repeats ? 'Cancel this date' : 'Cancel this event'}
+                className="flex min-h-[44px] items-center justify-center rounded-[13px] border-[1.6px] border-destructive/60 font-bold font-head text-[0.9375rem] text-destructive transition-colors hover:bg-destructive/5"
+              >
+                Cancel
+              </button>
+            ) : null}
+            <button
+              type="button"
+              onClick={() => {
+                setAsking('delete');
+              }}
+              className="flex min-h-[44px] items-center justify-center rounded-[13px] border-[1.6px] border-destructive/60 font-bold font-head text-[0.9375rem] text-destructive transition-colors hover:bg-destructive/5"
+            >
+              Delete
+            </button>
+          </div>
+        </>
       )}
     </>
   );
