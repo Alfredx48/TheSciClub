@@ -6,6 +6,7 @@ import { startActiveDay } from '@/lib/active-day';
 import { noteError, startAppErrors } from '@/lib/app-errors';
 import { startDeviceCheck } from '@/lib/device-check';
 import { takeHandoff } from '@/lib/home-screen-handoff';
+import { currentAppleDevice } from '@/lib/install';
 import { startPageSpeed } from '@/lib/page-speed';
 import { registerWorker } from '@/lib/register-worker';
 import { stayCurrent } from '@/lib/stay-current';
@@ -13,6 +14,9 @@ import { getSupabase } from '@/lib/supabase';
 import '@/index.css';
 
 stayCurrent();
+
+// The `tablet:` variant (index.css): an iPad may report a fine pointer.
+if (currentAppleDevice() === 'iPad') document.documentElement.dataset.ipad = '';
 
 // A screen's script is fetched when it is first opened (App.tsx). After a
 // deploy the old file names are gone, and a page still running the old

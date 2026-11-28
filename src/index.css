@@ -253,6 +253,20 @@
 }
 
 /*
+ * A touch screen, or an iPad however it reports its pointer: an iPad's Home
+ * Screen app said fine, not coarse, so its tabs sat together on the left
+ * (the owner, 2026-11-27). main.tsx marks an iPad with data-ipad.
+ */
+@custom-variant tablet {
+  @media (pointer: coarse) {
+    @slot;
+  }
+  &:where([data-ipad], [data-ipad] *) {
+    @slot;
+  }
+}
+
+/*
  * `md`, where the phone's layout gives way to the iPad's and the computer's:
  * 704px rather than Tailwind's 768, so an iPad mini held upright (744) has the
  * iPad's and not a phone's 480px column with dead margins (the owner,

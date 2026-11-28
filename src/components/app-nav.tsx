@@ -224,7 +224,7 @@ export function AppNav() {
           // A touch screen this wide is an iPad: the tabs spread across the
           // bar with bigger targets, so they are easy to reach and hit (the
           // owner, 2026-11-23). A laptop keeps them together on the left.
-          'md:pointer-coarse:justify-between md:pointer-coarse:px-2',
+          'md:tablet:justify-between md:tablet:px-2',
         )}
       >
         {TABS.map(({ to, label, Icon }) => {
@@ -273,18 +273,18 @@ export function AppNav() {
                 // Slimmer wherever the bar is on top (the owner, 2026-11-21).
                 'md:pt-0.5 md:pb-0',
                 // An iPad's: a finger-sized target and a larger label.
-                'md:pointer-coarse:min-h-12 md:pointer-coarse:justify-center md:pointer-coarse:px-4 md:pointer-coarse:text-[0.75rem]',
-                'lg:pointer-coarse:text-[0.875rem]',
+                'md:tablet:min-h-12 md:tablet:justify-center md:tablet:px-4 md:tablet:text-[0.75rem]',
+                'lg:tablet:text-[0.875rem]',
                 isActive ? 'text-emphasis' : 'text-grey',
                 !isActive && 'md:hover:bg-tint',
               )}
             >
               {/* Every item gets the same row height, so the five labels sit
                   on one line. */}
-              <span className="relative grid h-7 w-7 place-items-center rounded-[10px] md:h-6 md:w-6 md:pointer-coarse:h-7 md:pointer-coarse:w-7">
+              <span className="relative grid h-7 w-7 place-items-center rounded-[10px] md:h-6 md:w-6 md:tablet:h-7 md:tablet:w-7">
                 <Icon
                   className={cn(
-                    'h-[20px] w-[20px] md:h-[18px] md:w-[18px] md:pointer-coarse:h-[22px] md:pointer-coarse:w-[22px]',
+                    'h-[20px] w-[20px] md:h-[18px] md:w-[18px] md:tablet:h-[22px] md:tablet:w-[22px]',
                     isActive && '[stroke-width:2.3]',
                   )}
                 />
@@ -334,7 +334,7 @@ export function AppNav() {
             variant="bar"
             className={cn(
               // Spread with the tabs on an iPad rather than pushed to the end.
-              'hidden md:ml-auto md:flex md:pointer-coarse:ml-0',
+              'hidden md:ml-auto md:flex md:tablet:ml-0',
               location.pathname === '/notifications' && 'text-emphasis',
             )}
           />

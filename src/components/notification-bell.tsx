@@ -68,7 +68,7 @@ export function NotificationBell({
       className={cn(
         'relative flex items-center gap-1.5 rounded-xl px-2 py-1 font-bold text-[0.8125rem] text-grey hover:bg-tint lg:px-2.5',
         // An iPad's top bar: as big a target as the tabs beside it.
-        'pointer-coarse:min-h-12 pointer-coarse:px-4 lg:pointer-coarse:text-[0.875rem]',
+        'tablet:min-h-12 tablet:px-4 lg:tablet:text-[0.875rem]',
         className,
       )}
     >
@@ -77,7 +77,7 @@ export function NotificationBell({
           key={ring}
           aria-hidden="true"
           className={cn(
-            'h-[18px] w-[18px] pointer-coarse:h-[22px] pointer-coarse:w-[22px]',
+            'h-[18px] w-[18px] tablet:h-[22px] tablet:w-[22px]',
             ring > 0 && 'bell-ring',
           )}
         />
